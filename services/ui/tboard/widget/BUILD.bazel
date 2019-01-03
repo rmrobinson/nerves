@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "device_detail.go",
+        "devices.go",
+        "time.go",
+        "types.go",
+        "weather_condition.go",
+        "weather_forecast.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/ui/tboard/widget",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/gdamore/tcell:go_default_library",
+        "//vendor/github.com/rivo/tview:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["weather_forecast_test.go"],
+    embed = [":go_default_library"],
+)

@@ -1,0 +1,3 @@
+# Use generated `.pb.go` files in place of building protobuf files for external dependencies.
+#
+# gazelle:proto disable_global
