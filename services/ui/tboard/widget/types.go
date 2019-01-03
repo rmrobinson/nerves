@@ -1,9 +1,5 @@
 package widget
 
-import (
-	"time"
-)
-
 type DeviceInfo struct {
 	Name        string
 	Description string
@@ -29,15 +25,4 @@ type WeatherConditionInfo struct {
 	DewPointCelsius    float32
 
 	UVIndex uint8
-}
-
-type WeatherForecastInfoRecord struct {
-	Date        time.Time
-	HighCelsius float32
-	LowCelsius  float32
-	Description string
-}
-
-type WeatherForecastInfo struct {
-	Records []*WeatherForecastInfoRecord
 }

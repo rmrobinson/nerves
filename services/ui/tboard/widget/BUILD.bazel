@@ -13,6 +13,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/ui/tboard/widget",
     visibility = ["//visibility:public"],
     deps = [
+        "//services/weather:go_default_library",
         "//vendor/github.com/gdamore/tcell:go_default_library",
         "//vendor/github.com/rivo/tview:go_default_library",
     ],
