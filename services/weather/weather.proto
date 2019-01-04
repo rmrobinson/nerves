@@ -4,8 +4,22 @@ package faltung.nerves.weather;
 
 import "google/protobuf/timestamp.proto";
 
+enum WeatherIcon {
+    SUNNY = 0;
+    CLOUDY = 1;
+    PARTIALLY_CLOUDY = 2;
+    MOSTLY_CLOUDY = 3;
+    RAIN = 4;
+    CHANCE_OF_RAIN = 5;
+    SNOW = 6;
+    CHANCE_OF_SNOW = 7;
+    SNOW_SHOWERS = 8;
+    THUNDERSTORMS = 9;
+    FOG = 10;
+}
+
 message WeatherCondition {
-    string summary = 20;
+    WeatherIcon summary_icon = 20;
     // In Celsius.
     float temperature = 21;
     // In Celsius. May not be set if there are no wind conditions.
@@ -21,6 +35,8 @@ message WeatherCondition {
     // In km
     int32 visibility = 27;
     int32 uv_index = 28;
+
+    string summary = 29;
 }
 
 message WeatherReport {

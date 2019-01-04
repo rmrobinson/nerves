@@ -37,18 +37,21 @@ func main() {
 	weatherView := widget.NewWeatherCondition(app)
 	go func() {
 		for {
-			conds := &widget.WeatherConditionInfo{
-				Description:        "Partially cloudy",
-				TemperatureCelsius: -50 + rand.Float32()*100,
-				WindChillCelsius:   -50 + rand.Float32()*100,
-				HumidityPercentage: uint8(rand.Intn(100)),
-				PressureKPa:        90 + rand.Float32()*20,
-				WindSpeedKmPerHr:   uint32(rand.Intn(150)),
-				VisibilityKm:       uint32(rand.Intn(100)),
-				DewPointCelsius:    -10 + rand.Float32()*20,
-				UVIndex:            uint8(rand.Intn(10)),
+			report := &weather.WeatherReport{
+				Conditions: &weather.WeatherCondition{
+					Summary:     "Partially cloudy",
+					SummaryIcon: weather.WeatherIcon_THUNDERSTORMS,
+					Temperature: -50 + rand.Float32()*100,
+					WindChill:   -50 + rand.Float32()*100,
+					Humidity:    int32(rand.Intn(100)),
+					Pressure:    90 + rand.Float32()*20,
+					WindSpeed:   int32(rand.Intn(150)),
+					Visibility:  int32(rand.Intn(100)),
+					DewPoint:    -10 + rand.Float32()*20,
+					UvIndex:     int32(rand.Intn(10)),
+				},
 			}
-			weatherView.Refresh(conds)
+			weatherView.Refresh(report)
 
 			time.Sleep(time.Second * 3)
 		}
@@ -61,10 +64,11 @@ func main() {
 			for i := 0; i < rand.Intn(9); i++ {
 				forecastedFor, _ := ptypes.TimestampProto(time.Now().AddDate(0, 0, i+1))
 				forecastRecord := &weather.WeatherForecast{
-					ForecastedFor:       forecastedFor,
+					ForecastedFor: forecastedFor,
 					Conditions: &weather.WeatherCondition{
 						Temperature: -50 + rand.Float32()*100,
-						Summary: "Cloudy with 30 percent chance of flurries.",
+						Summary:     "Cloudy with 30 percent chance of flurries.",
+						SummaryIcon: weather.WeatherIcon_SNOW,
 					},
 				}
 

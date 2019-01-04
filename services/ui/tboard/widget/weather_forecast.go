@@ -2,7 +2,6 @@ package widget
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/rivo/tview"
@@ -91,44 +90,30 @@ func (wf *WeatherForecast) Refresh(forecast *weather.GetForecastResponse) {
 			wf.records[i].dateText.SetText(forecastedFor.Format("Monday"))
 			wf.records[i].lowText.SetText(fmt.Sprintf("Low %2.f C", record.Conditions.Temperature))
 			wf.records[i].highText.SetText(fmt.Sprintf("High %2.f C", record.Conditions.Temperature))
-			wf.records[i].detailsText.SetText(textToConditionSymbol(record.Conditions.Summary))
+			wf.records[i].detailsText.SetText(weatherIconToEmoji(record.Conditions.SummaryIcon))
 		}
 	})
 }
 
-func textToConditionSymbol(origText string) string {
-	text := strings.ToLower(origText)
-	if strings.Contains(text, "snow") || strings.Contains(text, "flurries") {
-		return "🌨"
-	}
-
-	if strings.Contains(text, "rain") {
-		if strings.Contains(text, "chance") || strings.Contains(text, "partially") {
-			return "🌦"
-		} else if strings.Contains(text, "storm") || strings.Contains(text, "lightning") {
-			return "⛈"
-		}
-		return "🌧"
-	}
-
-	if strings.Contains(text, "thunder") {
-		return "🌩"
-	}
-
-	if strings.Contains(text, "cloud") {
-		if strings.Contains(text, "partially") {
-			return "🌥"
-		} else if strings.Contains(text, "sun") {
-			return "🌤"
-		}
-		return "☁"
-	}
-
-	if strings.Contains(text, "sunny") {
-		if strings.Contains(text, "partially") {
-			return "🌤"
-		}
+func weatherIconToEmoji(icon weather.WeatherIcon) string {
+	switch icon {
+	case weather.WeatherIcon_SUNNY:
 		return "☼"
+	case weather.WeatherIcon_CLOUDY:
+		return "☁"
+	case weather.WeatherIcon_PARTIALLY_CLOUDY:
+		return "🌤"
+	case weather.WeatherIcon_MOSTLY_CLOUDY:
+		return "🌥"
+	case weather.WeatherIcon_RAIN, weather.WeatherIcon_SNOW_SHOWERS:
+		return "🌧"
+	case weather.WeatherIcon_CHANCE_OF_RAIN:
+		return "🌦"
+	case weather.WeatherIcon_SNOW, weather.WeatherIcon_CHANCE_OF_SNOW:
+		return "🌨"
+	case weather.WeatherIcon_THUNDERSTORMS:
+		return "⛈"
+	default:
+		return icon.String()
 	}
-	return origText
 }

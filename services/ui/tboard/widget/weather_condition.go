@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/weather"
 )
 
 // WeatherCondition is a widget to display the current weather conditions.
@@ -23,10 +24,10 @@ type WeatherCondition struct {
 	dewPointView    *tview.TextView
 	uvIndexView     *tview.TextView
 
-	condition *WeatherConditionInfo
+	report *weather.WeatherReport
 }
 
-// NewWeatherCondition creates a new weather condition widget.
+// NewWeatherCondition creates a new weather report widget.
 // Nothing will be displayed until a WeatherConditionInfo is set on this view using Refresh()
 func NewWeatherCondition(app *tview.Application) *WeatherCondition {
 	wc := &WeatherCondition{
@@ -98,18 +99,18 @@ func NewWeatherCondition(app *tview.Application) *WeatherCondition {
 }
 
 // Refresh takes the supplied information and updates the widget with the supplied values.
-func (wc *WeatherCondition) Refresh(conditions *WeatherConditionInfo) {
+func (wc *WeatherCondition) Refresh(report *weather.WeatherReport) {
 	wc.app.QueueUpdateDraw(func() {
-		wc.condition = conditions
+		wc.report = report
 
-		wc.conditionsView.SetText(wc.condition.Description)
-		wc.temperatureView.SetText(fmt.Sprintf("%2.1f C", wc.condition.TemperatureCelsius))
-		wc.windChillView.SetText(fmt.Sprintf("%2.1f C", wc.condition.WindChillCelsius))
-		wc.humidityView.SetText(fmt.Sprintf("%3d %%", wc.condition.HumidityPercentage))
-		wc.pressureView.SetText(fmt.Sprintf("%3.1f kPa", wc.condition.PressureKPa))
-		wc.windSpeedView.SetText(fmt.Sprintf("%2d km/h", wc.condition.WindSpeedKmPerHr))
-		wc.visibilityView.SetText(fmt.Sprintf("%3d km", wc.condition.VisibilityKm))
-		wc.dewPointView.SetText(fmt.Sprintf("%2.1f C", wc.condition.DewPointCelsius))
-		wc.uvIndexView.SetText(fmt.Sprintf("%1d", wc.condition.UVIndex))
+		wc.conditionsView.SetText(wc.report.Conditions.Summary)
+		wc.temperatureView.SetText(fmt.Sprintf("%2.1f C", wc.report.Conditions.Temperature))
+		wc.windChillView.SetText(fmt.Sprintf("%2.1f C", wc.report.Conditions.WindChill))
+		wc.humidityView.SetText(fmt.Sprintf("%3d %%", wc.report.Conditions.Humidity))
+		wc.pressureView.SetText(fmt.Sprintf("%3.1f kPa", wc.report.Conditions.Pressure))
+		wc.windSpeedView.SetText(fmt.Sprintf("%2d km/h", wc.report.Conditions.WindSpeed))
+		wc.visibilityView.SetText(fmt.Sprintf("%3d km", wc.report.Conditions.Visibility))
+		wc.dewPointView.SetText(fmt.Sprintf("%2.1f C", wc.report.Conditions.DewPoint))
+		wc.uvIndexView.SetText(fmt.Sprintf("%1d", wc.report.Conditions.UvIndex))
 	})
 }
