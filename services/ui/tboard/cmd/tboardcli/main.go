@@ -1,14 +1,35 @@
 package main
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
+	"github.com/rmrobinson/nerves/services/weather"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 func main() {
+	logger, _ := zap.NewDevelopment()
+	// weather client
+
+	var grpcOpts []grpc.DialOption
+	grpcOpts = append(grpcOpts, grpc.WithInsecure())
+
+	conn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
+	if err != nil {
+		logger.Fatal("unable to dial",
+			zap.Error(err),
+		)
+	}
+	defer conn.Close()
+
+	weatherClient := weather.NewWeatherClient(conn)
+
 	app := tview.NewApplication()
 
 	// Toronto, Calgary & SF
@@ -35,18 +56,12 @@ func main() {
 	weatherView := widget.NewWeatherCondition(app)
 	go func() {
 		for {
-			conds := &widget.WeatherConditionInfo{
-				Description:        "Partially cloudy",
-				TemperatureCelsius: -50 + rand.Float32()*100,
-				WindChillCelsius:   -50 + rand.Float32()*100,
-				HumidityPercentage: uint8(rand.Intn(100)),
-				PressureKPa:        90 + rand.Float32()*20,
-				WindSpeedKmPerHr:   uint32(rand.Intn(150)),
-				VisibilityKm:       uint32(rand.Intn(100)),
-				DewPointCelsius:    -10 + rand.Float32()*20,
-				UVIndex:            uint8(rand.Intn(10)),
+			report, err := weatherClient.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{})
+			if err != nil {
+				logger.Fatal("unable to get weather")
 			}
-			weatherView.Refresh(conds)
+
+			weatherView.Refresh(report)
 
 			time.Sleep(time.Second * 3)
 		}
@@ -55,16 +70,19 @@ func main() {
 	forecastView := widget.NewWeatherForecast(app, 6)
 	go func() {
 		for {
-			forecast := &widget.WeatherForecastInfo{}
+			forecast := &weather.GetForecastResponse{}
 			for i := 0; i < rand.Intn(9); i++ {
-				forecastRecord := &widget.WeatherForecastInfoRecord{
-					Date:        time.Now().AddDate(0, 0, i+1),
-					LowCelsius:  -50 + rand.Float32()*100,
-					HighCelsius: -50 + rand.Float32()*100,
-					Description: "Cloudy with 30 percent chance of flurries.",
+				forecastedFor, _ := ptypes.TimestampProto(time.Now().AddDate(0, 0, i+1))
+				forecastRecord := &weather.WeatherForecast{
+					ForecastedFor: forecastedFor,
+					Conditions: &weather.WeatherCondition{
+						Temperature: -50 + rand.Float32()*100,
+						Summary:     "Cloudy with 30 percent chance of flurries.",
+						SummaryIcon: weather.WeatherIcon_SNOW,
+					},
 				}
 
-				forecast.Records = append(forecast.Records, forecastRecord)
+				forecast.ForecastRecords = append(forecast.ForecastRecords, forecastRecord)
 			}
 			forecastView.Refresh(forecast)
 			time.Sleep(time.Second * 10)

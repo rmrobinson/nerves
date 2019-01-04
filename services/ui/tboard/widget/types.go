@@ -1,9 +1,6 @@
 package widget
 
-import (
-	"time"
-)
-
+// DeviceInfo is a mock struct containing basic device information.
 type DeviceInfo struct {
 	Name        string
 	Description string
@@ -14,30 +11,4 @@ type DeviceInfo struct {
 	Red   uint8
 	Green uint8
 	Blue  uint8
-}
-
-type WeatherConditionInfo struct {
-	Description string
-
-	TemperatureCelsius float32
-	WindChillCelsius   float32
-
-	HumidityPercentage uint8
-	PressureKPa        float32
-	WindSpeedKmPerHr   uint32
-	VisibilityKm       uint32
-	DewPointCelsius    float32
-
-	UVIndex uint8
-}
-
-type WeatherForecastInfoRecord struct {
-	Date        time.Time
-	HighCelsius float32
-	LowCelsius  float32
-	Description string
-}
-
-type WeatherForecastInfo struct {
-	Records []*WeatherForecastInfoRecord
 }

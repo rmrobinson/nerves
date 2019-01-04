@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package faltung.nerves.weather;
+
+import "google/protobuf/timestamp.proto";
+
+enum WeatherIcon {
+    SUNNY = 0;
+    CLOUDY = 1;
+    PARTIALLY_CLOUDY = 2;
+    MOSTLY_CLOUDY = 3;
+    RAIN = 4;
+    CHANCE_OF_RAIN = 5;
+    SNOW = 6;
+    CHANCE_OF_SNOW = 7;
+    SNOW_SHOWERS = 8;
+    THUNDERSTORMS = 9;
+    FOG = 10;
+}
+
+message WeatherCondition {
+    WeatherIcon summary_icon = 20;
+    // In Celsius.
+    float temperature = 21;
+    // In Celsius. May not be set if there are no wind conditions.
+    float wind_chill = 22;
+    // In Celsius.
+    float dew_point = 23;
+    // A % out of 100
+    int32 humidity = 24;
+    // In kilopascals (kPa)
+    float pressure = 25;
+    // In km/hr
+    int32 wind_speed = 26;
+    // In km
+    int32 visibility = 27;
+    int32 uv_index = 28;
+
+    string summary = 29;
+}
+
+message WeatherReport {
+    google.protobuf.Timestamp observed_at = 1;
+    string observation_id = 2;
+
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp updated_at = 11;
+
+    WeatherCondition conditions = 20;
+}
+
+message WeatherForecast {
+    google.protobuf.Timestamp forecasted_for = 1;
+    string forecast_id = 2;
+
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp updated_at = 11;
+
+    WeatherCondition conditions = 20;
+}
+
+message GetCurrentReportRequest {
+    string location = 1;
+}
+message GetForecastRequest {
+    string location = 1;
+}
+message GetForecastResponse {
+    repeated WeatherForecast forecast_records = 1;
+}
+
+service Weather {
+    rpc GetCurrentReport(GetCurrentReportRequest) returns (WeatherReport) {}
+    rpc GetForecast(GetForecastRequest) returns (GetForecastResponse) {}
+}

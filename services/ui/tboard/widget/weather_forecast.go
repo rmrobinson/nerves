@@ -2,9 +2,10 @@ package widget
 
 import (
 	"fmt"
-	"strings"
+	"time"
 
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/weather"
 )
 
 type weatherForecastRecord struct {
@@ -72,10 +73,10 @@ func NewWeatherForecast(app *tview.Application, rowCount int) *WeatherForecast {
 }
 
 // Refresh causes the forecast data to be updated.
-func (wf *WeatherForecast) Refresh(forecast *WeatherForecastInfo) {
+func (wf *WeatherForecast) Refresh(forecast *weather.GetForecastResponse) {
 	wf.app.QueueUpdateDraw(func() {
 		for i := 0; i < len(wf.records); i++ {
-			if i >= len(forecast.Records) {
+			if i >= len(forecast.ForecastRecords) {
 				wf.records[i].dateText.Clear()
 				wf.records[i].lowText.Clear()
 				wf.records[i].highText.Clear()
@@ -83,47 +84,36 @@ func (wf *WeatherForecast) Refresh(forecast *WeatherForecastInfo) {
 				continue
 			}
 
-			wf.records[i].dateText.SetText(forecast.Records[i].Date.Format("Monday"))
-			wf.records[i].lowText.SetText(fmt.Sprintf("Low %2.f C", forecast.Records[i].LowCelsius))
-			wf.records[i].highText.SetText(fmt.Sprintf("High %2.f C", forecast.Records[i].HighCelsius))
-			wf.records[i].detailsText.SetText(textToConditionSymbol(forecast.Records[i].Description))
+			record := forecast.ForecastRecords[i]
+
+			forecastedFor := time.Unix(record.ForecastedFor.Seconds, int64(record.ForecastedFor.Nanos))
+			wf.records[i].dateText.SetText(forecastedFor.Format("Monday"))
+			wf.records[i].lowText.SetText(fmt.Sprintf("Low %2.f C", record.Conditions.Temperature))
+			wf.records[i].highText.SetText(fmt.Sprintf("High %2.f C", record.Conditions.Temperature))
+			wf.records[i].detailsText.SetText(weatherIconToEmoji(record.Conditions.SummaryIcon))
 		}
 	})
 }
 
-func textToConditionSymbol(origText string) string {
-	text := strings.ToLower(origText)
-	if strings.Contains(text, "snow") || strings.Contains(text, "flurries") {
-		return "🌨"
-	}
-
-	if strings.Contains(text, "rain") {
-		if strings.Contains(text, "chance") || strings.Contains(text,"partially") {
-			return "🌦"
-		} else if strings.Contains(text, "storm") || strings.Contains(text, "lightning") {
-			return "⛈"
-		}
-		return "🌧"
-	}
-
-	if strings.Contains(text, "thunder") {
-		return "🌩"
-	}
-
-	if strings.Contains(text, "cloud") {
-		if strings.Contains(text, "partially") {
-			return "🌥"
-		} else if strings.Contains(text, "sun") {
-			return "🌤"
-		}
-		return "☁"
-	}
-
-	if strings.Contains(text,"sunny") {
-		if strings.Contains(text, "partially") {
-			return "🌤"
-		}
+func weatherIconToEmoji(icon weather.WeatherIcon) string {
+	switch icon {
+	case weather.WeatherIcon_SUNNY:
 		return "☼"
+	case weather.WeatherIcon_CLOUDY:
+		return "☁"
+	case weather.WeatherIcon_PARTIALLY_CLOUDY:
+		return "🌤"
+	case weather.WeatherIcon_MOSTLY_CLOUDY:
+		return "🌥"
+	case weather.WeatherIcon_RAIN, weather.WeatherIcon_SNOW_SHOWERS:
+		return "🌧"
+	case weather.WeatherIcon_CHANCE_OF_RAIN:
+		return "🌦"
+	case weather.WeatherIcon_SNOW, weather.WeatherIcon_CHANCE_OF_SNOW:
+		return "🌨"
+	case weather.WeatherIcon_THUNDERSTORMS:
+		return "⛈"
+	default:
+		return icon.String()
 	}
-	return origText
 }
