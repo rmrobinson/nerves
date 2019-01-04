@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
@@ -8,9 +9,27 @@ import (
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 func main() {
+	logger, _ := zap.NewDevelopment()
+	// weather client
+
+	var grpcOpts []grpc.DialOption
+	grpcOpts = append(grpcOpts, grpc.WithInsecure())
+
+	conn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
+	if err != nil {
+		logger.Fatal("unable to dial",
+			zap.Error(err),
+		)
+	}
+	defer conn.Close()
+
+	weatherClient := weather.NewWeatherClient(conn)
+
 	app := tview.NewApplication()
 
 	// Toronto, Calgary & SF
@@ -37,20 +56,11 @@ func main() {
 	weatherView := widget.NewWeatherCondition(app)
 	go func() {
 		for {
-			report := &weather.WeatherReport{
-				Conditions: &weather.WeatherCondition{
-					Summary:     "Partially cloudy",
-					SummaryIcon: weather.WeatherIcon_THUNDERSTORMS,
-					Temperature: -50 + rand.Float32()*100,
-					WindChill:   -50 + rand.Float32()*100,
-					Humidity:    int32(rand.Intn(100)),
-					Pressure:    90 + rand.Float32()*20,
-					WindSpeed:   int32(rand.Intn(150)),
-					Visibility:  int32(rand.Intn(100)),
-					DewPoint:    -10 + rand.Float32()*20,
-					UvIndex:     int32(rand.Intn(10)),
-				},
+			report, err := weatherClient.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{})
+			if err != nil {
+				logger.Fatal("unable to get weather")
 			}
+
 			weatherView.Refresh(report)
 
 			time.Sleep(time.Second * 3)

@@ -1,5 +1,6 @@
 package widget
 
+// DeviceInfo is a mock struct containing basic device information.
 type DeviceInfo struct {
 	Name        string
 	Description string

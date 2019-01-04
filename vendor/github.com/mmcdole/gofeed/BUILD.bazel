@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "detector.go",
+        "feed.go",
+        "parser.go",
+        "translator.go",
+    ],
+    importmap = "github.com/rmrobinson/nerves/vendor/github.com/mmcdole/gofeed",
+    importpath = "github.com/mmcdole/gofeed",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/mmcdole/gofeed/atom:go_default_library",
+        "//vendor/github.com/mmcdole/gofeed/extensions:go_default_library",
+        "//vendor/github.com/mmcdole/gofeed/internal/shared:go_default_library",
+        "//vendor/github.com/mmcdole/gofeed/rss:go_default_library",
+        "//vendor/github.com/mmcdole/goxpp:go_default_library",
+    ],
+)
