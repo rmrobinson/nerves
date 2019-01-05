@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"math/rand"
+	"net/url"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -14,23 +15,35 @@ import (
 )
 
 func main() {
-	logger, _ := zap.NewDevelopment()
-	// weather client
+	app := tview.NewApplication()
+
+	debugView := widget.NewDebug(app)
+
+	zap.RegisterSink("widget", func(*url.URL) (zap.Sink, error) {
+		return NewWidgetSink(debugView), nil
+	})
+
+	conf := zap.NewDevelopmentConfig()
+	// Redirect all messages to the WidgetSink.
+	conf.OutputPaths = []string{"widget://"}
+
+	logger, err := conf.Build()
+	if err != nil {
+		return
+	}
 
 	var grpcOpts []grpc.DialOption
 	grpcOpts = append(grpcOpts, grpc.WithInsecure())
 
 	conn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
 	if err != nil {
-		logger.Fatal("unable to dial",
+		logger.Warn("unable to dial",
 			zap.Error(err),
 		)
 	}
 	defer conn.Close()
 
 	weatherClient := weather.NewWeatherClient(conn)
-
-	app := tview.NewApplication()
 
 	// Toronto, Calgary & SF
 	locations := []string{
@@ -58,7 +71,7 @@ func main() {
 		for {
 			report, err := weatherClient.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{})
 			if err != nil {
-				logger.Fatal("unable to get weather")
+				logger.Warn("unable to get weather")
 			}
 
 			weatherView.Refresh(report)
@@ -120,13 +133,16 @@ func main() {
 	},
 	)
 
-	layout := tview.NewFlex().
-		AddItem(devicesView, 0, 1, true).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(torontoTime, 4, 1, false).
-			AddItem(calgaryTime, 4, 1, false).
-			AddItem(weatherView, 0, 1, false).
-			AddItem(forecastView, 0, 2, false), 24, 1, false)
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(tview.NewFlex().
+			AddItem(devicesView, 0, 1, true).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(torontoTime, 4, 1, false).
+				AddItem(calgaryTime, 4, 1, false).
+				AddItem(weatherView, 17, 1, false).
+				AddItem(forecastView, 0, 1, false), 24, 1, false), 0, 1, true).
+		AddItem(debugView, 3, 1, false)
+
 	if err := app.SetRoot(layout, true).SetFocus(layout).Run(); err != nil {
 		panic(err)
 	}
