@@ -32,7 +32,7 @@ func NewTime(app *tview.Application, location *time.Location) *Time {
 	return t
 }
 
-// Run begins running the time widget. It will spend 10 seconds on each timezone loaded.
+// Run begins running the time widget.
 func (t *Time) Run() {
 	for {
 		t.app.QueueUpdateDraw(func() {

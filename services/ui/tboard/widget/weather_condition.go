@@ -103,6 +103,19 @@ func (wc *WeatherCondition) Refresh(report *weather.WeatherReport) {
 	wc.app.QueueUpdateDraw(func() {
 		wc.report = report
 
+		if report == nil {
+			wc.conditionsView.Clear()
+			wc.temperatureView.Clear()
+			wc.windChillView.Clear()
+			wc.humidityView.Clear()
+			wc.pressureView.Clear()
+			wc.windSpeedView.Clear()
+			wc.visibilityView.Clear()
+			wc.dewPointView.Clear()
+			wc.uvIndexView.Clear()
+			return
+		}
+
 		wc.conditionsView.SetText(wc.report.Conditions.Summary)
 		wc.temperatureView.SetText(fmt.Sprintf("%2.1f C", wc.report.Conditions.Temperature))
 		wc.windChillView.SetText(fmt.Sprintf("%2.1f C", wc.report.Conditions.WindChill))
