@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"math/rand"
 	"net/url"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
@@ -83,22 +81,14 @@ func main() {
 	forecastView := widget.NewWeatherForecast(app, 6)
 	go func() {
 		for {
-			forecast := &weather.GetForecastResponse{}
-			for i := 0; i < rand.Intn(9); i++ {
-				forecastedFor, _ := ptypes.TimestampProto(time.Now().AddDate(0, 0, i+1))
-				forecastRecord := &weather.WeatherForecast{
-					ForecastedFor: forecastedFor,
-					Conditions: &weather.WeatherCondition{
-						Temperature: -50 + rand.Float32()*100,
-						Summary:     "Cloudy with 30 percent chance of flurries.",
-						SummaryIcon: weather.WeatherIcon_SNOW,
-					},
-				}
-
-				forecast.ForecastRecords = append(forecast.ForecastRecords, forecastRecord)
+			forecast, err := weatherClient.GetForecast(context.Background(), &weather.GetForecastRequest{})
+			if err != nil {
+				logger.Warn("unable to get weather")
 			}
+
 			forecastView.Refresh(forecast)
-			time.Sleep(time.Second * 10)
+
+			time.Sleep(time.Second * 3)
 		}
 	}()
 

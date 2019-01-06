@@ -17,5 +17,6 @@ go_library(
         "//services/weather:go_default_library",
         "//vendor/github.com/gdamore/tcell:go_default_library",
         "//vendor/github.com/rivo/tview:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
     ],
 )
