@@ -5,7 +5,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
 	"go.uber.org/zap"
@@ -92,33 +94,66 @@ func main() {
 		}
 	}()
 
-	devicesView := widget.NewDevices(app, []*widget.DeviceInfo{
+	devicesView := widget.NewDevices(app, []*domotics.Device{
 		{
-			"deviceInfo 1",
-			"first deviceInfo with some deets",
-			false,
-			100,
-			0,
-			0,
-			0,
+			Id: uuid.New().String(),
+			Config: &domotics.DeviceConfig{
+				Name: "device 1",
+				Description: "first device with some deets",
+			},
+			State: &domotics.DeviceState{
+				Binary: &domotics.DeviceState_BinaryState{
+					IsOn: false,
+				},
+				Range: &domotics.DeviceState_RangeState{
+					Value: 100,
+				},
+				ColorRgb: &domotics.DeviceState_RGBState{
+					Red: 0,
+					Green: 0,
+					Blue: 0,
+				},
+			},
 		},
 		{
-			"deviceInfo 2",
-			"second deviceInfo with some more details",
-			true,
-			100,
-			64,
-			128,
-			192,
+			Id: uuid.New().String(),
+			Config: &domotics.DeviceConfig{
+				Name: "device 2",
+				Description: "second device with some more details",
+			},
+			State: &domotics.DeviceState{
+				Binary: &domotics.DeviceState_BinaryState{
+					IsOn: true,
+				},
+				Range: &domotics.DeviceState_RangeState{
+					Value: 100,
+				},
+				ColorRgb: &domotics.DeviceState_RGBState{
+					Red: 64,
+					Green: 128,
+					Blue: 231,
+				},
+			},
 		},
 		{
-			"deviceInfo 3",
-			"third deviceInfo",
-			true,
-			50,
-			0,
-			0,
-			0,
+			Id: uuid.New().String(),
+			Config: &domotics.DeviceConfig{
+				Name: "device 3",
+				Description: "third device",
+			},
+			State: &domotics.DeviceState{
+				Binary: &domotics.DeviceState_BinaryState{
+					IsOn: true,
+				},
+				Range: &domotics.DeviceState_RangeState{
+					Value: 50,
+				},
+				ColorRgb: &domotics.DeviceState_RGBState{
+					Red: 0,
+					Green: 0,
+					Blue: 0,
+				},
+			},
 		},
 	},
 	)

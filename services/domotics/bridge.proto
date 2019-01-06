@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package faltung.nerves.domotics;
+
+message Address {
+    message Ip {
+        string host = 1;
+        string netmask = 2;
+        string gateway = 3;
+        int32 port = 4;
+
+        bool via_dhcp = 10;
+    }
+
+    Ip ip = 1;
+
+    message Usb {
+        string path = 1;
+    }
+
+    Usb usb = 2;
+}
+
+message BridgeState {
+    bool is_paired = 1;
+
+    message Version {
+        string api = 1;
+        string sw = 2;
+    }
+
+    Version version = 100;
+
+    message Zigbee {
+        int32 channel = 1;
+    }
+
+    message Zwave {
+        string homeId = 1;
+        string mode = 2;
+    }
+
+    Zigbee zigbee = 110;
+    Zwave zwave = 111;
+}
+
+message BridgeConfig {
+    string id = 1;
+    string name = 2;
+
+    Address address = 10;
+
+    string cache_path = 11;
+
+    string timezone = 50;
+}
+
+message BridgeSwUpdate {
+    bool is_available = 1;
+
+    bool notify_user = 10;
+    string notify_text = 11;
+    string notify_url = 12;
+}
+
+enum BridgeType {
+    GENERIC = 0;
+    LOOPBACK = 1;
+    PROXY = 2;
+    HUE = 3;
+    BOTTLEROCKET = 4;
+    MONOPRICEAMP = 5;
+}
+
+enum BridgeMode {
+    CREATED = 0;
+    INITIALIZED = 1;
+    ACTIVE = 2;
+    DISABLED = 3;
+}
+
+message Bridge {
+    string id = 1;
+    BridgeType type = 2;
+    BridgeMode mode = 3;
+    string mode_reason = 4;
+
+    string model_id = 10;
+    string model_name = 11;
+    string model_description = 12;
+    string manufacturer = 13;
+
+    repeated string icon_url = 20;
+
+    BridgeConfig config = 100;
+    BridgeState state = 101;
+}
+
+message GetBridgesRequest {
+}
+message GetBridgesResponse {
+    repeated Bridge bridges = 1;
+}
+message SetBridgeConfigRequest {
+    string id = 1;
+    BridgeConfig config = 10;
+}
+message SetBridgeConfigResponse {
+    Bridge bridge = 1;
+}
+
+message WatchBridgesRequest {
+}
+message BridgeUpdate {
+    enum Action {
+        ADDED = 0;
+        CHANGED = 1;
+        REMOVED = 2;
+    }
+
+    Action action = 1;
+    Bridge bridge = 2;
+}
+
+service BridgeManager {
+    rpc GetBridges(GetBridgesRequest) returns (GetBridgesResponse) {}
+    rpc SetBridgeConfig(SetBridgeConfigRequest) returns (SetBridgeConfigResponse) {}
+    rpc WatchBridges(WatchBridgesRequest) returns (stream BridgeUpdate) {}
+}
