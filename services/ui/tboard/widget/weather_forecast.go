@@ -2,8 +2,8 @@ package widget
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/weather"
 )
@@ -12,8 +12,7 @@ type weatherForecastRecord struct {
 	*tview.Flex
 
 	dateText    *tview.TextView
-	lowText     *tview.TextView
-	highText    *tview.TextView
+	tempText    *tview.TextView
 	detailsText *tview.TextView
 }
 
@@ -21,23 +20,19 @@ func newWeatherForecastRecord() *weatherForecastRecord {
 	wfc := &weatherForecastRecord{
 		Flex:        tview.NewFlex(),
 		dateText:    tview.NewTextView(),
-		lowText:     tview.NewTextView(),
-		highText:    tview.NewTextView(),
+		tempText:    tview.NewTextView(),
 		detailsText: tview.NewTextView(),
 	}
 
 	wfc.dateText.SetTextAlign(tview.AlignLeft)
 	wfc.detailsText.SetTextAlign(tview.AlignRight)
-	wfc.lowText.SetTextAlign(tview.AlignLeft)
-	wfc.highText.SetTextAlign(tview.AlignLeft)
+	wfc.tempText.SetTextAlign(tview.AlignLeft)
 
 	wfc.SetDirection(tview.FlexRow).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-			AddItem(wfc.dateText, 0, 1, false).
+			AddItem(wfc.dateText, 0, 4, false).
 			AddItem(wfc.detailsText, 0, 1, false), 1, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-			AddItem(wfc.lowText, 0, 1, false).
-			AddItem(wfc.highText, 0, 1, false), 1, 1, false)
+		AddItem(wfc.tempText, 0, 1, false)
 
 	return wfc
 }
@@ -76,21 +71,26 @@ func NewWeatherForecast(app *tview.Application, rowCount int) *WeatherForecast {
 func (wf *WeatherForecast) Refresh(forecast *weather.GetForecastResponse) {
 	wf.app.QueueUpdateDraw(func() {
 		for i := 0; i < len(wf.records); i++ {
-			if i >= len(forecast.ForecastRecords) {
+			if forecast == nil || i >= len(forecast.ForecastRecords) {
 				wf.records[i].dateText.Clear()
-				wf.records[i].lowText.Clear()
-				wf.records[i].highText.Clear()
+				wf.records[i].tempText.Clear()
 				wf.records[i].detailsText.Clear()
 				continue
 			}
 
 			record := forecast.ForecastRecords[i]
+			forecastedFor, _ := ptypes.Timestamp(record.ForecastedFor)
 
-			forecastedFor := time.Unix(record.ForecastedFor.Seconds, int64(record.ForecastedFor.Nanos))
-			wf.records[i].dateText.SetText(forecastedFor.Format("Monday"))
-			wf.records[i].lowText.SetText(fmt.Sprintf("Low %2.f C", record.Conditions.Temperature))
-			wf.records[i].highText.SetText(fmt.Sprintf("High %2.f C", record.Conditions.Temperature))
 			wf.records[i].detailsText.SetText(weatherIconToEmoji(record.Conditions.SummaryIcon))
+
+			// This gives us our 'low' temperature
+			if forecastedFor.Hour() == 23 {
+				wf.records[i].tempText.SetText(fmt.Sprintf(" Low %2.f C", record.Conditions.Temperature))
+				wf.records[i].dateText.SetText(forecastedFor.Format("Monday") + " evening")
+			} else {
+				wf.records[i].tempText.SetText(fmt.Sprintf(" High %2.f C", record.Conditions.Temperature))
+				wf.records[i].dateText.SetText(forecastedFor.Format("Monday"))
+			}
 		}
 	})
 }
