@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "serial.go",
+        "serial_linux.go",
+        "serial_posix.go",
+        "serial_windows.go",
+    ],
+    cgo = True,
+    importmap = "github.com/rmrobinson/nerves/vendor/github.com/tarm/serial",
+    importpath = "github.com/tarm/serial",
+    visibility = ["//visibility:public"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:linux": [
+            "//vendor/golang.org/x/sys/unix:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
+)

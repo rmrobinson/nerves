@@ -96,9 +96,9 @@ message Bridge {
     BridgeState state = 101;
 }
 
-message GetBridgesRequest {
+message ListBridgesRequest {
 }
-message GetBridgesResponse {
+message ListBridgesResponse {
     repeated Bridge bridges = 1;
 }
 message SetBridgeConfigRequest {
@@ -109,7 +109,7 @@ message SetBridgeConfigResponse {
     Bridge bridge = 1;
 }
 
-message WatchBridgesRequest {
+message StreamBridgeUpdatesRequest {
 }
 message BridgeUpdate {
     enum Action {
@@ -122,8 +122,8 @@ message BridgeUpdate {
     Bridge bridge = 2;
 }
 
-service BridgeManager {
-    rpc GetBridges(GetBridgesRequest) returns (GetBridgesResponse) {}
+service BridgeService {
+    rpc ListBridges(ListBridgesRequest) returns (ListBridgesResponse) {}
     rpc SetBridgeConfig(SetBridgeConfigRequest) returns (SetBridgeConfigResponse) {}
-    rpc WatchBridges(WatchBridgesRequest) returns (stream BridgeUpdate) {}
+    rpc StreamBridgeUpdates(StreamBridgeUpdatesRequest) returns (stream BridgeUpdate) {}
 }

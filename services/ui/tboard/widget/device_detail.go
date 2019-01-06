@@ -141,10 +141,14 @@ func (dd *DeviceDetail) Refresh(device *domotics.Device) {
 		dd.descriptionText.SetText(dd.device.Config.Description)
 
 		// TODO: do not allow/show values for fields that aren't supported.
-		dd.levelInput.SetText(fmt.Sprintf("%2d", dd.device.State.Range.Value))
-		dd.redInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Red))
-		dd.greenInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Green))
-		dd.blueInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Blue))
+		if dd.device.State.Range != nil {
+			dd.levelInput.SetText(fmt.Sprintf("%2d", dd.device.State.Range.Value))
+		}
+		if dd.device.State.ColorRgb != nil {
+			dd.redInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Red))
+			dd.greenInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Green))
+			dd.blueInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Blue))
+		}
 	})
 }
 
@@ -152,10 +156,14 @@ func (dd *DeviceDetail) Refresh(device *domotics.Device) {
 func (dd *DeviceDetail) saveFields() {
 	// TODO: do not persist fields that aren't supported
 	dd.device.State.Binary.IsOn = dd.isOnCheckbox.IsChecked()
-	dd.device.State.Range.Value = int32FromInputField(dd.levelInput)
-	dd.device.State.ColorRgb.Red = int32FromInputField(dd.redInput)
-	dd.device.State.ColorRgb.Green = int32FromInputField(dd.greenInput)
-	dd.device.State.ColorRgb.Blue = int32FromInputField(dd.blueInput)
+	if dd.device.State.Range != nil {
+		dd.device.State.Range.Value = int32FromInputField(dd.levelInput)
+	}
+	if dd.device.State.ColorRgb != nil {
+		dd.device.State.ColorRgb.Red = int32FromInputField(dd.redInput)
+		dd.device.State.ColorRgb.Green = int32FromInputField(dd.greenInput)
+		dd.device.State.ColorRgb.Blue = int32FromInputField(dd.blueInput)
+	}
 }
 
 func int32FromInputField(view *tview.InputField) int32 {

@@ -139,7 +139,7 @@ message GetDeviceResponse {
     Device device = 1;
 }
 
-message WatchDevicesRequest {
+message StreamDeviceUpdatesRequest {
 }
 message DeviceUpdate {
         enum Action {
@@ -173,14 +173,14 @@ message SetDeviceStateResponse {
     Device device = 10;
 }
 
-service DeviceManager {
+service DeviceService {
     rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {}
 
     rpc ListAvailableDevices(ListDevicesRequest) returns (ListDevicesResponse) {}
 
     rpc GetDevice(GetDeviceRequest) returns (GetDeviceResponse) {}
 
-    rpc WatchDevices(WatchDevicesRequest) returns (stream DeviceUpdate) {}
+    rpc StreamDeviceUpdates(StreamDeviceUpdatesRequest) returns (stream DeviceUpdate) {}
 
     rpc SetDeviceConfig(SetDeviceConfigRequest) returns (SetDeviceConfigResponse) {}
 

@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
@@ -35,15 +34,15 @@ func main() {
 	var grpcOpts []grpc.DialOption
 	grpcOpts = append(grpcOpts, grpc.WithInsecure())
 
-	conn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
+	weatherConn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
 	if err != nil {
-		logger.Warn("unable to dial",
+		logger.Warn("unable to dial weather server",
 			zap.Error(err),
 		)
 	}
-	defer conn.Close()
+	defer weatherConn.Close()
 
-	weatherClient := weather.NewWeatherClient(conn)
+	weatherClient := weather.NewWeatherClient(weatherConn)
 
 	// Toronto, Calgary & SF
 	locations := []string{
@@ -94,69 +93,25 @@ func main() {
 		}
 	}()
 
-	devicesView := widget.NewDevices(app, []*domotics.Device{
-		{
-			Id: uuid.New().String(),
-			Config: &domotics.DeviceConfig{
-				Name: "device 1",
-				Description: "first device with some deets",
-			},
-			State: &domotics.DeviceState{
-				Binary: &domotics.DeviceState_BinaryState{
-					IsOn: false,
-				},
-				Range: &domotics.DeviceState_RangeState{
-					Value: 100,
-				},
-				ColorRgb: &domotics.DeviceState_RGBState{
-					Red: 0,
-					Green: 0,
-					Blue: 0,
-				},
-			},
-		},
-		{
-			Id: uuid.New().String(),
-			Config: &domotics.DeviceConfig{
-				Name: "device 2",
-				Description: "second device with some more details",
-			},
-			State: &domotics.DeviceState{
-				Binary: &domotics.DeviceState_BinaryState{
-					IsOn: true,
-				},
-				Range: &domotics.DeviceState_RangeState{
-					Value: 100,
-				},
-				ColorRgb: &domotics.DeviceState_RGBState{
-					Red: 64,
-					Green: 128,
-					Blue: 231,
-				},
-			},
-		},
-		{
-			Id: uuid.New().String(),
-			Config: &domotics.DeviceConfig{
-				Name: "device 3",
-				Description: "third device",
-			},
-			State: &domotics.DeviceState{
-				Binary: &domotics.DeviceState_BinaryState{
-					IsOn: true,
-				},
-				Range: &domotics.DeviceState_RangeState{
-					Value: 50,
-				},
-				ColorRgb: &domotics.DeviceState_RGBState{
-					Red: 0,
-					Green: 0,
-					Blue: 0,
-				},
-			},
-		},
-	},
-	)
+	domoticsConn, err := grpc.Dial("127.0.0.1:10102", grpcOpts...)
+	if err != nil {
+		logger.Warn("unable to dial domotics server",
+			zap.Error(err),
+		)
+	}
+	defer domoticsConn.Close()
+
+	devicesClient := domotics.NewDeviceServiceClient(domoticsConn)
+
+	listDevicesResp, err := devicesClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+	if err != nil {
+		logger.Warn("unable to retrieve devices",
+			zap.Error(err),
+		)
+		listDevicesResp = &domotics.ListDevicesResponse{}
+	}
+
+	devicesView := widget.NewDevices(app, listDevicesResp.Devices)
 
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(tview.NewFlex().

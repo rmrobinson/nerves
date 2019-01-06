@@ -7,7 +7,6 @@ go_library(
         "device_detail.go",
         "devices.go",
         "time.go",
-        "types.go",
         "weather_condition.go",
         "weather_forecast.go",
     ],

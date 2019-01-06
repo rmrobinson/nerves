@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "async_bridge.go",
+        "device.go",
+        "persistent_bridge.go",
+        "sync_bridge.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/mock",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//services/domotics:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/google/uuid:go_default_library",
+    ],
+)
