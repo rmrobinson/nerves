@@ -59,6 +59,25 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:c5ca987ead6a24e28985ef2b30e49e3661a282d5b2e473118821e4c346efafa1"
+  name = "github.com/huin/goupnp"
+  packages = [
+    "httpu",
+    "ssdp",
+  ]
+  pruneopts = "UT"
+  revision = "656e61dfadd241c7cbdd22a023fa81ecb6860ea8"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:c65a16ac77d0b1aefc7009cabb6ac5ad05def02025f5be85f450c03f52cc6f86"
   name = "github.com/lucasb-eyer/go-colorful"
   packages = ["."]
@@ -73,6 +92,14 @@
   pruneopts = "UT"
   revision = "3ee7d812e62a0804a7d0a324e0249ca2db3476d3"
   version = "v0.0.4"
+
+[[projects]]
+  digest = "1:4a49346ca45376a2bba679ca0e83bec949d780d4e927931317904bad482943ec"
+  name = "github.com/mattn/go-sqlite3"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75"
+  version = "v1.10.0"
 
 [[projects]]
   digest = "1:b0142f883994390cee3fc0efbee8644c91796eb17d6af1bf8268a0961e6c0f3b"
@@ -113,12 +140,36 @@
   revision = "36893a66979260e9758701ae306ec0d69c0f53c8"
 
 [[projects]]
+  branch = "master"
+  digest = "1:9c977a70c55382d2b2f473ffe2a46085ce42b087d288c869d8a1f591d89b738a"
+  name = "github.com/rmrobinson/hue-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "008c4367e329728f40ed8c5ea70d64f55610b9c7"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3f7b37044fe5e2fd4afed885a245c6e4888d0d8d2d9e18f9ceb18d228a17c8e7"
+  name = "github.com/rmrobinson/monoprice-amp-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "21998fc4424176ede271febd7e5d507057ca1841"
+
+[[projects]]
   digest = "1:18752d0b95816a1b777505a97f71c7467a8445b8ffb55631a7bf779f6ba4fa83"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   pruneopts = "UT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:52b21e6be25049834aea5ecdde35d723c00fbdad3ea0357f2072dfb105836e02"
+  name = "github.com/tarm/serial"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "98f6abe2eb07edd42f6dfa2a934aea469acc29b7"
 
 [[projects]]
   digest = "1:3c1a69cdae3501bf75e76d0d86dc6f2b0a7421bc205c0cb7b96b19eed464a34d"
@@ -261,6 +312,14 @@
   revision = "df014850f6dee74ba2fc94874043a9f3f75fbfd8"
   version = "v1.17.0"
 
+[[projects]]
+  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -269,12 +328,21 @@
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/timestamp",
+    "github.com/google/uuid",
+    "github.com/mattn/go-sqlite3",
     "github.com/mmcdole/gofeed",
     "github.com/rivo/tview",
+    "github.com/rmrobinson/hue-go",
+    "github.com/rmrobinson/monoprice-amp-go",
     "github.com/stretchr/testify/assert",
+    "github.com/tarm/serial",
     "go.uber.org/zap",
     "golang.org/x/net/context",
     "google.golang.org/grpc",
+    "google.golang.org/grpc/codes",
+    "google.golang.org/grpc/peer",
+    "google.golang.org/grpc/status",
+    "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

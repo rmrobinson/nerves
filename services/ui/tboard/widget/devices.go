@@ -2,6 +2,7 @@ package widget
 
 import (
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/domotics"
 )
 
 // Devices is a widget to display an editable list of devices with their details available.
@@ -13,11 +14,11 @@ type Devices struct {
 	deviceList   *tview.List
 	deviceDetail *DeviceDetail
 
-	devices []*DeviceInfo
+	devices []*domotics.Device
 }
 
 // NewDevices creates a new instance of this widget with the supplied set of devices for management.
-func NewDevices(app *tview.Application, devices []*DeviceInfo) *Devices {
+func NewDevices(app *tview.Application, devices []*domotics.Device) *Devices {
 	d := &Devices{
 		Flex:    tview.NewFlex(),
 		app:     app,
@@ -39,7 +40,7 @@ func NewDevices(app *tview.Application, devices []*DeviceInfo) *Devices {
 		AddItem(d.deviceDetail, 28, 1, true)
 
 	for _, device := range d.devices {
-		d.deviceList.AddItem(device.Name, device.Description, 0, nil)
+		d.deviceList.AddItem(device.Config.Name, device.Config.Description, 0, nil)
 	}
 
 	return d

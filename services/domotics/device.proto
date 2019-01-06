@@ -1,0 +1,188 @@
+syntax = "proto3";
+
+package faltung.nerves.domotics;
+
+import "google/protobuf/timestamp.proto";
+
+message DeviceConfig {
+    string name = 1;
+    string description = 2;
+}
+
+message DeviceState {
+    bool is_reachable = 1;
+
+    message BinaryState {
+        bool is_on = 1;
+    }
+
+    BinaryState binary = 11;
+
+    message RangeState {
+        int32 value = 1;
+    }
+
+    RangeState range = 12;
+
+    message RGBState {
+        int32 red = 1;
+        int32 green = 2;
+        int32 blue = 3;
+    }
+
+    RGBState color_rgb = 13;
+
+    message SpeedState {
+        int32 speed = 1;
+    }
+
+    SpeedState speed = 14;
+
+    message InputState {
+        string input = 1;
+    }
+
+    InputState input = 15;
+
+    message ControlState {
+        bool is_open = 1;
+    }
+
+    ControlState control = 16;
+
+    message TemperatureState {
+        int32 temperature_celsius = 1;
+    }
+
+    TemperatureState temperature = 17;
+
+    message ButtonState {
+        int32 id = 1;
+        bool is_on = 2;
+    }
+
+    repeated ButtonState button = 18;
+
+    message PresenceState {
+        bool is_present = 1;
+    }
+
+    PresenceState presence = 19;
+
+    message AudioState {
+        int32 volume = 1;
+        int32 treble = 2;
+        int32 bass = 3;
+        bool is_muted = 4;
+    }
+
+    AudioState audio = 20;
+
+    message StereoAudioState {
+        int32 balance = 1;
+    }
+
+    StereoAudioState stereo_audio = 21;
+
+    string version = 100;
+}
+
+message Device {
+    string id = 1;
+
+    bool is_active = 2;
+
+    string model_id = 10;
+    string model_name = 11;
+    string model_description = 12;
+    string manufacturer = 13;
+
+    string address = 50;
+
+    // Examples could include a thermostat.
+    message RangeDevice {
+        int32 minimum = 1;
+        int32 maximum = 2;
+    }
+
+    RangeDevice range = 100;
+
+    // Examples could include a TV (list of inputs), speakers (list of inputs), etc.
+    message InputDevice {
+        repeated string inputs = 1;
+    }
+
+    InputDevice input = 101;
+
+    // Examples could include a fan,
+    message SpeedDevice {
+        int32 maximum = 1;
+    }
+
+    SpeedDevice speed = 102;
+
+    DeviceConfig config = 200;
+    DeviceState state = 201;
+}
+
+message ListDevicesRequest {
+    string bridge_id = 1;
+}
+message ListDevicesResponse {
+    repeated Device devices = 1;
+}
+
+message GetDeviceRequest {
+    string id = 1;
+}
+message GetDeviceResponse {
+    Device device = 1;
+}
+
+message StreamDeviceUpdatesRequest {
+}
+message DeviceUpdate {
+        enum Action {
+            ADDED = 0;
+            CHANGED = 1;
+            REMOVED = 2;
+        }
+
+        Action action = 1;
+        Device device = 2;
+        string bridge_id = 3;
+}
+
+message SetDeviceConfigRequest {
+    string id = 1;
+    string version = 2;
+    DeviceConfig config = 10;
+}
+message SetDeviceConfigResponse {
+    string error = 1;
+    Device device = 10;
+}
+
+message SetDeviceStateRequest {
+    string id = 1;
+    string version = 2;
+    DeviceState state = 10;
+}
+message SetDeviceStateResponse {
+    string error = 1;
+    Device device = 10;
+}
+
+service DeviceService {
+    rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {}
+
+    rpc ListAvailableDevices(ListDevicesRequest) returns (ListDevicesResponse) {}
+
+    rpc GetDevice(GetDeviceRequest) returns (GetDeviceResponse) {}
+
+    rpc StreamDeviceUpdates(StreamDeviceUpdatesRequest) returns (stream DeviceUpdate) {}
+
+    rpc SetDeviceConfig(SetDeviceConfigRequest) returns (SetDeviceConfigResponse) {}
+
+    rpc SetDeviceState(SetDeviceStateRequest) returns (SetDeviceStateResponse) {}
+}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
 	"go.uber.org/zap"
@@ -33,15 +34,15 @@ func main() {
 	var grpcOpts []grpc.DialOption
 	grpcOpts = append(grpcOpts, grpc.WithInsecure())
 
-	conn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
+	weatherConn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
 	if err != nil {
-		logger.Warn("unable to dial",
+		logger.Warn("unable to dial weather server",
 			zap.Error(err),
 		)
 	}
-	defer conn.Close()
+	defer weatherConn.Close()
 
-	weatherClient := weather.NewWeatherClient(conn)
+	weatherClient := weather.NewWeatherClient(weatherConn)
 
 	// Toronto, Calgary & SF
 	locations := []string{
@@ -92,36 +93,25 @@ func main() {
 		}
 	}()
 
-	devicesView := widget.NewDevices(app, []*widget.DeviceInfo{
-		{
-			"deviceInfo 1",
-			"first deviceInfo with some deets",
-			false,
-			100,
-			0,
-			0,
-			0,
-		},
-		{
-			"deviceInfo 2",
-			"second deviceInfo with some more details",
-			true,
-			100,
-			64,
-			128,
-			192,
-		},
-		{
-			"deviceInfo 3",
-			"third deviceInfo",
-			true,
-			50,
-			0,
-			0,
-			0,
-		},
-	},
-	)
+	domoticsConn, err := grpc.Dial("127.0.0.1:10102", grpcOpts...)
+	if err != nil {
+		logger.Warn("unable to dial domotics server",
+			zap.Error(err),
+		)
+	}
+	defer domoticsConn.Close()
+
+	devicesClient := domotics.NewDeviceServiceClient(domoticsConn)
+
+	listDevicesResp, err := devicesClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+	if err != nil {
+		logger.Warn("unable to retrieve devices",
+			zap.Error(err),
+		)
+		listDevicesResp = &domotics.ListDevicesResponse{}
+	}
+
+	devicesView := widget.NewDevices(app, listDevicesResp.Devices)
 
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(tview.NewFlex().

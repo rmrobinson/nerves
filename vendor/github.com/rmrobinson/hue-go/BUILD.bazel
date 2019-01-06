@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bridge.go",
+        "color.go",
+        "config.go",
+        "config_arg.go",
+        "light.go",
+        "light_arg.go",
+        "locator.go",
+        "sensor.go",
+        "sensor_arg.go",
+        "types.go",
+        "updater.go",
+    ],
+    importmap = "github.com/rmrobinson/nerves/vendor/github.com/rmrobinson/hue-go",
+    importpath = "github.com/rmrobinson/hue-go",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/huin/goupnp/ssdp:go_default_library"],
+)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/domotics"
 )
 
 // DeviceDetail is a widget that provides for viewing and editing DeviceInfo details.
@@ -26,7 +27,7 @@ type DeviceDetail struct {
 	saveButton      *tview.Button
 	doneButton      *tview.Button
 
-	device *DeviceInfo
+	device *domotics.Device
 }
 
 // NewDeviceDetail creates a new instance of the DeviceDetail view.
@@ -131,32 +132,43 @@ func NewDeviceDetail(app *tview.Application, parent tview.Primitive) *DeviceDeta
 }
 
 // Refresh takes the supplied DeviceInfo and refreshes the view with its contents.
-func (dd *DeviceDetail) Refresh(device *DeviceInfo) {
+func (dd *DeviceDetail) Refresh(device *domotics.Device) {
 	dd.app.QueueUpdateDraw(func() {
 		dd.device = device
 
-		dd.SetTitle(dd.device.Name)
-		dd.isOnCheckbox.SetChecked(dd.device.IsOn)
-		dd.descriptionText.SetText(dd.device.Description)
-		dd.levelInput.SetText(fmt.Sprintf("%2d", dd.device.Level))
-		dd.redInput.SetText(fmt.Sprintf("%3d", dd.device.Red))
-		dd.greenInput.SetText(fmt.Sprintf("%3d", dd.device.Green))
-		dd.blueInput.SetText(fmt.Sprintf("%3d", dd.device.Blue))
+		dd.SetTitle(dd.device.Config.Name)
+		dd.isOnCheckbox.SetChecked(dd.device.State.Binary.IsOn)
+		dd.descriptionText.SetText(dd.device.Config.Description)
+
+		// TODO: do not allow/show values for fields that aren't supported.
+		if dd.device.State.Range != nil {
+			dd.levelInput.SetText(fmt.Sprintf("%2d", dd.device.State.Range.Value))
+		}
+		if dd.device.State.ColorRgb != nil {
+			dd.redInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Red))
+			dd.greenInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Green))
+			dd.blueInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Blue))
+		}
 	})
 }
 
 // saveFields is used to persist the contents of the view back into the linked DeviceInfo.
 func (dd *DeviceDetail) saveFields() {
-	dd.device.IsOn = dd.isOnCheckbox.IsChecked()
-	dd.device.Level = uint8FromInputField(dd.levelInput)
-	dd.device.Red = uint8FromInputField(dd.redInput)
-	dd.device.Green = uint8FromInputField(dd.greenInput)
-	dd.device.Blue = uint8FromInputField(dd.blueInput)
+	// TODO: do not persist fields that aren't supported
+	dd.device.State.Binary.IsOn = dd.isOnCheckbox.IsChecked()
+	if dd.device.State.Range != nil {
+		dd.device.State.Range.Value = int32FromInputField(dd.levelInput)
+	}
+	if dd.device.State.ColorRgb != nil {
+		dd.device.State.ColorRgb.Red = int32FromInputField(dd.redInput)
+		dd.device.State.ColorRgb.Green = int32FromInputField(dd.greenInput)
+		dd.device.State.ColorRgb.Blue = int32FromInputField(dd.blueInput)
+	}
 }
 
-func uint8FromInputField(view *tview.InputField) uint8 {
+func int32FromInputField(view *tview.InputField) int32 {
 	if val, err := strconv.ParseUint(strings.TrimSpace(view.GetText()), 10, 8); err == nil {
-		return uint8(val)
+		return int32(val)
 	}
 	return 0
 }
