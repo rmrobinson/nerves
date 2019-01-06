@@ -28,7 +28,7 @@ var currentConditionToConditionTests = []currentConditionToConditionTest{
 <b>Air Quality Health Index:</b> 2 <br/>`,
 		&WeatherCondition{
 			Summary: "Cloudy",
-			//SummaryIcon: WeatherIcon_CLOUDY,
+			SummaryIcon: WeatherIcon_CLOUDY,
 			Temperature: -1.3,
 			Pressure: 101.4,
 			Visibility: 16,
@@ -61,7 +61,7 @@ var forecastConditionToConditionTests = []forecastConditionToConditionTest{
 		`Mainly cloudy. Wind becoming west 20 km/h late this afternoon. High plus 4. UV index 1 or low. Forecast issued 11:00 AM EST Saturday 05 January 2019`,
 		&WeatherCondition{
 			Summary: "Mainly cloudy",
-			//SummaryIcon: WeatherIcon_CLOUDY,
+			SummaryIcon: WeatherIcon_CLOUDY,
 			Temperature: 4,
 			WindSpeed: 20,
 			UvIndex: 1,
@@ -72,7 +72,7 @@ var forecastConditionToConditionTests = []forecastConditionToConditionTest{
 		`Clearing in the morning. Wind northwest 20 km/h. Temperature falling to minus 8 in the afternoon. Wind chill minus 7 in the morning and minus 14 in the afternoon. UV index 1 or low. Forecast issued 11:00 AM EST Saturday 05 January 2019`,
 		&WeatherCondition{
 			Summary: "Clearing in the morning",
-			//SummaryIcon: WeatherIcon_CLOUDY,
+			SummaryIcon: WeatherIcon_SUNNY,
 			Temperature: -8,
 			WindChill: -14,
 			WindSpeed: 20,
@@ -84,7 +84,7 @@ var forecastConditionToConditionTests = []forecastConditionToConditionTest{
 		`Periods of snow. High plus 2. Forecast issued 11:00 AM EST Saturday 05 January 2019`,
 		&WeatherCondition{
 			Summary: "Periods of snow",
-			//SummaryIcon: WeatherIcon_CLOUDY,
+			SummaryIcon: WeatherIcon_SNOW,
 			Temperature: 2,
 		},
 	},
@@ -99,7 +99,7 @@ func TestForecastConditionToCondition(t *testing.T) {
 	}
 }
 
-type futureDateFromFeedDate struct {
+type futureDateFromFeedDateTest struct {
 	name string
 	startDate time.Time
 	futureDate string
@@ -107,7 +107,7 @@ type futureDateFromFeedDate struct {
 	err error
 }
 
-var futureDateFromFeedDates = []futureDateFromFeedDate{
+var futureDateFromFeedDateTests = []futureDateFromFeedDateTest{
 	{
 		"basic case",
 		time.Date(2019, time.January, 5, 10, 0, 0, 0, time.UTC),
@@ -125,7 +125,7 @@ var futureDateFromFeedDates = []futureDateFromFeedDate{
 }
 
 func TestFutureDateFromFeedDate(t *testing.T) {
-	for _, tt := range futureDateFromFeedDates {
+	for _, tt := range futureDateFromFeedDateTests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, err := futureDateFromFeedDate(tt.startDate, tt.futureDate)
 			assert.Equal(t, tt.err, err)
