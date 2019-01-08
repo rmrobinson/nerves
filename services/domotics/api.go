@@ -58,13 +58,7 @@ func (a *API) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest, stream Bridge
 
 	log.Printf("WatchBridges request from %s\n", addr)
 
-	watcher := &bridgeWatcher{
-		updates:  make(chan *BridgeUpdate),
-		peerAddr: addr,
-	}
-
-	a.hub.bw.add(watcher)
-	defer a.hub.bw.remove(watcher)
+	sink := a.hub.bridgeUpdatesSource.NewSink()
 
 	// Send all of the currently active bridges to start.
 	for _, impl := range a.hub.bridges {
@@ -84,10 +78,19 @@ func (a *API) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest, stream Bridge
 
 	// Now we wait for updates
 	for {
-		update := <-watcher.updates
+		update, ok := <-sink.Messages()
+		if !ok {
+			// Channel has been closed; so we'll close the connection as well
+			return nil
+		}
+
+		bridgeUpdate, ok := update.(*BridgeUpdate)
+		if !ok {
+			panic("bridge update cast failed)")
+		}
 
 		log.Printf("Sending update %+v to %s\n", update, addr)
-		if err := stream.Send(update); err != nil {
+		if err := stream.Send(bridgeUpdate); err != nil {
 			return err
 		}
 	}
@@ -164,13 +167,7 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 
 	log.Printf("WatchDevices request from %s\n", addr)
 
-	watcher := &deviceWatcher{
-		updates:  make(chan *DeviceUpdate),
-		peerAddr: addr,
-	}
-
-	a.hub.dw.add(watcher)
-	defer a.hub.dw.remove(watcher)
+	sink := a.hub.deviceUpdatesSource.NewSink()
 
 	// Send all of the currently active bridges to start.
 	for _, impl := range a.hub.Devices() {
@@ -190,10 +187,20 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 
 	// Now we wait for updates
 	for {
-		update := <-watcher.updates
+		update, ok := <-sink.Messages()
+		if !ok {
+			// Channel has been closed; so we'll close the connection as well
+			return nil
+		}
+
+		deviceUpdate, ok := update.(*DeviceUpdate)
+
+		if !ok {
+			panic("device update cast incorrect")
+		}
 
 		log.Printf("Sending update %+v to %s\n", update, addr)
-		if err := stream.Send(update); err != nil {
+		if err := stream.Send(deviceUpdate); err != nil {
 			return err
 		}
 	}

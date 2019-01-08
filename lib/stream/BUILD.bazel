@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "sink.go",
+        "source.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/lib/stream",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/google/uuid:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["source_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/go.uber.org/zap/zaptest:go_default_library",
+    ],
+)
