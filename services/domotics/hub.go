@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/rmrobinson/nerves/lib/stream"
+	"go.uber.org/zap"
 )
 
 var (
@@ -66,20 +68,16 @@ type Hub struct {
 	bridgesLock sync.RWMutex
 	bridges     map[string]*bridgeInstance
 
-	bw bridgeWatchers
-	dw deviceWatchers
+	bridgeUpdatesSource *stream.Source
+	deviceUpdatesSource *stream.Source
 }
 
 // NewHub sets up a new bridge manager
 func NewHub() *Hub {
 	return &Hub{
 		bridges: map[string]*bridgeInstance{},
-		bw: bridgeWatchers{
-			watchers: map[*bridgeWatcher]bool{},
-		},
-		dw: deviceWatchers{
-			watchers: map[*deviceWatcher]bool{},
-		},
+		bridgeUpdatesSource: stream.NewSource(zap.L()),
+		deviceUpdatesSource: stream.NewSource(zap.L()),
 	}
 }
 
@@ -397,45 +395,20 @@ func (h *Hub) DeviceRemoved(bridgeID string, device *Device) error {
 
 // sendDeviceUpdate is the internal function that takes a notification and propagates it to all registered watchers.
 func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, device *Device) {
-	h.dw.Lock()
-	defer h.dw.Unlock()
-
 	log.Printf("Device changed: %+v\n", device)
 
-	for watcher, active := range h.dw.watchers {
-		if !active {
-			continue
-		}
-
-		// We perform this in a separate goroutine in case the watcher has not yet finished processing
-		// a previously-received message (if, for example, the remote side is timing out).
-		go func(w *deviceWatcher) {
-			w.updates <- &DeviceUpdate{
-				Action:   action,
-				Device:   device,
-				BridgeId: bridgeID,
-			}
-		}(watcher)
-	}
+	h.deviceUpdatesSource.SendMessage(&DeviceUpdate{
+		Action:   action,
+		Device:   device,
+		BridgeId: bridgeID,
+	})
 }
 
 // sendBridgeUpdate is the internal function that takes a notification and propagates it to all registered watchers.
 func (h *Hub) sendBridgeUpdate(action BridgeUpdate_Action, bridge *Bridge) {
-	h.bw.Lock()
-	defer h.bw.Unlock()
-
-	for watcher, active := range h.bw.watchers {
-		if !active {
-			continue
-		}
-
-		// We perform this in a separate goroutine in case the watcher has not yet finished processing
-		// a previously-received message (if, for example, the remote side is timing out).
-		go func(w *bridgeWatcher) {
-			w.updates <- &BridgeUpdate{
-				Action: action,
-				Bridge: bridge,
-			}
-		}(watcher)
-	}
+	log.Printf("Bridge changed: %+v\n", bridge)
+	h.bridgeUpdatesSource.SendMessage(&BridgeUpdate{
+		Action: action,
+		Bridge: bridge,
+	})
 }

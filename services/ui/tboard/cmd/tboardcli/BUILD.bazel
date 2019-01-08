@@ -12,7 +12,6 @@ go_library(
         "//services/domotics:go_default_library",
         "//services/ui/tboard/widget:go_default_library",
         "//services/weather:go_default_library",
-        "//vendor/github.com/google/uuid:go_default_library",
         "//vendor/github.com/rivo/tview:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "@org_golang_google_grpc//:go_default_library",

@@ -1,0 +1,61 @@
+package stream
+
+import (
+	"sync"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+)
+
+// Source represents a message source that will be broadcast to its sinks.
+type Source struct {
+	logger *zap.Logger
+
+	sinks map[string]*Sink
+	sinksLock sync.Mutex
+}
+
+// NewSource creates a new message source.
+func NewSource(logger *zap.Logger) *Source {
+	return &Source{
+		logger: logger,
+		sinks: map[string]*Sink{},
+	}
+}
+
+// NewSink creates a message sink for this source.
+func (s *Source) NewSink() *Sink {
+	sink := &Sink{
+		id: uuid.New().String(),
+		channel: make(chan proto.Message, 10),
+		source: s,
+	}
+
+	s.sinksLock.Lock()
+	s.sinks[sink.id] = sink
+	s.sinksLock.Unlock()
+
+	return sink
+}
+
+// SendMessage sends a message to all created sinks.
+func (s *Source) SendMessage(msg proto.Message) {
+	s.sinksLock.Lock()
+
+	for _, sink := range s.sinks {
+			s.logger.Debug("sending message",
+				zap.String("channel_id", sink.id),
+				zap.String("message", msg.String()),
+			)
+			sink.channel <- msg
+	}
+
+	s.sinksLock.Unlock()
+}
+
+func (s *Source) removeSink(sink *Sink) {
+	s.sinksLock.Lock()
+	delete(s.sinks, sink.id)
+	s.sinksLock.Unlock()
+}
