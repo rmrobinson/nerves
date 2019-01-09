@@ -12,7 +12,7 @@ var (
 	// ErrDeviceNotPresent is returned if the requested device does not exist
 	ErrDeviceNotPresent = errors.New("device not present")
 	// ErrReadOnly is returned if the requested operation is not supported because the object only allows reading
-	ErrReadOnly         = errors.New("read only")
+	ErrReadOnly = errors.New("read only")
 )
 
 type device struct {

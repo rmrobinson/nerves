@@ -12,7 +12,7 @@ import (
 type Source struct {
 	logger *zap.Logger
 
-	sinks map[string]*Sink
+	sinks     map[string]*Sink
 	sinksLock sync.Mutex
 }
 
@@ -20,22 +20,24 @@ type Source struct {
 func NewSource(logger *zap.Logger) *Source {
 	return &Source{
 		logger: logger,
-		sinks: map[string]*Sink{},
+		sinks:  map[string]*Sink{},
 	}
 }
 
 // NewSink creates a message sink for this source.
 func (s *Source) NewSink() *Sink {
 	sink := &Sink{
-		id: uuid.New().String(),
+		id:      uuid.New().String(),
 		channel: make(chan proto.Message, 10),
-		source: s,
+		source:  s,
 	}
 
 	s.sinksLock.Lock()
 	s.sinks[sink.id] = sink
 	s.sinksLock.Unlock()
 
+	s.logger.Debug("added watcher",
+		zap.String("channel_id", sink.id))
 	return sink
 }
 
@@ -44,11 +46,11 @@ func (s *Source) SendMessage(msg proto.Message) {
 	s.sinksLock.Lock()
 
 	for _, sink := range s.sinks {
-			s.logger.Debug("sending message",
-				zap.String("channel_id", sink.id),
-				zap.String("message", msg.String()),
-			)
-			sink.channel <- msg
+		s.logger.Debug("sending message",
+			zap.String("channel_id", sink.id),
+			zap.String("message", msg.String()),
+		)
+		sink.channel <- msg
 	}
 
 	s.sinksLock.Unlock()

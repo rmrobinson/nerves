@@ -21,9 +21,9 @@ var (
 // EnvironmentCanadaFeed is a very basic weather feed provided by Environment Canada
 type EnvironmentCanadaFeed struct {
 	logger *zap.Logger
-	path string
+	path   string
 
-	report *WeatherReport
+	report   *WeatherReport
 	forecast []*WeatherForecast
 }
 
@@ -31,7 +31,7 @@ type EnvironmentCanadaFeed struct {
 func NewEnvironmentCanadaFeed(logger *zap.Logger, path string) *EnvironmentCanadaFeed {
 	return &EnvironmentCanadaFeed{
 		logger: logger,
-		path: path,
+		path:   path,
 	}
 }
 
@@ -41,11 +41,11 @@ func (ecf *EnvironmentCanadaFeed) Run(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 10)
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			ecf.logger.Info("context closed, completing run")
 			ticker.Stop()
 			return
-		case <- ticker.C:
+		case <-ticker.C:
 			ecf.logger.Debug("refreshing data")
 			feed, err := ecf.getFeed(ctx)
 			if err != nil {
@@ -240,20 +240,20 @@ func forecastConditionToCondition(fc string) *WeatherCondition {
 			if err == nil {
 				cond.WindChill = val
 			}
-		} else if strings.HasPrefix(record,"Wind") {
-			strippedRecord := strings.TrimPrefix(record,"Wind ")
+		} else if strings.HasPrefix(record, "Wind") {
+			strippedRecord := strings.TrimPrefix(record, "Wind ")
 			fields := strings.Split(strippedRecord, " ")
 			for fieldIdx, field := range fields {
 				if field == "km/h" && fieldIdx != 0 {
-					val, err := strconv.ParseInt(fields[fieldIdx-1], 10,32)
+					val, err := strconv.ParseInt(fields[fieldIdx-1], 10, 32)
 					if err == nil {
 						cond.WindSpeed = int32(val)
 						break
 					}
 				}
 			}
-		} else if strings.HasPrefix(record,"UV index") {
-			strippedRecord := strings.TrimPrefix(record,"UV index ")
+		} else if strings.HasPrefix(record, "UV index") {
+			strippedRecord := strings.TrimPrefix(record, "UV index ")
 			fields := strings.Split(strippedRecord, " ")
 
 			val, err := strconv.ParseInt(fields[0], 10, 8)

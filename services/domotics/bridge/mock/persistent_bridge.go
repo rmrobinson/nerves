@@ -67,6 +67,7 @@ func (b *PersistentBridge) setup() {
 
 	log.Printf("Created bridge")
 }
+
 // Run creates the bridge and sets it up if not already configured. No random state changes are made.
 func (b *PersistentBridge) Run() {
 	_, err := b.persister.Bridge(context.Background())
@@ -84,10 +85,12 @@ func (b *PersistentBridge) Bridge(ctx context.Context) (*domotics.Bridge, error)
 	proto.Merge(bridge, basePersistentBridge)
 	return bridge, nil
 }
+
 // SetBridgeConfig allows the configuration of this bridge to be updated.
 func (b *PersistentBridge) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
 	return b.persister.SetBridgeConfig(ctx, config)
 }
+
 // SetBridgeState allows the state of this bridge to be updated.
 func (b *PersistentBridge) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return b.persister.SetBridgeState(ctx, state)
@@ -97,6 +100,7 @@ func (b *PersistentBridge) SetBridgeState(ctx context.Context, state *domotics.B
 func (b *PersistentBridge) SearchForAvailableDevices(ctx context.Context) error {
 	return b.persister.SearchForAvailableDevices(ctx)
 }
+
 // AvailableDevices returns the set of devices that this bridge knows about but hasn't configured yet.
 func (b *PersistentBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
 	devices, err := b.persister.AvailableDevices(ctx)
@@ -120,6 +124,7 @@ func (b *PersistentBridge) Devices(ctx context.Context) ([]*domotics.Device, err
 	}
 	return devices, nil
 }
+
 // Device retrieves the requested device.
 func (b *PersistentBridge) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	device, err := b.persister.Device(ctx, id)
@@ -134,14 +139,17 @@ func (b *PersistentBridge) Device(ctx context.Context, id string) (*domotics.Dev
 func (b *PersistentBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
 	return b.persister.SetDeviceConfig(ctx, dev, config)
 }
+
 // SetDeviceState allows the state of a device to be updated.
 func (b *PersistentBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
 	return b.persister.SetDeviceState(ctx, dev, state)
 }
+
 // AddDevice takes a device found in the set of AvailableDevices and configures it with the bridge for use.
 func (b *PersistentBridge) AddDevice(ctx context.Context, id string) error {
 	return b.persister.AddDevice(ctx, id)
 }
+
 // DeleteDevice requests that the specified device be removed from the bridge.
 func (b *PersistentBridge) DeleteDevice(ctx context.Context, id string) error {
 	return b.persister.DeleteDevice(ctx, id)

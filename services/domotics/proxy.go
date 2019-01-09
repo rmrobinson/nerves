@@ -2,25 +2,27 @@ package domotics
 
 import (
 	"context"
-	"log"
 	"sync"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 // ProxyHub is a hub implementation that proxies requests to a specified service
 type ProxyHub struct {
-	conn *grpc.ClientConn
+	conn   *grpc.ClientConn
+	logger *zap.Logger
 
 	hub       *Hub
 	instances map[string]*proxyInstance
 }
 
 // NewProxyBridge creates a bridge implementation from a supplied bridge client.
-func NewProxyBridge(hub *Hub, conn *grpc.ClientConn) *ProxyHub {
+func NewProxyBridge(logger *zap.Logger, hub *Hub, conn *grpc.ClientConn) *ProxyHub {
 	return &ProxyHub{
-		hub:  hub,
-		conn: conn,
+		logger:    logger,
+		hub:       hub,
+		conn:      conn,
 		instances: map[string]*proxyInstance{},
 	}
 }
@@ -52,43 +54,65 @@ func (p *ProxyHub) runBridgeMonitor() {
 
 	for {
 		if update, err := stream.Recv(); err == nil {
-			log.Printf("Received bridge update %+v\n", update.Bridge)
+			p.logger.Debug("received bridge update",
+				zap.String("bridge_info", update.Bridge.String()),
+			)
 
 			switch update.Action {
 			case BridgeUpdate_ADDED:
 				pi := newProxyInstance(p.conn, update.Bridge.Id)
 				if err := p.hub.AddAsyncBridge(pi); err != nil {
-					log.Printf("Error adding bridge %s: %s\n", update.Bridge.Id, err.Error())
+					p.logger.Warn("error adding bridge",
+						zap.String("bridge_id", update.Bridge.Id),
+						zap.Error(err),
+					)
 				}
 				p.instances[update.Bridge.Id] = pi
 			case BridgeUpdate_CHANGED:
 				pi, ok := p.instances[update.Bridge.Id]
 				if !ok {
-					log.Printf("Received update for %s but wasn't registered", update.Bridge.Id)
+					p.logger.Warn("received update but wasn't registered",
+						zap.String("bridge_id", update.Bridge.Id),
+					)
 					continue
 				}
 				if err := pi.notifier.BridgeUpdated(update.Bridge); err != nil {
-					log.Printf("Error updating bridge %s: %s\n", update.Bridge.Id, err.Error())
+					p.logger.Warn("error updating bridge",
+						zap.String("bridge_id", update.Bridge.Id),
+						zap.Error(err),
+					)
 				}
 			case BridgeUpdate_REMOVED:
 				pi, ok := p.instances[update.Bridge.Id]
 				if !ok {
-					log.Printf("Received remove for %s but wasn't registered", update.Bridge.Id)
+					p.logger.Warn("received remove but wasn't registered",
+						zap.String("bridge_id", update.Bridge.Id),
+					)
 					continue
 				}
 
 				if err := p.hub.RemoveBridge(pi.bridgeID); err != nil {
-					log.Printf("Error removing bridge %s: %s\n", update.Bridge.Id, err.Error())
+					p.logger.Warn("error removing bridge",
+						zap.String("bridge_id", update.Bridge.Id),
+						zap.Error(err),
+					)
 				}
 				delete(p.instances, pi.bridgeID)
 			}
 		} else {
-			log.Printf("Error while monitoring bridges: %s\n", err.Error())
+			p.logger.Warn("error monitoring bridges",
+				zap.Error(err),
+			)
 
 			for bridgeID := range p.instances {
-				log.Printf("Removing bridge ID %s due to connection error\n", bridgeID)
+				p.logger.Debug("removing bridge due to connection error",
+					zap.String("bridge_id", bridgeID),
+				)
 				if err := p.hub.RemoveBridge(bridgeID); err != nil {
-					log.Printf("Error removing bridge %s: %s\n", update.Bridge.Id, err.Error())
+					p.logger.Warn("error removing bridge due to connection error",
+						zap.String("bridge_id", bridgeID),
+						zap.Error(err),
+					)
 				}
 				delete(p.instances, bridgeID)
 			}
@@ -106,24 +130,37 @@ func (p *ProxyHub) runDeviceMonitor() {
 
 	for {
 		if update, err := stream.Recv(); err == nil {
-			log.Printf("Received device update %+v\n", update.Device)
+			p.logger.Debug("received device update",
+				zap.String("device_info", update.Device.String()),
+			)
 
 			switch update.Action {
 			case DeviceUpdate_ADDED:
 				if err := p.hub.DeviceAdded(update.BridgeId, update.Device); err != nil {
-					log.Printf("Error adding device %v: %s\n", update.Device, err.Error())
+					p.logger.Warn("error adding device",
+						zap.String("device_id", update.Device.Id),
+						zap.Error(err),
+					)
 				}
 			case DeviceUpdate_CHANGED:
 				if err := p.hub.DeviceUpdated(update.BridgeId, update.Device); err != nil {
-					log.Printf("Error updating device %v: %s\n", update.Device, err.Error())
+					p.logger.Warn("error updating device",
+						zap.String("device_id", update.Device.Id),
+						zap.Error(err),
+					)
 				}
 			case DeviceUpdate_REMOVED:
 				if err := p.hub.DeviceRemoved(update.BridgeId, update.Device); err != nil {
-					log.Printf("Error removing device %v: %s\n", update.Device, err.Error())
+					p.logger.Warn("error removing device",
+						zap.String("device_id", update.Device.Id),
+						zap.Error(err),
+					)
 				}
 			}
 		} else {
-			log.Printf("Error while monitoring devices: %s\n", err.Error())
+			p.logger.Warn("error monitoring devices",
+				zap.Error(err),
+			)
 			return
 		}
 	}

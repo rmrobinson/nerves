@@ -14,7 +14,7 @@ import (
 
 var (
 	// ErrZoneInvalid is returned if the supplied address maps to an invalid zone
-	ErrZoneInvalid     = errors.New("supplied zone ID is not valid")
+	ErrZoneInvalid = errors.New("supplied zone ID is not valid")
 	// ErrChannelInvalid is returned if the supplied input maps to an invalid channel.
 	ErrChannelInvalid  = errors.New("supplied channel ID is not valid")
 	maxZoneID          = 6
@@ -66,22 +66,22 @@ func channelToInput(id int) string {
 	return fmt.Sprintf("%s%d", channelPrefix, id)
 }
 func volumeFromProto(original int32) int {
-	return int(original / 100) * 38
+	return int(original/100) * 38
 }
 func volumeToProto(original int) int32 {
-	return int32(original / 38) * 100
+	return int32(original/38) * 100
 }
 func balanceFromProto(original int32) int {
-	return int(original / 100) * 20
+	return int(original/100) * 20
 }
 func balanceToProto(original int) int32 {
-	return int32(original / 20) * 100
+	return int32(original/20) * 100
 }
 func noteFromProto(original int32) int {
-	return int(original / 100) * 14
+	return int(original/100) * 14
 }
 func noteToProto(original int) int32 {
-	return int32(original / 14) * 100
+	return int32(original/14) * 100
 }
 
 // MonopAmpBridge is an implementation of a bridge for the Monoprice amp/stereo output device.
@@ -147,6 +147,7 @@ func (b *MonopAmpBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 func (b *MonopAmpBridge) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
 	return b.persister.SetBridgeConfig(ctx, config)
 }
+
 // SetBridgeState persists the new bridge state in the backing store.
 func (b *MonopAmpBridge) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return b.persister.SetBridgeState(ctx, state)
@@ -156,10 +157,12 @@ func (b *MonopAmpBridge) SetBridgeState(ctx context.Context, state *domotics.Bri
 func (b *MonopAmpBridge) SearchForAvailableDevices(context.Context) error {
 	return nil
 }
+
 // AvailableDevices returns an empty result as all devices are always available; never 'to be added'.
 func (b *MonopAmpBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
 	return nil, nil
 }
+
 // Devices retrieves the list of zones and the current state of each device from the serial port.
 func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
 	devices, err := b.persister.Devices(ctx)
@@ -183,9 +186,9 @@ func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error
 			Input: channelToInput(zone.State().SourceChannelID),
 		}
 		device.State.Audio = &domotics.DeviceState_AudioState{
-			Volume: volumeToProto(zone.State().Volume),
-			Treble: noteToProto(zone.State().Treble),
-			Bass: noteToProto(zone.State().Bass),
+			Volume:  volumeToProto(zone.State().Volume),
+			Treble:  noteToProto(zone.State().Treble),
+			Bass:    noteToProto(zone.State().Bass),
 			IsMuted: zone.State().IsMuteOn,
 		}
 		device.State.StereoAudio = &domotics.DeviceState_StereoAudioState{
@@ -196,6 +199,7 @@ func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error
 	}
 	return devices, nil
 }
+
 // Device retrieves the specified device ID.
 func (b *MonopAmpBridge) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	device, err := b.persister.Device(ctx, id)
@@ -210,6 +214,7 @@ func (b *MonopAmpBridge) Device(ctx context.Context, id string) (*domotics.Devic
 func (b *MonopAmpBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
 	return b.persister.SetDeviceConfig(ctx, dev, config)
 }
+
 // SetDeviceState uses the serial port to update the modified settings on the zone.
 func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
 	zoneID := addrToZone(dev.Address)
@@ -283,10 +288,12 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 
 	return nil
 }
+
 // AddDevice is not supported on this bridge as there is a fixed number of zones, always ready for use.
 func (b *MonopAmpBridge) AddDevice(ctx context.Context, id string) error {
 	return domotics.ErrOperationNotSupported
 }
+
 // DeleteDevice is not supported on this bridge as there is a fixed number of zones, always ready for use.
 func (b *MonopAmpBridge) DeleteDevice(ctx context.Context, id string) error {
 	return domotics.ErrOperationNotSupported

@@ -3,7 +3,6 @@ package domotics
 import (
 	"context"
 	"errors"
-	"log"
 	"reflect"
 	"sync"
 	"time"
@@ -65,6 +64,8 @@ type Notifier interface {
 
 // Hub contains the required logic to operate on a collection of bridges.
 type Hub struct {
+	logger *zap.Logger
+
 	bridgesLock sync.RWMutex
 	bridges     map[string]*bridgeInstance
 
@@ -73,9 +74,10 @@ type Hub struct {
 }
 
 // NewHub sets up a new bridge manager
-func NewHub() *Hub {
+func NewHub(logger *zap.Logger) *Hub {
 	return &Hub{
-		bridges: map[string]*bridgeInstance{},
+		logger:              logger,
+		bridges:             map[string]*bridgeInstance{},
 		bridgeUpdatesSource: stream.NewSource(zap.L()),
 		deviceUpdatesSource: stream.NewSource(zap.L()),
 	}
@@ -395,7 +397,9 @@ func (h *Hub) DeviceRemoved(bridgeID string, device *Device) error {
 
 // sendDeviceUpdate is the internal function that takes a notification and propagates it to all registered watchers.
 func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, device *Device) {
-	log.Printf("Device changed: %+v\n", device)
+	h.logger.Debug("sending device update",
+		zap.String("device_info", device.String()),
+	)
 
 	h.deviceUpdatesSource.SendMessage(&DeviceUpdate{
 		Action:   action,
@@ -406,7 +410,9 @@ func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, devi
 
 // sendBridgeUpdate is the internal function that takes a notification and propagates it to all registered watchers.
 func (h *Hub) sendBridgeUpdate(action BridgeUpdate_Action, bridge *Bridge) {
-	log.Printf("Bridge changed: %+v\n", bridge)
+	h.logger.Debug("sending bridge update",
+		zap.String("bridge_info", bridge.String()),
+	)
 	h.bridgeUpdatesSource.SendMessage(&BridgeUpdate{
 		Action: action,
 		Bridge: bridge,

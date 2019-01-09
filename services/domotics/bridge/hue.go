@@ -20,8 +20,8 @@ var (
 	ErrDeviceLacksRangeCapability = errors.New("invalid argument supplied: device lacks range capabilities")
 	// ErrDeviceRangeLimitExceeded is returned if the range of a value exceeds the supported range of the underlying device.
 	ErrDeviceRangeLimitExceeded = errors.New("invalid argument supplied: range value outside of allowed values")
-	lightAddrPrefix   = "/light/"
-	sensorAddrPrefix  = "/sensor/"
+	lightAddrPrefix             = "/light/"
+	sensorAddrPrefix            = "/sensor/"
 )
 
 func addrToLight(addr string) int {
@@ -47,7 +47,7 @@ type HueBridge struct {
 // NewHueBridge takes a previously set up Hue handle and exposes it as a Hue bridge.
 func NewHueBridge(bridge *hue.Bridge) *HueBridge {
 	return &HueBridge{
-		bridge:       bridge,
+		bridge: bridge,
 	}
 }
 
@@ -68,16 +68,16 @@ func (b *HueBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 	}
 
 	ret := &domotics.Bridge{
-		Id: config.ID,
-		ModelId: desc.Device.ModelNumber,
-		ModelName: desc.Device.ModelName,
+		Id:               config.ID,
+		ModelId:          desc.Device.ModelNumber,
+		ModelName:        desc.Device.ModelName,
 		ModelDescription: desc.Device.ModelDescription,
-		Manufacturer: desc.Device.Manufacturer,
+		Manufacturer:     desc.Device.Manufacturer,
 		Config: &domotics.BridgeConfig{
 			Name: desc.Device.FriendlyName,
 			Address: &domotics.Address{
 				Ip: &domotics.Address_Ip{
-					Host: config.IPAddress,
+					Host:    config.IPAddress,
 					Netmask: config.SubnetMask,
 					Gateway: config.GatewayAddress,
 				},
@@ -89,7 +89,7 @@ func (b *HueBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 				Channel: config.ZigbeeChannel,
 			},
 			Version: &domotics.BridgeState_Version{
-				Sw: config.SwVersion,
+				Sw:  config.SwVersion,
 				Api: config.APIVersion,
 			},
 		},
@@ -110,6 +110,7 @@ func (b *HueBridge) SetBridgeConfig(ctx context.Context, config *domotics.Bridge
 	updatedConfig.SetName(config.Name)
 	return b.bridge.SetConfig(updatedConfig)
 }
+
 // SetBridgeState persists the new bridge state on the Hue bridge.
 func (b *HueBridge) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return domotics.ErrOperationNotSupported
@@ -125,6 +126,7 @@ func (b *HueBridge) SearchForAvailableDevices(context.Context) error {
 	}
 	return nil
 }
+
 // AvailableDevices returns an empty result as all devices are always available; never 'to be added'.
 func (b *HueBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
 	lights, err := b.bridge.NewLights()
@@ -157,6 +159,7 @@ func (b *HueBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, e
 
 	return devices, nil
 }
+
 // Devices retrieves the list of lights and sensors from the bridge along with their current states.
 func (b *HueBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
 	lights, err := b.bridge.Lights()
@@ -182,6 +185,7 @@ func (b *HueBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
 
 	return devices, nil
 }
+
 // Device retrieves the specified device ID.
 func (b *HueBridge) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	devices, err := b.Devices(ctx)
@@ -226,6 +230,7 @@ func (b *HueBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device, c
 
 	return ErrHueAddressInvalid
 }
+
 // SetDeviceState updates the bridge with the new state options for the light (sensors aren't supported).
 func (b *HueBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
 	if strings.Contains(dev.Address, lightAddrPrefix) {
@@ -246,10 +251,12 @@ func (b *HueBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, st
 
 	return ErrHueAddressInvalid
 }
+
 // AddDevice is not implemented yet.
 func (b *HueBridge) AddDevice(ctx context.Context, id string) error {
 	return domotics.ErrNotImplemented.Err()
 }
+
 // DeleteDevice is not implemented yet.
 func (b *HueBridge) DeleteDevice(ctx context.Context, id string) error {
 	return domotics.ErrNotImplemented.Err()
@@ -426,9 +433,9 @@ func convertLightStateDiffToArgs(currDevice *domotics.Device, newState *domotics
 		}
 		if newState.ColorRgb != nil {
 			colour := hue.RGB{
-				Red: uint8(newState.ColorRgb.Red),
+				Red:   uint8(newState.ColorRgb.Red),
 				Green: uint8(newState.ColorRgb.Green),
-				Blue: uint8(newState.ColorRgb.Blue)}
+				Blue:  uint8(newState.ColorRgb.Blue)}
 			args.SetRGB(colour, currDevice.ModelId)
 		}
 	} else if currDevice.State != nil && newState == nil {
@@ -452,9 +459,9 @@ func convertLightStateDiffToArgs(currDevice *domotics.Device, newState *domotics
 			if currDevice.State.ColorRgb == nil ||
 				(currDevice.State.ColorRgb.Red != newState.ColorRgb.Red || currDevice.State.ColorRgb.Green != newState.ColorRgb.Green || currDevice.State.ColorRgb.Blue != newState.ColorRgb.Blue) {
 				colour := hue.RGB{
-					Red: uint8(newState.ColorRgb.Red),
+					Red:   uint8(newState.ColorRgb.Red),
 					Green: uint8(newState.ColorRgb.Green),
-					Blue: uint8(newState.ColorRgb.Blue)}
+					Blue:  uint8(newState.ColorRgb.Blue)}
 				args.SetRGB(colour, currDevice.ModelId)
 			}
 		}

@@ -20,7 +20,7 @@ type bridgeInstance struct {
 
 func newBridgeInstance(bridgeHandle SyncBridge, bridge *Bridge, notifier Notifier) *bridgeInstance {
 	ret := &bridgeInstance{
-		bridgeHandle:  bridgeHandle,
+		bridgeHandle: bridgeHandle,
 
 		notifier: notifier,
 		bridgeID: bridge.Id,
