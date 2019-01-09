@@ -3,29 +3,33 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io"
-	"log"
 	"sync"
 
 	"github.com/rmrobinson/nerves/services/domotics"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-func getBridges(bc domotics.BridgeServiceClient) {
+func getBridges(logger *zap.Logger, bc domotics.BridgeServiceClient) {
 	getResp, err := bc.ListBridges(context.Background(), &domotics.ListBridgesRequest{})
 	if err != nil {
-		fmt.Printf("Unable to get bridges: %s\n", err.Error())
+		logger.Warn("unable to list bridges",
+			zap.Error(err),
+		)
 		return
 	}
 
-	fmt.Printf("Got bridges\n")
+	var ret []string
 	for _, bridge := range getResp.Bridges {
-		fmt.Printf("%+v\n", bridge)
+		ret = append(ret, bridge.String())
 	}
+	logger.Info("got bridges",
+		zap.Strings("bridges", ret),
+	)
 }
 
-func setBridgeName(bc domotics.BridgeServiceClient, id string, name string) {
+func setBridgeName(logger *zap.Logger, bc domotics.BridgeServiceClient, id string, name string) {
 	req := &domotics.SetBridgeConfigRequest{
 		Id: id,
 		Config: &domotics.BridgeConfig{
@@ -35,28 +39,40 @@ func setBridgeName(bc domotics.BridgeServiceClient, id string, name string) {
 
 	setResp, err := bc.SetBridgeConfig(context.Background(), req)
 	if err != nil {
-		fmt.Printf("Unable to set bridge name: %s\n", err.Error())
+		logger.Warn("unable to set bridge name",
+			zap.String("bridge_id", id),
+			zap.String("bridge_name", name),
+			zap.Error(err),
+		)
 		return
 	}
 
-	fmt.Printf("Set bridge name\n")
-	fmt.Printf("%+v\n", setResp.Bridge)
+	logger.Info("set bridge name",
+		zap.String("bridge_id", id),
+		zap.String("bridge_name", name),
+		zap.String("result", setResp.Bridge.String()),
+	)
 }
 
-func getDevices(dc domotics.DeviceServiceClient) {
+func getDevices(logger *zap.Logger, dc domotics.DeviceServiceClient) {
 	getResp, err := dc.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
 	if err != nil {
-		fmt.Printf("Unable to get devices: %s\n", err.Error())
+		logger.Warn("unable to list devices",
+			zap.Error(err),
+		)
 		return
 	}
 
-	fmt.Printf("Got devices\n")
+	var ret []string
 	for _, device := range getResp.Devices {
-		fmt.Printf("%+v\n", device)
+		ret = append(ret, device.String())
 	}
+	logger.Info("got devices",
+		zap.Strings("devices", ret),
+	)
 }
 
-func setDeviceName(dc domotics.DeviceServiceClient, id string, name string) {
+func setDeviceName(logger *zap.Logger, dc domotics.DeviceServiceClient, id string, name string) {
 	req := &domotics.SetDeviceConfigRequest{
 		Id: id,
 		Config: &domotics.DeviceConfig{
@@ -67,19 +83,28 @@ func setDeviceName(dc domotics.DeviceServiceClient, id string, name string) {
 
 	setResp, err := dc.SetDeviceConfig(context.Background(), req)
 	if err != nil {
-		fmt.Printf("Unable to set device name: %s\n", err.Error())
+		logger.Warn("unable to set device name",
+			zap.String("device_id", id),
+			zap.String("device_name", name),
+			zap.Error(err),
+		)
 		return
 	}
 
-	fmt.Printf("Set device name\n")
-	fmt.Printf("%+v\n", setResp.Device)
+	logger.Info("set device name",
+		zap.String("device_id", id),
+		zap.String("device_name", name),
+		zap.String("result", setResp.Device.String()),
+	)
 }
 
-func setDeviceIsOn(dc domotics.DeviceServiceClient, id string, isOn bool) {
+func setDeviceIsOn(logger *zap.Logger, dc domotics.DeviceServiceClient, id string, isOn bool) {
 	d, err := dc.GetDevice(context.Background(), &domotics.GetDeviceRequest{Id: id})
-
 	if err != nil {
-		fmt.Printf("Unable to get device: %s\n", err.Error())
+		logger.Warn("unable to get device",
+			zap.String("device_id", id),
+			zap.Error(err),
+		)
 		return
 	}
 
@@ -91,17 +116,22 @@ func setDeviceIsOn(dc domotics.DeviceServiceClient, id string, isOn bool) {
 
 	setResp, err := dc.SetDeviceState(context.Background(), req)
 	if err != nil {
-		fmt.Printf("Unable to set device state: %s\n", err.Error())
+		logger.Warn("unable to set device",
+			zap.String("device_id", id),
+			zap.Error(err),
+		)
 		return
 	}
 
-	fmt.Printf("Set device isOn\n")
-	fmt.Printf("%+v\n", setResp.Device)
+	logger.Info("set device",
+		zap.String("device_id", id),
+		zap.Bool("is_on", d.Device.State.Binary.IsOn),
+		zap.String("result", setResp.Device.String()),
+	)
 }
 
-func monitorBridges(bc domotics.BridgeServiceClient) {
+func monitorBridges(logger *zap.Logger, bc domotics.BridgeServiceClient) {
 	stream, err := bc.StreamBridgeUpdates(context.Background(), &domotics.StreamBridgeUpdatesRequest{})
-
 	if err != nil {
 		return
 	}
@@ -111,16 +141,20 @@ func monitorBridges(bc domotics.BridgeServiceClient) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Printf("Error while watching bridges: %v", err)
+			logger.Warn("error watching bridges",
+				zap.Error(err),
+			)
 			break
 		}
 
-		log.Printf("Change: %v, Bridge: %+v\n", msg.Action, msg.Bridge)
+		logger.Info("device change",
+			zap.String("change", msg.Action.String()),
+			zap.String("bridge_info", msg.Bridge.String()),
+		)
 	}
 }
-func monitorDevices(dc domotics.DeviceServiceClient) {
+func monitorDevices(logger *zap.Logger, dc domotics.DeviceServiceClient) {
 	stream, err := dc.StreamDeviceUpdates(context.Background(), &domotics.StreamDeviceUpdatesRequest{})
-
 	if err != nil {
 		return
 	}
@@ -130,11 +164,16 @@ func monitorDevices(dc domotics.DeviceServiceClient) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Printf("Error while watching devices: %v", err)
+			logger.Warn("error watching devices",
+				zap.Error(err),
+			)
 			break
 		}
 
-		log.Printf("Change: %v, Device: %+v\n", msg.Action, msg.Device)
+		logger.Info("device change",
+			zap.String("change", msg.Action.String()),
+			zap.String("device_info", msg.Device.String()),
+		)
 	}
 }
 func main() {
@@ -148,12 +187,20 @@ func main() {
 
 	flag.Parse()
 
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial(*addr, opts...)
 
+	conn, err := grpc.Dial(*addr, opts...)
 	if err != nil {
-		fmt.Printf("Unable to connect: %s\n", err.Error())
+		logger.Fatal("unable to connect",
+			zap.String("addr", *addr),
+			zap.Error(err),
+		)
 		return
 	}
 
@@ -162,31 +209,31 @@ func main() {
 
 	switch *mode {
 	case "getBridges":
-		getBridges(bridgeClient)
+		getBridges(logger, bridgeClient)
 	case "setBridgeConfig":
-		setBridgeName(bridgeClient, *id, *name)
+		setBridgeName(logger, bridgeClient, *id, *name)
 	case "getDevices":
-		getDevices(deviceClient)
+		getDevices(logger, deviceClient)
 	case "setDeviceConfig":
-		setDeviceName(deviceClient, *id, *name)
+		setDeviceName(logger, deviceClient, *id, *name)
 	case "setDeviceState":
-		setDeviceIsOn(deviceClient, *id, *on)
+		setDeviceIsOn(logger, deviceClient, *id, *on)
 	case "monitor":
 		var wg sync.WaitGroup
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			monitorBridges(bridgeClient)
+			monitorBridges(logger, bridgeClient)
 		}()
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			monitorDevices(deviceClient)
+			monitorDevices(logger, deviceClient)
 		}()
 		wg.Wait()
 	default:
-		fmt.Printf("Unknown mode specified")
+		logger.Debug("unknown command specified")
 	}
 }

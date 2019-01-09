@@ -6,7 +6,7 @@ import (
 
 // Sink is an implementation of a message sync; it receives messages broadcast by its parent source.
 type Sink struct {
-	id string
+	id      string
 	channel chan proto.Message
 
 	source *Source

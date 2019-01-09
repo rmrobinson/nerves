@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/rmrobinson/hue-go"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
+	"go.uber.org/zap"
 )
 
 var (
@@ -17,9 +17,10 @@ var (
 )
 
 type hueImpl struct {
-	db bridge.HuePersister
+	logger *zap.Logger
+	db     bridge.HuePersister
 
-	hub *domotics.Hub
+	hub  *domotics.Hub
 	quit chan bool
 }
 
@@ -31,7 +32,9 @@ func (b *hueImpl) setup(config *domotics.BridgeConfig, hub *domotics.Hub) error 
 	db := &bridge.HueDB{}
 	err := db.Open(config.CachePath)
 	if err != nil {
-		log.Printf("Error initializing Hue DB: %s\n", err.Error())
+		b.logger.Warn("error initializing hue db",
+			zap.Error(err),
+		)
 		return ErrUnableToSetupHue
 	}
 	b.db = db
@@ -61,16 +64,22 @@ func (b *hueImpl) Run() {
 	for {
 		select {
 		case br := <-bridges:
-			log.Printf("Hue bridge %s located\n", br.ID())
+			b.logger.Info("hue bridge located",
+				zap.String("bridge_id", br.ID()),
+			)
+
 			username, err := b.db.Profile(context.Background(), br.ID())
 			if err != nil {
-				log.Printf("Unable to get pairing for ID '%s': %s\n", br.ID(), err)
+				b.logger.Warn("unable to get pairing id",
+					zap.String("bridge_id", br.ID()),
+					zap.Error(err),
+				)
 			} else {
 				br.Username = username
 			}
 
 			b.hub.AddBridge(bridge.NewHueBridge(&br), time.Second)
-		case <- b.quit:
+		case <-b.quit:
 			return
 		}
 	}

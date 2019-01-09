@@ -24,5 +24,6 @@ func (s *WidgetSink) Write(p []byte) (n int, err error) {
 
 // Close is a nop
 func (s *WidgetSink) Close() error { return nil }
+
 // Sync is a nop
-func (s *WidgetSink) Sync() error  { return nil }
+func (s *WidgetSink) Sync() error { return nil }

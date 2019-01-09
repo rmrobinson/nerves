@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 
 	mpa "github.com/rmrobinson/monoprice-amp-go"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/tarm/serial"
+	"go.uber.org/zap"
 )
 
 const (
@@ -15,8 +15,10 @@ const (
 )
 
 type monopampImpl struct {
+	logger *zap.Logger
+
 	port *serial.Port
-	db *domotics.BridgeDB
+	db   *domotics.BridgeDB
 
 	bridge domotics.SyncBridge
 }
@@ -38,14 +40,21 @@ func (b *monopampImpl) setup(config *domotics.BridgeConfig) error {
 	}
 	b.port, err = serial.OpenPort(c)
 	if err != nil {
-		log.Printf("Error initializing serial port: %s\n", err.Error())
+		b.logger.Warn("error initializing serial port",
+			zap.String("port_path", config.Address.Usb.Path),
+			zap.Error(err),
+		)
+
 		b.db.Close()
 		return ErrUnableToSetupMonopAmp
 	}
 
 	amp, err := mpa.NewSerialAmplifier(b.port)
 	if err != nil {
-		log.Printf("Error initializing monoprice amp: %s\n", err.Error())
+		b.logger.Warn("error initializing monoprice amp library",
+			zap.String("port_path", config.Address.Usb.Path),
+			zap.Error(err),
+		)
 		b.db.Close()
 		b.port.Close()
 		return err

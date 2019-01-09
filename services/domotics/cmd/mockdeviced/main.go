@@ -3,13 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"time"
 
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/domotics/bridge/mock"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -20,7 +19,12 @@ func main() {
 	)
 	flag.Parse()
 
-	bm := domotics.NewHub()
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	bm := domotics.NewHub(logger)
 
 	// If we have a persistent bridge, use it.
 	// Otherwise use some randomly generated data.
@@ -28,8 +32,10 @@ func main() {
 		db := &domotics.BridgeDB{}
 		err := db.Open(*dbPath)
 		if err != nil {
-			log.Printf("Error opening db path %s: %s\n", *dbPath, err.Error())
-			os.Exit(1)
+			logger.Fatal("error opening db path",
+				zap.String("db_path", *dbPath),
+				zap.Error(err),
+			)
 		}
 		defer db.Close()
 
@@ -49,13 +55,16 @@ func main() {
 	connStr := fmt.Sprintf("%s:%d", "", *port)
 	lis, err := net.Listen("tcp", connStr)
 	if err != nil {
-		log.Printf("Error initializing listener: %s\n", err.Error())
-		os.Exit(1)
+		logger.Fatal("error initializing listener",
+			zap.Error(err),
+		)
 	}
 	defer lis.Close()
-	log.Printf("Listening on %s\n", connStr)
+	logger.Info("listening",
+		zap.String("local_addr", connStr),
+	)
 
-	api := domotics.NewAPI(bm)
+	api := domotics.NewAPI(logger, bm)
 
 	grpcServer := grpc.NewServer()
 	domotics.RegisterBridgeServiceServer(grpcServer, api)

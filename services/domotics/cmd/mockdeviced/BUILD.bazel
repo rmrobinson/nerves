@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//services/domotics:go_default_library",
         "//services/domotics/bridge/mock:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

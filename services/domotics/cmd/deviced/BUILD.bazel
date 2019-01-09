@@ -16,6 +16,7 @@ go_library(
         "//vendor/github.com/rmrobinson/hue-go:go_default_library",
         "//vendor/github.com/rmrobinson/monoprice-amp-go:go_default_library",
         "//vendor/github.com/tarm/serial:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
         "//vendor/gopkg.in/yaml.v2:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],

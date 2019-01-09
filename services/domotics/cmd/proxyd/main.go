@@ -3,20 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net"
-	"os"
 
 	"github.com/rmrobinson/nerves/services/domotics"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	var (
-		port = flag.Int("port", 1338, "Port to listen on")
-		proxyAddr  = flag.String("proxy", "", "Address to proxy requests to")
+		port      = flag.Int("port", 1338, "Port to listen on")
+		proxyAddr = flag.String("proxy", "", "Address to proxy requests to")
 	)
 	flag.Parse()
+
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
 
 	// Setup the proxy connection first
 	var opts []grpc.DialOption
@@ -24,28 +28,35 @@ func main() {
 	conn, err := grpc.Dial(*proxyAddr, opts...)
 
 	if err != nil {
-		log.Printf("Error initializing proxy connection to %s: %s\n", *proxyAddr, err.Error())
-		os.Exit(1)
+		logger.Fatal("error initializing proxy connection",
+			zap.String("proxy_addr", *proxyAddr),
+			zap.Error(err),
+		)
 	}
 
-	log.Printf("Proxying to %s\n", *proxyAddr)
+	logger.Info("proxying",
+		zap.String("proxy_addr", *proxyAddr),
+	)
 
 	// Setup the hub and proxy once we have a connected remote.
-	hub := domotics.NewHub()
+	hub := domotics.NewHub(logger)
 
-	p := domotics.NewProxyBridge(hub, conn)
+	p := domotics.NewProxyBridge(logger, hub, conn)
 	go p.Run()
 
 	connStr := fmt.Sprintf("%s:%d", "", *port)
 	lis, err := net.Listen("tcp", connStr)
 	if err != nil {
-		log.Printf("Error initializing listener: %s\n", err.Error())
-		os.Exit(1)
+		logger.Fatal("error initializing listener",
+			zap.Error(err),
+		)
 	}
 	defer lis.Close()
-	log.Printf("Listening on %s\n", connStr)
+	logger.Info("listening",
+		zap.String("local_addr", connStr),
+	)
 
-	api := domotics.NewAPI(hub)
+	api := domotics.NewAPI(logger, hub)
 
 	grpcServer := grpc.NewServer()
 	domotics.RegisterBridgeServiceServer(grpcServer, api)

@@ -75,11 +75,13 @@ func (ab *AsyncBridge) SetNotifier(n domotics.Notifier) {
 func (ab *AsyncBridge) Bridge(context.Context) (*domotics.Bridge, error) {
 	return ab.b, nil
 }
+
 // SetBridgeConfig allows the configuration of this bridge to be updated.
 func (ab *AsyncBridge) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
 	ab.b.Config = config
 	return nil
 }
+
 // SetBridgeState allows the state of this bridge to be updated.
 func (ab *AsyncBridge) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return ErrReadOnly
@@ -97,6 +99,7 @@ func (ab *AsyncBridge) SearchForAvailableDevices(context.Context) error {
 
 	return nil
 }
+
 // AvailableDevices returns the set of devices that this bridge knows about but hasn't configured yet.
 func (ab *AsyncBridge) AvailableDevices(context.Context) ([]*domotics.Device, error) {
 	return ab.availDevices, nil
@@ -110,6 +113,7 @@ func (ab *AsyncBridge) Devices(context.Context) ([]*domotics.Device, error) {
 	}
 	return ret, nil
 }
+
 // Device retrieves the requested device.
 func (ab *AsyncBridge) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	if d, ok := ab.devices[id]; ok {
@@ -129,6 +133,7 @@ func (ab *AsyncBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device
 	d.d.Config = proto.Clone(config).(*domotics.DeviceConfig)
 	return nil
 }
+
 // SetDeviceState allows the state of a device to be updated.
 func (ab *AsyncBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
 	var d *device
@@ -141,6 +146,7 @@ func (ab *AsyncBridge) SetDeviceState(ctx context.Context, dev *domotics.Device,
 	return nil
 
 }
+
 // AddDevice takes a device found in the set of AvailableDevices and configures it with the bridge for use.
 func (ab *AsyncBridge) AddDevice(ctx context.Context, id string) error {
 	var d *domotics.Device
@@ -163,6 +169,7 @@ func (ab *AsyncBridge) AddDevice(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
 // DeleteDevice requests that the specified device be removed from the bridge.
 func (ab *AsyncBridge) DeleteDevice(ctx context.Context, id string) error {
 	if _, ok := ab.devices[id]; !ok {

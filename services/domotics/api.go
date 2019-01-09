@@ -2,8 +2,8 @@ package domotics
 
 import (
 	"context"
-	"log"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
@@ -18,13 +18,15 @@ var (
 
 // API is a handle to the building implementation of the device and bridge gRPC server interfaces.
 type API struct {
-	hub *Hub
+	logger *zap.Logger
+	hub    *Hub
 }
 
 // NewAPI creates a new API backed by the supplied hub implementation.
-func NewAPI(hub *Hub) *API {
+func NewAPI(logger *zap.Logger, hub *Hub) *API {
 	return &API{
-		hub: hub,
+		logger: logger,
+		hub:    hub,
 	}
 }
 
@@ -56,7 +58,9 @@ func (a *API) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest, stream Bridge
 		addr = peer.Addr.String()
 	}
 
-	log.Printf("WatchBridges request from %s\n", addr)
+	a.logger.Debug("watchBridges request",
+		zap.String("peer_addr", addr),
+	)
 
 	sink := a.hub.bridgeUpdatesSource.NewSink()
 
@@ -67,7 +71,11 @@ func (a *API) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest, stream Bridge
 			Bridge: impl.bridge,
 		}
 
-		log.Printf("Sending update %+v to %s\n", update, addr)
+		a.logger.Debug("sending seed info",
+			zap.String("peer_addr", addr),
+			zap.String("bridge_info", update.String()),
+		)
+
 		if err := stream.Send(update); err != nil {
 			return err
 		}
@@ -89,7 +97,10 @@ func (a *API) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest, stream Bridge
 			panic("bridge update cast failed)")
 		}
 
-		log.Printf("Sending update %+v to %s\n", update, addr)
+		a.logger.Debug("sending update",
+			zap.String("peer_addr", addr),
+			zap.String("bridge_info", update.String()),
+		)
 		if err := stream.Send(bridgeUpdate); err != nil {
 			return err
 		}
@@ -165,7 +176,9 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 		addr = peer.Addr.String()
 	}
 
-	log.Printf("WatchDevices request from %s\n", addr)
+	a.logger.Debug("watchDevices request",
+		zap.String("peer_addr", addr),
+	)
 
 	sink := a.hub.deviceUpdatesSource.NewSink()
 
@@ -176,7 +189,11 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 			Device: impl,
 		}
 
-		log.Printf("Sending update %+v to %s\n", update, addr)
+		a.logger.Debug("sending seed info",
+			zap.String("peer_addr", addr),
+			zap.String("device_info", update.String()),
+		)
+
 		if err := stream.Send(update); err != nil {
 			return err
 		}
@@ -199,7 +216,11 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 			panic("device update cast incorrect")
 		}
 
-		log.Printf("Sending update %+v to %s\n", update, addr)
+		a.logger.Debug("sending update",
+			zap.String("peer_addr", addr),
+			zap.String("device_info", update.String()),
+		)
+
 		if err := stream.Send(deviceUpdate); err != nil {
 			return err
 		}

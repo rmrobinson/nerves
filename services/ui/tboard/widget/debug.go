@@ -28,7 +28,7 @@ func NewDebug(app *tview.Application) *Debug {
 }
 
 // Refresh updates the contents of the debug widget.
-func (d *Debug) Refresh(contents string ) {
+func (d *Debug) Refresh(contents string) {
 	d.app.QueueUpdateDraw(func() {
 		d.Clear()
 		d.SetText(contents)

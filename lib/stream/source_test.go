@@ -1,10 +1,10 @@
 package stream
 
 import (
+	"math/rand"
 	"sync"
 	"testing"
 
-	"github.com/rmrobinson/nerves/bazel-nerves/external/go_sdk/src/math/rand"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 )
@@ -12,12 +12,12 @@ import (
 type testMessage struct {
 	value string
 }
+
 func (tm *testMessage) Reset() {}
 func (tm *testMessage) String() string {
 	return tm.value
 }
 func (tm *testMessage) ProtoMessage() {}
-
 
 func TestNewSink(t *testing.T) {
 	s := NewSource(zaptest.NewLogger(t))

@@ -17,7 +17,7 @@ import (
 
 func main() {
 	var (
-		dbPath = flag.String("dbPath", "", "The path to the DB to update")
+		dbPath   = flag.String("dbPath", "", "The path to the DB to update")
 		bridgeIP = flag.String("bridgeIP", "", "The Hue bridge IP to pair with")
 	)
 
@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(*bridgeIP) < 1  {
+	if len(*bridgeIP) < 1 {
 		fmt.Printf("The bridge IP must be specified\n")
 		os.Exit(1)
 	}
