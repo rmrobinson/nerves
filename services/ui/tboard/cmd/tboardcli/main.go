@@ -7,6 +7,7 @@ import (
 
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/news"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
 	"go.uber.org/zap"
@@ -113,18 +114,16 @@ func main() {
 
 	devicesView := widget.NewDevices(app, listDevicesResp.Devices)
 
-	articlesView := widget.NewArticles(app, []*widget.ArticleInfo{
+	articlesView := widget.NewArticles(app, []*news.Article{
 		{
-			"Trump walks out of meeting with Democrats on government shutdown",
-			`Hours after U.S. President Donald Trump called a meeting with Democrat leaders a "total waste of time," the House passed a bill to reopen parts of the government — but it's unlikely to survive the Republican-controlled Senate.`,
-			"https://www.cbc.ca/news/world/trump-walks-out-shutdown-meeting-1.4972128",
-			"CBC",
+			Title: "Trump walks out of meeting with Democrats on government shutdown",
+			Description: `Hours after U.S. President Donald Trump called a meeting with Democrat leaders a "total waste of time," the House passed a bill to reopen parts of the government — but it's unlikely to survive the Republican-controlled Senate.`,
+			Link: "https://www.cbc.ca/news/world/trump-walks-out-shutdown-meeting-1.4972128",
 		},
 		{
-			"Canadian astronomers discover 2nd mysterious repeating fast radio burst",
-			`Out in the depths of space, there are radio signals that astronomers don't understand. Now a Canadian research team has found a repeating signal, only the second of its kind to be discovered.`,
-			"https://www.cbc.ca/news/technology/fast-radio-bursts-1.4969863",
-			"CBC",
+			Title: "Canadian astronomers discover 2nd mysterious repeating fast radio burst",
+			Description: `Out in the depths of space, there are radio signals that astronomers don't understand. Now a Canadian research team has found a repeating signal, only the second of its kind to be discovered.`,
+			Link: "https://www.cbc.ca/news/technology/fast-radio-bursts-1.4969863",
 		},
 	})
 

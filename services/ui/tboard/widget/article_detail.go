@@ -2,6 +2,7 @@ package widget
 
 import (
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/news"
 )
 
 // ArticleDetail is a widget that provides for viewing article details.
@@ -14,7 +15,7 @@ type ArticleDetail struct {
 	bodyText *tview.TextView
 	urlText  *tview.TextView
 
-	article *ArticleInfo
+	article *news.Article
 }
 
 // NewArticleDetail creates a new instance of the ArticleDetail view.
@@ -48,12 +49,12 @@ func NewArticleDetail(app *tview.Application, parent tview.Primitive) *ArticleDe
 }
 
 // Refresh updates the content being displayed by this widget.
-func (a *ArticleDetail) Refresh(article *ArticleInfo) {
+func (a *ArticleDetail) Refresh(article *news.Article) {
 	a.app.QueueUpdateDraw(func() {
 		a.article = article
 
 		a.SetTitle(a.article.Title)
-		a.bodyText.SetText(a.article.Body)
+		a.bodyText.SetText(a.article.Description)
 		a.urlText.SetText(a.article.Link)
 
 	})

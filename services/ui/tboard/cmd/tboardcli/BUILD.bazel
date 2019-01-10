@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//services/domotics:go_default_library",
+        "//services/news:go_default_library",
         "//services/ui/tboard/widget:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/rivo/tview:go_default_library",

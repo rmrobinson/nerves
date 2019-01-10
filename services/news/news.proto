@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package faltung.nerves.news;
+
+import "google/protobuf/timestamp.proto";
+
+message Article {
+    string name = 1;
+    google.protobuf.Timestamp create_time = 2;
+    google.protobuf.Timestamp update_time = 3;
+
+    string title = 4;
+    string description = 5;
+    string link = 6;
+    string language_code = 7;
+    repeated string category = 8;
+    string author = 9;
+}
+
+message ListArticlesRequest {
+    string category = 1;
+
+    string page_token = 10;
+    int32 page_size = 11;
+    string order_by = 12;
+}
+message ListArticlesResponse{
+    repeated Article articles = 1;
+
+    int32 total_size = 10;
+    string next_page_token = 11;
+}
+
+message StreamNewsUpdatesRequest {
+    string category = 1;
+}
+
+service NewsService {
+    rpc StreamNewsUpdates(StreamNewsUpdatesRequest) returns (stream Article) {}
+    rpc ListArticles(ListArticlesRequest) returns (ListArticlesResponse) {}
+}

@@ -4,16 +4,8 @@ import (
 	"strings"
 
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/news"
 )
-
-// ArticleInfo is a data structure displayed by the article widget.
-// TODO: replace with a proto defined object.
-type ArticleInfo struct {
-	Title  string
-	Body   string
-	Link   string
-	Source string
-}
 
 // Articles is a widget to display a read-only list of articles with their details available.
 type Articles struct {
@@ -25,12 +17,12 @@ type Articles struct {
 	articleList   *tview.List
 	articleDetail *ArticleDetail
 
-	articles []*ArticleInfo
+	articles []*news.Article
 }
 
 // NewArticles creates a new instance of this widget with the supplied set of articles for viewing.
 // It should be at least 50 characters wide for best performance.
-func NewArticles(app *tview.Application, articles []*ArticleInfo) *Articles {
+func NewArticles(app *tview.Application, articles []*news.Article) *Articles {
 	a := &Articles{
 		Flex:     tview.NewFlex(),
 		app:      app,
