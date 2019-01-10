@@ -9,7 +9,8 @@ import (
 type Devices struct {
 	*tview.Flex
 
-	app *tview.Application
+	app  *tview.Application
+	next tview.Primitive
 
 	deviceList   *tview.List
 	deviceDetail *DeviceDetail
@@ -27,7 +28,8 @@ func NewDevices(app *tview.Application, devices []*domotics.Device) *Devices {
 
 	d.deviceList = tview.NewList().
 		SetChangedFunc(d.onListEntrySelected).
-		SetSelectedFunc(d.onListEntryEntered)
+		SetSelectedFunc(d.onListEntryEntered).
+		SetDoneFunc(d.onListDone)
 
 	d.deviceDetail = NewDeviceDetail(app, d.deviceList)
 
@@ -52,4 +54,15 @@ func (d *Devices) onListEntrySelected(idx int, mainText string, secondaryText st
 
 func (d *Devices) onListEntryEntered(idx int, mainText string, secondaryText string, shortcut rune) {
 	d.app.SetFocus(d.deviceDetail)
+}
+
+func (d *Devices) onListDone() {
+	if d.next != nil {
+		d.app.SetFocus(d.next)
+	}
+}
+
+// SetNextWidget controls where the focus is given should this list be left.
+func (d *Devices) SetNextWidget(next tview.Primitive) {
+	d.next = next
 }
