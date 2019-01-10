@@ -113,14 +113,33 @@ func main() {
 
 	devicesView := widget.NewDevices(app, listDevicesResp.Devices)
 
+	articlesView := widget.NewArticles(app, []*widget.ArticleInfo{
+		{
+			"Trump walks out of meeting with Democrats on government shutdown",
+			`Hours after U.S. President Donald Trump called a meeting with Democrat leaders a "total waste of time," the House passed a bill to reopen parts of the government — but it's unlikely to survive the Republican-controlled Senate.`,
+			"https://www.cbc.ca/news/world/trump-walks-out-shutdown-meeting-1.4972128",
+			"CBC",
+		},
+		{
+			"Canadian astronomers discover 2nd mysterious repeating fast radio burst",
+			`Out in the depths of space, there are radio signals that astronomers don't understand. Now a Canadian research team has found a repeating signal, only the second of its kind to be discovered.`,
+			"https://www.cbc.ca/news/technology/fast-radio-bursts-1.4969863",
+			"CBC",
+		},
+	})
+
+	articlesView.SetNextWidget(devicesView)
+	devicesView.SetNextWidget(articlesView)
+
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(tview.NewFlex().
-			AddItem(devicesView, 0, 1, true).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 				AddItem(torontoTime, 4, 1, false).
 				AddItem(calgaryTime, 4, 1, false).
 				AddItem(weatherView, 17, 1, false).
-				AddItem(forecastView, 0, 1, false), 24, 1, false), 0, 1, true).
+				AddItem(forecastView, 0, 1, false), 24, 1, false).
+			AddItem(articlesView, 50, 1, true).
+			AddItem(devicesView, 0, 1, true), 0, 1, true).
 		AddItem(debugView, 3, 1, false)
 
 	if err := app.SetRoot(layout, true).SetFocus(layout).Run(); err != nil {
