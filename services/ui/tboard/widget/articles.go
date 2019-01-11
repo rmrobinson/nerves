@@ -50,7 +50,7 @@ func NewArticles(app *tview.Application, articles []*news.Article) *Articles {
 		title := ""
 		body := ""
 		for _, titleWord := range titleWords {
-			if titleSize + 1 + len(titleWord) > 48 {
+			if titleSize+1+len(titleWord) > 48 {
 				body += " " + titleWord
 			} else {
 				title += titleWord + " "
