@@ -69,7 +69,7 @@ message GetForecastResponse {
     repeated WeatherForecast forecast_records = 1;
 }
 
-service Weather {
+service WeatherService {
     rpc GetCurrentReport(GetCurrentReportRequest) returns (WeatherReport) {}
     rpc GetForecast(GetForecastRequest) returns (GetForecastResponse) {}
 }

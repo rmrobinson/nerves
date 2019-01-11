@@ -43,7 +43,7 @@ func main() {
 	}
 	defer weatherConn.Close()
 
-	weatherClient := weather.NewWeatherClient(weatherConn)
+	weatherClient := weather.NewWeatherServiceClient(weatherConn)
 
 	// Toronto, Calgary & SF
 	locations := []string{
@@ -114,18 +114,25 @@ func main() {
 
 	devicesView := widget.NewDevices(app, listDevicesResp.Devices)
 
-	articlesView := widget.NewArticles(app, []*news.Article{
-		{
-			Title:       "Trump walks out of meeting with Democrats on government shutdown",
-			Description: `Hours after U.S. President Donald Trump called a meeting with Democrat leaders a "total waste of time," the House passed a bill to reopen parts of the government — but it's unlikely to survive the Republican-controlled Senate.`,
-			Link:        "https://www.cbc.ca/news/world/trump-walks-out-shutdown-meeting-1.4972128",
-		},
-		{
-			Title:       "Canadian astronomers discover 2nd mysterious repeating fast radio burst",
-			Description: `Out in the depths of space, there are radio signals that astronomers don't understand. Now a Canadian research team has found a repeating signal, only the second of its kind to be discovered.`,
-			Link:        "https://www.cbc.ca/news/technology/fast-radio-bursts-1.4969863",
-		},
-	})
+	newsConn, err := grpc.Dial("127.0.0.1:10103", grpcOpts...)
+	if err != nil {
+		logger.Warn("unable to dial news server",
+			zap.Error(err),
+		)
+	}
+	defer newsConn.Close()
+
+	newsClient := news.NewNewsServiceClient(newsConn)
+
+	listArticlesResp, err := newsClient.ListArticles(context.Background(), &news.ListArticlesRequest{})
+	if err != nil {
+		logger.Warn("unable to retrieve articles",
+			zap.Error(err),
+		)
+		listArticlesResp = &news.ListArticlesResponse{}
+	}
+
+	articlesView := widget.NewArticles(app, listArticlesResp.Articles)
 
 	articlesView.SetNextWidget(devicesView)
 	devicesView.SetNextWidget(articlesView)

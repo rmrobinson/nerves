@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/rmrobinson/nerves/services/weather"
+	"github.com/rmrobinson/nerves/services/news"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	ecURL := "https://weather.gc.ca/rss/city/on-82_e.xml"
+	cbcURL := "https://rss.cbc.ca/lineup/topstories.xml"
 
 	logger, _ := zap.NewDevelopment()
-	ecf := weather.NewEnvironmentCanadaFeed(logger, ecURL)
-	go ecf.Run(context.Background())
+	cbcf := news.NewCBCFeed(logger, cbcURL)
+	go cbcf.Run(context.Background())
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10101))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10103))
 	if err != nil {
 		logger.Fatal("failed to listen",
 			zap.Error(err),
@@ -25,7 +25,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	weather.RegisterWeatherServiceServer(grpcServer, weather.NewAPI(ecf))
+	news.RegisterNewsServiceServer(grpcServer, news.NewAPI(logger, cbcf))
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		logger.Fatal("failed to serve",
