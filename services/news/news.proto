@@ -4,6 +4,14 @@ package faltung.nerves.news;
 
 import "google/protobuf/timestamp.proto";
 
+message Image {
+    string name = 1;
+    string link = 2;
+    string title = 3;
+    int32 width = 4;
+    int32 height = 5;
+}
+
 message Article {
     string name = 1;
     google.protobuf.Timestamp create_time = 2;
@@ -13,8 +21,9 @@ message Article {
     string description = 5;
     string link = 6;
     string language_code = 7;
-    repeated string category = 8;
+    repeated string categories = 8;
     string author = 9;
+    Image image = 10;
 }
 
 message ListArticlesRequest {
