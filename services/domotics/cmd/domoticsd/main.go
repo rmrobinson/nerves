@@ -20,6 +20,11 @@ var (
 	ErrUnableToSetupMonopAmp = errors.New("unable to set up monoprice amp")
 	// ErrBridgeConfigInvalid is returned if the supplied bridge configuration is invalid.
 	ErrBridgeConfigInvalid = errors.New("bridge config invalid")
+	portEnvVar             = "PORT"
+	monopUSBPathEnvVar     = "MONOP_USB_PATH"
+	monopCachePathEnvVar   = "MONOP_CACHE_PATH"
+	hueCachePathEnvVar     = "HUE_CACHE_PATH"
+	proxyToAddrEnvVar      = "PROXY_TO_ADDR"
 )
 
 func main() {
@@ -29,21 +34,21 @@ func main() {
 	}
 
 	viper.SetEnvPrefix("NVS")
-	viper.BindEnv("PORT")
-	viper.BindEnv("MONOP_USB_PATH")
-	viper.BindEnv("MONOP_CACHE_PATH")
-	viper.BindEnv("HUE_CACHE_PATH")
-	viper.BindEnv("PROXY_TO_ADDR")
+	viper.BindEnv(portEnvVar)
+	viper.BindEnv(monopUSBPathEnvVar)
+	viper.BindEnv(monopCachePathEnvVar)
+	viper.BindEnv(hueCachePathEnvVar)
+	viper.BindEnv(proxyToAddrEnvVar)
 
 	hub := domotics.NewHub(logger)
 
 	var toClose []io.Closer
 
-	monopUSBPath := viper.GetString("MONOP_USB_PATH")
+	monopUSBPath := viper.GetString(monopUSBPathEnvVar)
 	if len(monopUSBPath) > 0 {
 		monopConfig := &domotics.BridgeConfig{
 			Name:      domotics.BridgeType_MONOPRICEAMP.String(),
-			CachePath: viper.GetString("MONOP_CACHE_PATH"),
+			CachePath: viper.GetString(monopCachePathEnvVar),
 			Address: &domotics.Address{
 				Usb: &domotics.Address_Usb{
 					Path: monopUSBPath,
@@ -69,7 +74,7 @@ func main() {
 		}
 	}
 
-	hueCachePath := viper.GetString("HUE_CACHE_PATH")
+	hueCachePath := viper.GetString(hueCachePathEnvVar)
 	if len(hueCachePath) > 0 {
 		hueConfig := &domotics.BridgeConfig{
 			Name:      domotics.BridgeType_HUE.String(),
@@ -91,7 +96,7 @@ func main() {
 		go hue.Run() // the bridges are added via Run(), not here.
 	}
 
-	proxyAddr := viper.GetString("PROXY_TO_ADDR")
+	proxyAddr := viper.GetString(proxyToAddrEnvVar)
 	if len(proxyAddr) > 0 {
 		proxyAddrParts := strings.Split(proxyAddr, ":")
 
@@ -128,7 +133,7 @@ func main() {
 		// the proxyImpl setup adds itself to the hub
 	}
 
-	connStr := fmt.Sprintf("%s:%d", "", viper.GetInt("PORT"))
+	connStr := fmt.Sprintf("%s:%d", "", viper.GetInt(portEnvVar))
 	lis, err := net.Listen("tcp", connStr)
 	if err != nil {
 		logger.Fatal("error initializing listener",

@@ -104,15 +104,7 @@ func main() {
 
 	devicesClient := domotics.NewDeviceServiceClient(domoticsConn)
 
-	listDevicesResp, err := devicesClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
-	if err != nil {
-		logger.Warn("unable to retrieve devices",
-			zap.Error(err),
-		)
-		listDevicesResp = &domotics.ListDevicesResponse{}
-	}
-
-	devicesView := widget.NewDevices(app, listDevicesResp.Devices)
+	devicesView := widget.NewDevices(app, logger, devicesClient)
 
 	newsConn, err := grpc.Dial("127.0.0.1:10103", grpcOpts...)
 	if err != nil {

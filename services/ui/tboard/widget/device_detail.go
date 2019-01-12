@@ -1,6 +1,7 @@
 package widget
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/domotics"
+	"go.uber.org/zap"
 )
 
 // DeviceDetail is a widget that provides for viewing and editing DeviceInfo details.
@@ -17,6 +19,8 @@ type DeviceDetail struct {
 
 	app    *tview.Application
 	parent tview.Primitive
+
+	logger *zap.Logger
 
 	isOnCheckbox    *tview.Checkbox
 	levelInput      *tview.InputField
@@ -27,17 +31,19 @@ type DeviceDetail struct {
 	saveButton      *tview.Button
 	doneButton      *tview.Button
 
-	device *domotics.Device
+	devicesClient domotics.DeviceServiceClient
+	device        *domotics.Device
 }
 
 // NewDeviceDetail creates a new instance of the DeviceDetail view.
 // Nothing will be displayed until a DeviceInfo is set on this view using Refresh()
-func NewDeviceDetail(app *tview.Application, parent tview.Primitive) *DeviceDetail {
+func NewDeviceDetail(app *tview.Application, logger *zap.Logger, parent tview.Primitive) *DeviceDetail {
 	// Create the view
 	dd := &DeviceDetail{
 		Flex:            tview.NewFlex(),
 		app:             app,
 		parent:          parent,
+		logger:          logger,
 		isOnCheckbox:    tview.NewCheckbox(),
 		levelInput:      tview.NewInputField(),
 		descriptionText: tview.NewTextView(),
@@ -132,12 +138,17 @@ func NewDeviceDetail(app *tview.Application, parent tview.Primitive) *DeviceDeta
 }
 
 // Refresh takes the supplied DeviceInfo and refreshes the view with its contents.
-func (dd *DeviceDetail) Refresh(device *domotics.Device) {
+func (dd *DeviceDetail) Refresh(client domotics.DeviceServiceClient, device *domotics.Device) {
 	dd.app.QueueUpdateDraw(func() {
+		dd.devicesClient = client
 		dd.device = device
 
 		dd.SetTitle(dd.device.Config.Name)
-		dd.isOnCheckbox.SetChecked(dd.device.State.Binary.IsOn)
+		if dd.device.State.Binary != nil {
+			dd.isOnCheckbox.SetChecked(dd.device.State.Binary.IsOn)
+		} else {
+			dd.isOnCheckbox.SetChecked(false)
+		}
 		dd.descriptionText.SetText(dd.device.Config.Description)
 
 		// TODO: do not allow/show values for fields that aren't supported.
@@ -163,6 +174,19 @@ func (dd *DeviceDetail) saveFields() {
 		dd.device.State.ColorRgb.Red = int32FromInputField(dd.redInput)
 		dd.device.State.ColorRgb.Green = int32FromInputField(dd.greenInput)
 		dd.device.State.ColorRgb.Blue = int32FromInputField(dd.blueInput)
+	}
+
+	resp, err := dd.devicesClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
+		Id:    dd.device.Id,
+		State: dd.device.State,
+	})
+
+	if err != nil {
+		dd.logger.Warn("error saving device state",
+			zap.Error(err),
+		)
+	} else {
+		dd.device = resp.Device
 	}
 }
 
