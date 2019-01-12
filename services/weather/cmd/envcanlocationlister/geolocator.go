@@ -13,11 +13,11 @@ type geogratisSubItem struct {
 }
 
 type geogratisItem struct {
-	Name string `json:"name"`
-	Concise geogratisSubItem `json:"concise"`
-	Province geogratisSubItem `json:"province"`
-	Latitude float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Name      string           `json:"name"`
+	Concise   geogratisSubItem `json:"concise"`
+	Province  geogratisSubItem `json:"province"`
+	Latitude  float64          `json:"latitude"`
+	Longitude float64          `json:"longitude"`
 }
 
 type geogratisResponse struct {

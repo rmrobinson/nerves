@@ -8,13 +8,13 @@ import (
 )
 
 type weatherInfo struct {
-	url string
+	url   string
 	title string
-	name string
+	name  string
 
-	latitude float64
-	longitude float64
-	siteType string
+	latitude         float64
+	longitude        float64
+	siteType         string
 	siteProvinceCode string
 }
 
@@ -50,12 +50,12 @@ func main() {
 		}
 
 		record := weatherInfo{
-			url: site.url,
-			title: site.title,
-			name: site.city,
-			latitude: geocoderResults.Latitude,
-			longitude: geocoderResults.Longitude,
-			siteType: geocoderResults.Concise.Code,
+			url:              site.url,
+			title:            site.title,
+			name:             site.city,
+			latitude:         geocoderResults.Latitude,
+			longitude:        geocoderResults.Longitude,
+			siteType:         geocoderResults.Concise.Code,
 			siteProvinceCode: geocoderResults.Province.Code,
 		}
 

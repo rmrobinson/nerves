@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	errPathNotFound = errors.New("path not found")
+	errPathNotFound        = errors.New("path not found")
 	errUnhandledStatusCode = errors.New("unhandled status code")
 )
 
@@ -33,8 +33,8 @@ var provinceCodes = []string{
 }
 
 type weatherSite struct {
-	url string
-	city string
+	url   string
+	city  string
 	title string
 }
 
@@ -115,7 +115,7 @@ func (c *crawler) loadPath(ctx context.Context, path string) (*weatherSite, erro
 	}
 
 	record := &weatherSite{
-		url: path,
+		url:   path,
 		title: feed.Title,
 	}
 

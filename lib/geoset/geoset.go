@@ -5,7 +5,7 @@ import (
 )
 
 type entry struct {
-	latitude float64
+	latitude  float64
 	longitude float64
 
 	value interface{}
