@@ -1,4 +1,4 @@
-package weather
+package envcan
 
 import (
 	"context"
@@ -10,76 +10,63 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/mmcdole/gofeed"
+	"github.com/rmrobinson/nerves/services/weather"
 	"go.uber.org/zap"
 )
 
-var (
-	// ErrInvalidDate is returned if an invalid date qualifier is supplied.
-	ErrInvalidDate = errors.New("invalid date supplied")
-)
+// Station contains the data about a single weather location reported on by Environment Canada
+type Station struct {
+	URL   string `json:"url"`
+	Title string `json:"title"`
 
-// EnvironmentCanadaFeed is a very basic weather feed provided by Environment Canada
-type EnvironmentCanadaFeed struct {
+	Latitude         float64 `json:"latitude"`
+	Longitude        float64 `json:"longitude"`
+	SiteType         string  `json:"site_type"`
+	SiteProvinceCode string  `json:"site_province_code"`
+
 	logger *zap.Logger
-	path   string
 
-	report   *WeatherReport
-	forecast []*WeatherForecast
+	currentReport *weather.WeatherReport
+	forecast      []*weather.WeatherForecast
+	lastRefreshed time.Time
 }
 
-// NewEnvironmentCanadaFeed creates a new weather feed for Environment Canada.
-func NewEnvironmentCanadaFeed(logger *zap.Logger, path string) *EnvironmentCanadaFeed {
-	return &EnvironmentCanadaFeed{
-		logger: logger,
-		path:   path,
-	}
+func (s *Station) shouldRefresh() bool {
+	return time.Now().Add(refreshFrequency * -1).After(s.lastRefreshed)
 }
 
-// Run begins a loop that will poll EC for changes.
-func (ecf *EnvironmentCanadaFeed) Run(ctx context.Context) {
-	ecf.logger.Info("run started")
-	ticker := time.NewTicker(time.Second * 10)
-	for {
-		select {
-		case <-ctx.Done():
-			ecf.logger.Info("context closed, completing run")
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			ecf.logger.Debug("refreshing data")
-			feed, err := ecf.getFeed(ctx)
-			if err != nil {
-				continue
-			}
-
-			report, forecast, err := ecf.parseFeed(feed)
-			if err != nil {
-				ecf.logger.Warn("error parsing feed",
-					zap.Error(err),
-				)
-				continue
-			}
-
-			ecf.report = report
-			ecf.forecast = forecast
-
-			var tmp []string
-			for _, forecastItem := range ecf.forecast {
-				tmp = append(tmp, forecastItem.String())
-			}
-
-			ecf.logger.Debug("feed results",
-				zap.String("report", ecf.report.String()),
-				zap.Strings("forecast", tmp),
-			)
-		}
-	}
-}
-
-func (ecf *EnvironmentCanadaFeed) getFeed(ctx context.Context) (*gofeed.Feed, error) {
-	req, err := http.NewRequest(http.MethodGet, ecf.path, nil)
+func (s *Station) refresh(ctx context.Context) error {
+	feed, err := s.getFeed(ctx)
 	if err != nil {
-		ecf.logger.Warn("error creating new request",
+		s.logger.Warn("error getting feed",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	report, forecast, err := s.parseFeed(feed)
+	if err != nil {
+		s.logger.Warn("error parsing feed",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	s.currentReport = report
+	s.forecast = forecast
+	s.lastRefreshed = time.Now()
+
+	s.logger.Debug("refreshed station",
+		zap.String("station_title", s.Title),
+	)
+
+	return nil
+}
+
+func (s *Station) getFeed(ctx context.Context) (*gofeed.Feed, error) {
+	req, err := http.NewRequest(http.MethodGet, s.URL, nil)
+	if err != nil {
+		s.logger.Warn("error creating new request",
 			zap.Error(err),
 		)
 		return nil, err
@@ -90,7 +77,7 @@ func (ecf *EnvironmentCanadaFeed) getFeed(ctx context.Context) (*gofeed.Feed, er
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		ecf.logger.Warn("error performing request",
+		s.logger.Warn("error performing request",
 			zap.Error(err),
 		)
 		return nil, err
@@ -98,7 +85,7 @@ func (ecf *EnvironmentCanadaFeed) getFeed(ctx context.Context) (*gofeed.Feed, er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		ecf.logger.Info("received non-OK response",
+		s.logger.Info("received non-OK response",
 			zap.Int("status_code", resp.StatusCode),
 		)
 		return nil, nil
@@ -107,7 +94,7 @@ func (ecf *EnvironmentCanadaFeed) getFeed(ctx context.Context) (*gofeed.Feed, er
 	fp := gofeed.NewParser()
 	feed, err := fp.Parse(resp.Body)
 	if err != nil {
-		ecf.logger.Warn("error parsing feed",
+		s.logger.Warn("error parsing feed",
 			zap.Error(err),
 		)
 		return nil, err
@@ -116,11 +103,11 @@ func (ecf *EnvironmentCanadaFeed) getFeed(ctx context.Context) (*gofeed.Feed, er
 	return feed, nil
 }
 
-func (ecf *EnvironmentCanadaFeed) parseFeed(feed *gofeed.Feed) (*WeatherReport, []*WeatherForecast, error) {
-	report := &WeatherReport{
-		Conditions: &WeatherCondition{},
+func (s *Station) parseFeed(feed *gofeed.Feed) (*weather.WeatherReport, []*weather.WeatherForecast, error) {
+	report := &weather.WeatherReport{
+		Conditions: &weather.WeatherCondition{},
 	}
-	var forecasts []*WeatherForecast
+	var forecasts []*weather.WeatherForecast
 
 	for _, item := range feed.Items {
 		for _, category := range item.Categories {
@@ -132,7 +119,7 @@ func (ecf *EnvironmentCanadaFeed) parseFeed(feed *gofeed.Feed) (*WeatherReport, 
 
 				report.Conditions = currentConditionsToCondition(item.Description)
 			} else if category == "Weather Forecasts" {
-				forecast := &WeatherForecast{
+				forecast := &weather.WeatherForecast{
 					ForecastId: item.GUID,
 					Conditions: forecastConditionToCondition(item.Description),
 				}
@@ -162,8 +149,8 @@ func (ecf *EnvironmentCanadaFeed) parseFeed(feed *gofeed.Feed) (*WeatherReport, 
 	return report, forecasts, nil
 }
 
-func currentConditionsToCondition(cc string) *WeatherCondition {
-	cond := &WeatherCondition{}
+func currentConditionsToCondition(cc string) *weather.WeatherCondition {
+	cond := &weather.WeatherCondition{}
 
 	records := strings.Split(cc, "<br/>\n")
 	for _, record := range records {
@@ -223,8 +210,8 @@ func currentConditionsToCondition(cc string) *WeatherCondition {
 	return cond
 }
 
-func forecastConditionToCondition(fc string) *WeatherCondition {
-	cond := &WeatherCondition{}
+func forecastConditionToCondition(fc string) *weather.WeatherCondition {
+	cond := &weather.WeatherCondition{}
 	records := strings.Split(fc, ".")
 	for idx, record := range records {
 		record = strings.TrimSpace(record)
@@ -273,45 +260,45 @@ func forecastConditionToCondition(fc string) *WeatherCondition {
 	return cond
 }
 
-func iconFromFeedText(text string) WeatherIcon {
+func iconFromFeedText(text string) weather.WeatherIcon {
 	text = strings.ToLower(text)
 	if strings.Contains(text, "snow") || strings.Contains(text, "flurries") {
-		return WeatherIcon_SNOW
+		return weather.WeatherIcon_SNOW
 	}
 
 	if strings.Contains(text, "rain") {
 		if strings.Contains(text, "chance") || strings.Contains(text, "partially") {
-			return WeatherIcon_CHANCE_OF_RAIN
+			return weather.WeatherIcon_CHANCE_OF_RAIN
 		} else if strings.Contains(text, "storm") || strings.Contains(text, "lightning") {
-			return WeatherIcon_THUNDERSTORMS
+			return weather.WeatherIcon_THUNDERSTORMS
 		}
-		return WeatherIcon_RAIN
+		return weather.WeatherIcon_RAIN
 	}
 
 	if strings.Contains(text, "thunder") {
-		return WeatherIcon_THUNDERSTORMS
+		return weather.WeatherIcon_THUNDERSTORMS
 	}
 
 	if strings.Contains(text, "cloud") {
 		if strings.Contains(text, "partially") {
-			return WeatherIcon_PARTIALLY_CLOUDY
+			return weather.WeatherIcon_PARTIALLY_CLOUDY
 		} else if strings.Contains(text, "sun") {
-			return WeatherIcon_MOSTLY_CLOUDY
+			return weather.WeatherIcon_MOSTLY_CLOUDY
 		}
-		return WeatherIcon_CLOUDY
+		return weather.WeatherIcon_CLOUDY
 	}
 
 	if strings.Contains(text, "fog") {
-		return WeatherIcon_FOG
+		return weather.WeatherIcon_FOG
 	}
 	if strings.Contains(text, "sunny") {
 		if strings.Contains(text, "partially") {
-			return WeatherIcon_PARTIALLY_CLOUDY
+			return weather.WeatherIcon_PARTIALLY_CLOUDY
 		}
-		return WeatherIcon_SUNNY
+		return weather.WeatherIcon_SUNNY
 	}
 
-	return WeatherIcon_SUNNY
+	return weather.WeatherIcon_SUNNY
 }
 
 func floatFromFeedText(input string) (float32, error) {

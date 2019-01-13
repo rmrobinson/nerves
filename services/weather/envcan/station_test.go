@@ -1,16 +1,17 @@
-package weather
+package envcan
 
 import (
 	"testing"
 	"time"
 
+	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/stretchr/testify/assert"
 )
 
 type currentConditionToConditionTest struct {
 	name   string
 	text   string
-	result *WeatherCondition
+	result *weather.WeatherCondition
 }
 
 var currentConditionToConditionTests = []currentConditionToConditionTest{
@@ -26,9 +27,9 @@ var currentConditionToConditionTests = []currentConditionToConditionTest{
 <b>Dewpoint:</b> -3.4&deg;C <br/>
 <b>Wind:</b> SW 21 km/h<br/>
 <b>Air Quality Health Index:</b> 2 <br/>`,
-		&WeatherCondition{
+		&weather.WeatherCondition{
 			Summary:     "Cloudy",
-			SummaryIcon: WeatherIcon_CLOUDY,
+			SummaryIcon: weather.WeatherIcon_CLOUDY,
 			Temperature: -1.3,
 			Pressure:    101.4,
 			Visibility:  16,
@@ -52,16 +53,16 @@ func TestCurrentConditionToCondition(t *testing.T) {
 type forecastConditionToConditionTest struct {
 	name   string
 	text   string
-	result *WeatherCondition
+	result *weather.WeatherCondition
 }
 
 var forecastConditionToConditionTests = []forecastConditionToConditionTest{
 	{
 		"basic weather report",
 		`Mainly cloudy. Wind becoming west 20 km/h late this afternoon. High plus 4. UV index 1 or low. Forecast issued 11:00 AM EST Saturday 05 January 2019`,
-		&WeatherCondition{
+		&weather.WeatherCondition{
 			Summary:     "Mainly cloudy",
-			SummaryIcon: WeatherIcon_CLOUDY,
+			SummaryIcon: weather.WeatherIcon_CLOUDY,
 			Temperature: 4,
 			WindSpeed:   20,
 			UvIndex:     1,
@@ -70,9 +71,9 @@ var forecastConditionToConditionTests = []forecastConditionToConditionTest{
 	{
 		"multi-value temperature",
 		`Clearing in the morning. Wind northwest 20 km/h. Temperature falling to minus 8 in the afternoon. Wind chill minus 7 in the morning and minus 14 in the afternoon. UV index 1 or low. Forecast issued 11:00 AM EST Saturday 05 January 2019`,
-		&WeatherCondition{
+		&weather.WeatherCondition{
 			Summary:     "Clearing in the morning",
-			SummaryIcon: WeatherIcon_SUNNY,
+			SummaryIcon: weather.WeatherIcon_SUNNY,
 			Temperature: -8,
 			WindChill:   -14,
 			WindSpeed:   20,
@@ -82,9 +83,9 @@ var forecastConditionToConditionTests = []forecastConditionToConditionTest{
 	{
 		"trivial case",
 		`Periods of snow. High plus 2. Forecast issued 11:00 AM EST Saturday 05 January 2019`,
-		&WeatherCondition{
+		&weather.WeatherCondition{
 			Summary:     "Periods of snow",
-			SummaryIcon: WeatherIcon_SNOW,
+			SummaryIcon: weather.WeatherIcon_SNOW,
 			Temperature: 2,
 		},
 	},

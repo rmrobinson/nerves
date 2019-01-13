@@ -21,7 +21,7 @@ type geogratisItem struct {
 }
 
 type geogratisResponse struct {
-	Items []geogratisItem `json:"items"`
+	Items []*geogratisItem `json:"items"`
 }
 
 // See https://www.nrcan.gc.ca/earth-sciences/geography/place-names/tools-applications/9249 for details
@@ -30,7 +30,7 @@ type geogratisAPI struct {
 	logger *zap.Logger
 }
 
-func (api *geogratisAPI) geocode(ctx context.Context, name string) (*geogratisItem, error) {
+func (api *geogratisAPI) geocode(ctx context.Context, name string, provinceCode string) (*geogratisItem, error) {
 	req, err := http.NewRequest(http.MethodGet, "http://geogratis.gc.ca/services/geoname/en/geonames.json", nil)
 	if err != nil {
 		api.logger.Warn("error creating new request",
@@ -78,5 +78,11 @@ func (api *geogratisAPI) geocode(ctx context.Context, name string) (*geogratisIt
 		return nil, nil
 	}
 
-	return &geogratisResp.Items[0], nil
+	for _, item := range geogratisResp.Items {
+		if item.Province.Code == provinceCode {
+			return item, nil
+		}
+	}
+
+	return nil, nil
 }

@@ -16,47 +16,24 @@ var (
 	errUnhandledStatusCode = errors.New("unhandled status code")
 )
 
-var provinceCodes = []string{
-	"ab",
-	"bc",
-	"mb",
-	"nb",
-	"nl",
-	"ns",
-	"nt",
-	"nu",
-	"on",
-	"pe",
-	"qc",
-	"sk",
-	"yt",
-}
-
-type weatherSite struct {
-	url   string
-	city  string
-	title string
+type weatherStation struct {
+	url      string
+	city     string
+	title    string
+	province string
 }
 
 type crawler struct {
 	logger *zap.Logger
 }
 
-func (c *crawler) getWeatherSites(ctx context.Context) []weatherSite {
-	var results []weatherSite
-	for _, provinceCode := range provinceCodes {
-		failCount := 0
-		for i := 1; i < 500; i++ {
-			if failCount > 3 {
-				c.logger.Info("received 3 fails for province, skipping",
-					zap.String("province_code", provinceCode),
-				)
-				break
-			}
+func (c *crawler) getWeatherStations(ctx context.Context) []weatherStation {
+	var stations []weatherStation
+	for provinceCode := range provinceCodes {
+		for i := 1; i < 200; i++ {
 			path := fmt.Sprintf("https://weather.gc.ca/rss/city/%s-%d_e.xml", provinceCode, i)
-			record, err := c.loadPath(ctx, path)
+			station, err := c.loadPath(ctx, path)
 			if err == errPathNotFound {
-				failCount++
 				continue
 			} else if err != nil {
 				c.logger.Warn("error handling path",
@@ -66,15 +43,15 @@ func (c *crawler) getWeatherSites(ctx context.Context) []weatherSite {
 				continue
 			}
 
-			failCount = 0
-			results = append(results, *record)
+			station.province = provinceCode
+			stations = append(stations, *station)
 		}
 	}
 
-	return results
+	return stations
 }
 
-func (c *crawler) loadPath(ctx context.Context, path string) (*weatherSite, error) {
+func (c *crawler) loadPath(ctx context.Context, path string) (*weatherStation, error) {
 	req, err := http.NewRequest(http.MethodGet, path, nil)
 	if err != nil {
 		c.logger.Warn("error creating new request",
@@ -96,12 +73,13 @@ func (c *crawler) loadPath(ctx context.Context, path string) (*weatherSite, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		c.logger.Info("received non-OK response",
-			zap.Int("status_code", resp.StatusCode),
-		)
 		if resp.StatusCode == http.StatusNotFound {
 			return nil, errPathNotFound
 		}
+
+		c.logger.Debug("received non-OK response",
+			zap.Int("status_code", resp.StatusCode),
+		)
 		return nil, errUnhandledStatusCode
 	}
 
@@ -114,13 +92,15 @@ func (c *crawler) loadPath(ctx context.Context, path string) (*weatherSite, erro
 		return nil, err
 	}
 
-	record := &weatherSite{
+	record := &weatherStation{
 		url:   path,
 		title: feed.Title,
 	}
 
 	if len(record.title) > 0 {
-		record.city = strings.TrimSpace(strings.Split(record.title, "-")[0])
+		record.city = strings.Split(record.title, "-")[0]
+		record.city = strings.Split(record.city, "(")[0]
+		record.city = strings.TrimSpace(record.city)
 	}
 
 	return record, nil

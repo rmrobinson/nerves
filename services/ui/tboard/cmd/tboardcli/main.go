@@ -69,12 +69,15 @@ func main() {
 	weatherView := widget.NewWeatherCondition(app)
 	go func() {
 		for {
-			report, err := weatherClient.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{})
+			report, err := weatherClient.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{
+				Latitude:  43.4516,
+				Longitude: -80.4925,
+			})
 			if err != nil {
 				logger.Warn("unable to get weather")
 			}
 
-			weatherView.Refresh(report)
+			weatherView.Refresh(report.Report)
 
 			time.Sleep(time.Second * 3)
 		}
@@ -83,7 +86,10 @@ func main() {
 	forecastView := widget.NewWeatherForecast(app, 6)
 	go func() {
 		for {
-			forecast, err := weatherClient.GetForecast(context.Background(), &weather.GetForecastRequest{})
+			forecast, err := weatherClient.GetForecast(context.Background(), &weather.GetForecastRequest{
+				Latitude:  43.4516,
+				Longitude: -80.4925,
+			})
 			if err != nil {
 				logger.Warn("unable to get weather")
 			}
