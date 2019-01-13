@@ -60,16 +60,22 @@ message WeatherForecast {
 }
 
 message GetCurrentReportRequest {
-    string location = 1;
+    double latitude = 1;
+    double longitude = 2;
+}
+message GetCurrentReportResponse {
+    WeatherReport report = 1;
+    string station_name = 2;
 }
 message GetForecastRequest {
-    string location = 1;
+    double latitude = 1;
+    double longitude = 2;
 }
 message GetForecastResponse {
     repeated WeatherForecast forecast_records = 1;
 }
 
 service WeatherService {
-    rpc GetCurrentReport(GetCurrentReportRequest) returns (WeatherReport) {}
+    rpc GetCurrentReport(GetCurrentReportRequest) returns (GetCurrentReportResponse) {}
     rpc GetForecast(GetForecastRequest) returns (GetForecastResponse) {}
 }

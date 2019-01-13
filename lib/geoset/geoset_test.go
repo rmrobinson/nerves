@@ -7,33 +7,33 @@ import (
 )
 
 type geosettest struct {
-	name string
-	entries []entry
+	name         string
+	entries      []entry
 	closestValue int
-	searchLat float64
-	searchLon float64
+	searchLat    float64
+	searchLon    float64
 }
 
-var geosettests = []geosettest {
+var geosettests = []geosettest{
 	{
 		name: "closest to UW",
 		entries: []entry{
 			{
 				// conestoga mall
-				latitude: 43.4977,
+				latitude:  43.4977,
 				longitude: 80.5270,
-				value: 4785,
+				value:     4785,
 			},
 			{
 				// fairview mall
-				latitude: 43.4242,
+				latitude:  43.4242,
 				longitude: 80.4392,
-				value: 5174,
+				value:     5174,
 			},
 		},
 		// university of waterloo
-		searchLat: 43.4723,
-		searchLon: 80.5449,
+		searchLat:    43.4723,
+		searchLon:    80.5449,
 		closestValue: 4785, // conestoga mall is closer
 	},
 }

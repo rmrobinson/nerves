@@ -1,21 +1,27 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 
 	"github.com/rmrobinson/nerves/services/weather"
+	"github.com/rmrobinson/nerves/services/weather/envcan"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	ecURL := "https://weather.gc.ca/rss/city/on-82_e.xml"
+	ecStations := "/tmp/weather.json"
 
 	logger, _ := zap.NewDevelopment()
-	ecf := weather.NewEnvironmentCanadaFeed(logger, ecURL)
-	go ecf.Run(context.Background())
+	ecsvc, err := envcan.NewService(logger, ecStations)
+	if err != nil {
+		logger.Fatal("error creating feed",
+			zap.Error(err),
+		)
+	}
+
+	//go ecsvc.Run(context.Background())
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10101))
 	if err != nil {
@@ -25,7 +31,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	weather.RegisterWeatherServiceServer(grpcServer, weather.NewAPI(ecf))
+	weather.RegisterWeatherServiceServer(grpcServer, weather.NewAPI(ecsvc))
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		logger.Fatal("failed to serve",

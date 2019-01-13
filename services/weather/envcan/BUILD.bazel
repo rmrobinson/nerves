@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "service.go",
+        "station.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/weather/envcan",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//lib/geoset:go_default_library",
+        "//services/weather:go_default_library",
+        "//vendor/github.com/mmcdole/gofeed:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["station_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//services/weather:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)
