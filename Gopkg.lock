@@ -184,11 +184,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0f44ebd1757c5725456f2d6c564b196dd96593e68fda7236e345642940b9a88a"
+  digest = "1:218da9881d36a73f7381ad19b472d13d92c16c52e79bded3f218eab6362bba5b"
   name = "github.com/rivo/tview"
   packages = ["."]
   pruneopts = "UT"
-  revision = "36893a66979260e9758701ae306ec0d69c0f53c8"
+  revision = "e5e361b9d7908c94aa426e31c208e2c69df0d95d"
 
 [[projects]]
   branch = "master"
@@ -200,11 +200,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3f7b37044fe5e2fd4afed885a245c6e4888d0d8d2d9e18f9ceb18d228a17c8e7"
+  digest = "1:3b893c9cdc651a210908e878b2ec0ecdad7f94ca8617fbf4edd1fbcacb185a1d"
   name = "github.com/rmrobinson/monoprice-amp-go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "21998fc4424176ede271febd7e5d507057ca1841"
+  revision = "706b19e1069659c387b117626ca691cb4200c626"
 
 [[projects]]
   digest = "1:d707dbc1330c0ed177d4642d6ae102d5e2c847ebd0eb84562d0dc4f024531cfc"
@@ -250,12 +250,12 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:18752d0b95816a1b777505a97f71c7467a8445b8ffb55631a7bf779f6ba4fa83"
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   pruneopts = "UT"
-  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
-  version = "v1.2.2"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -300,7 +300,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:22cc09a0a3e3e7826986266cd4efca3b31b784cde07b0e5f2eacc5799d2ac5aa"
+  digest = "1:995d6d4273d5a6c0c122a908dbdf8aae7fb097f7559f0c2fb8ea8b578c139d18"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -315,15 +315,15 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "927f97764cc334a6575f4b7a1584a147864d5723"
+  revision = "915654e7eabcea33ae277abbecf52f0d8b7a9fdc"
 
 [[projects]]
   branch = "master"
-  digest = "1:5004e851e5eccde563d17871cd9d11c82e2faa578b1a0de81dc74867ad3845a4"
+  digest = "1:91137b48dc3eb34409f731b49f63a5ebf73218168a065e1a93af24eb5b2f99e8"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "82a175fd1598e8a172e58ebdf5ed262bb29129e5"
+  revision = "48ac38b7c8cbedd50b1613c0fccacfc7d88dfcdf"
 
 [[projects]]
   digest = "1:436b24586f8fee329e0dd65fd67c817681420cda1d7f934345c13fe78c212a73"
@@ -366,7 +366,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "bd9b4fb69e2ffd37621a6caa54dcbead29b546f2"
+  revision = "db91494dd46c1fdcbbde05e5ff5eb56df8f7d79a"
 
 [[projects]]
   digest = "1:9edd250a3c46675d0679d87540b30c9ed253b19bd1fd1af08f4f5fb3c79fc487"
@@ -436,6 +436,7 @@
     "go.uber.org/zap",
     "go.uber.org/zap/zaptest",
     "golang.org/x/net/context",
+    "golang.org/x/net/html",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/peer",

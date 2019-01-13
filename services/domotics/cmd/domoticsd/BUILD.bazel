@@ -23,7 +23,7 @@ go_library(
 )
 
 go_binary(
-    name = "deviced",
+    name = "domoticsd",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
 )
