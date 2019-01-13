@@ -73,6 +73,8 @@ func NewService(logger *zap.Logger, weatherStationFile string) (*Service, error)
 	return feed, nil
 }
 
+// GetReport retrieves the current weather report of the supplied location. The data returned may not be slightly
+// out of date as the service caches results for 30 minutes.
 func (f *Service) GetReport(ctx context.Context, latitude float64, longitude float64) (*weather.WeatherReport, error) {
 	s := f.stations.Closest(latitude, longitude).(*Station)
 	if s == nil {
@@ -90,6 +92,9 @@ func (f *Service) GetReport(ctx context.Context, latitude float64, longitude flo
 
 	return s.currentReport, nil
 }
+
+// GetForecast retrieves the current weather forecast of the supplied location. The data returned may not be slightly
+// out of date as the service caches results for 30 minutes.
 func (f *Service) GetForecast(ctx context.Context, latitude float64, longitude float64) ([]*weather.WeatherForecast, error) {
 	s := f.stations.Closest(latitude, longitude).(*Station)
 	if s == nil {
