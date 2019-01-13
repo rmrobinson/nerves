@@ -46,6 +46,7 @@ go_library(
         "errors_freebsd_amd64.go",
         "errors_freebsd_arm.go",
         "fcntl.go",
+        "fcntl_darwin.go",
         "fcntl_linux_32bit.go",
         "ioctl.go",
         "openbsd_pledge.go",
