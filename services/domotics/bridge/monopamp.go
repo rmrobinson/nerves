@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	monopamp "github.com/rmrobinson/monoprice-amp-go"
@@ -43,6 +44,7 @@ var (
 			},
 		},
 	}
+	commandSpaceInterval = time.Millisecond * 100
 )
 
 func addrToZone(addr string) int {
@@ -66,22 +68,22 @@ func channelToInput(id int) string {
 	return fmt.Sprintf("%s%d", channelPrefix, id)
 }
 func volumeFromProto(original int32) int {
-	return int(original/100) * 38
+	return int((original * 38) / 100)
 }
 func volumeToProto(original int) int32 {
-	return int32(original/38) * 100
+	return int32((original * 100) / 38)
 }
 func balanceFromProto(original int32) int {
-	return int(original/100) * 20
+	return int(original / 5)
 }
 func balanceToProto(original int) int32 {
-	return int32(original/20) * 100
+	return int32((original * 5) / 20)
 }
 func noteFromProto(original int32) int {
-	return int(original/100) * 14
+	return int((original * 14) / 100)
 }
 func noteToProto(original int) int32 {
-	return int32(original/14) * 100
+	return int32((original * 100) / 14)
 }
 
 // MonopAmpBridge is an implementation of a bridge for the Monoprice amp/stereo output device.
@@ -101,6 +103,14 @@ func NewMonopAmpBridge(amp *monopamp.SerialAmplifier, persister domotics.BridgeP
 
 // Setup seeds the persistent store with the proper data
 func (b *MonopAmpBridge) Setup(ctx context.Context) error {
+	// Create the bridge
+	_, err := b.persister.CreateBridge(context.Background(), &domotics.BridgeConfig{
+		Name: "Monoprice Amplifier",
+	})
+	if err != nil {
+		return err
+	}
+
 	// Populate the devices
 	for zoneID := 1; zoneID <= maxZoneID; zoneID++ {
 		d := &domotics.Device{
@@ -163,6 +173,36 @@ func (b *MonopAmpBridge) AvailableDevices(ctx context.Context) ([]*domotics.Devi
 	return nil, nil
 }
 
+func (b *MonopAmpBridge) deviceFromAmp(device *domotics.Device) error {
+	zone := b.amp.Zone(addrToZone(device.Address))
+	if zone == nil {
+		return ErrZoneInvalid
+	}
+
+	if err := zone.Refresh(); err != nil {
+		return err
+	}
+
+	device.State.Binary = &domotics.DeviceState_BinaryState{
+		IsOn: zone.State().IsOn,
+	}
+	device.State.Input = &domotics.DeviceState_InputState{
+		Input: channelToInput(zone.State().SourceChannelID),
+	}
+	device.State.Audio = &domotics.DeviceState_AudioState{
+		Volume:  volumeToProto(zone.State().Volume),
+		Treble:  noteToProto(zone.State().Treble),
+		Bass:    noteToProto(zone.State().Bass),
+		IsMuted: zone.State().IsMuteOn,
+	}
+	device.State.StereoAudio = &domotics.DeviceState_StereoAudioState{
+		Balance: balanceToProto(zone.State().Balance),
+	}
+
+	proto.Merge(device, baseMonopAmpDevice)
+	return nil
+}
+
 // Devices retrieves the list of zones and the current state of each device from the serial port.
 func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
 	devices, err := b.persister.Devices(ctx)
@@ -170,32 +210,9 @@ func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error
 		return nil, err
 	}
 	for _, device := range devices {
-		zone := b.amp.Zone(addrToZone(device.Address))
-		if zone == nil {
-			return nil, ErrZoneInvalid
-		}
-
-		if err := zone.Refresh(); err != nil {
+		if err = b.deviceFromAmp(device); err != nil {
 			return nil, err
 		}
-
-		device.State.Binary = &domotics.DeviceState_BinaryState{
-			IsOn: zone.State().IsOn,
-		}
-		device.State.Input = &domotics.DeviceState_InputState{
-			Input: channelToInput(zone.State().SourceChannelID),
-		}
-		device.State.Audio = &domotics.DeviceState_AudioState{
-			Volume:  volumeToProto(zone.State().Volume),
-			Treble:  noteToProto(zone.State().Treble),
-			Bass:    noteToProto(zone.State().Bass),
-			IsMuted: zone.State().IsMuteOn,
-		}
-		device.State.StereoAudio = &domotics.DeviceState_StereoAudioState{
-			Balance: balanceToProto(zone.State().Balance),
-		}
-
-		proto.Merge(device, baseMonopAmpDevice)
 	}
 	return devices, nil
 }
@@ -206,7 +223,12 @@ func (b *MonopAmpBridge) Device(ctx context.Context, id string) (*domotics.Devic
 	if err != nil {
 		return nil, err
 	}
-	proto.Merge(device, baseMonopAmpDevice)
+
+	err = b.deviceFromAmp(device)
+	if err != nil {
+		return nil, err
+	}
+
 	return device, nil
 }
 
@@ -236,6 +258,7 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 	zState := zone.State()
 
 	if zState.IsOn != state.Binary.IsOn {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetPower(state.Binary.IsOn); err != nil {
 			return err
 		}
@@ -247,6 +270,7 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 	}
 
 	if zState.SourceChannelID != channelID {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetSourceChannel(channelID); err != nil {
 			return err
 		}
@@ -254,6 +278,7 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 
 	treble := noteFromProto(state.Audio.Treble)
 	if zState.Treble != treble {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetTreble(treble); err != nil {
 			return err
 		}
@@ -261,6 +286,7 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 
 	bass := noteFromProto(state.Audio.Bass)
 	if zState.Bass != bass {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetBass(bass); err != nil {
 			return err
 		}
@@ -268,12 +294,14 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 
 	volume := volumeFromProto(state.Audio.Volume)
 	if zState.Volume != volume {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetVolume(volume); err != nil {
 			return err
 		}
 	}
 
 	if zState.IsMuteOn != state.Audio.IsMuted {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetMute(state.Audio.IsMuted); err != nil {
 			return err
 		}
@@ -281,6 +309,7 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 
 	balance := balanceFromProto(state.StereoAudio.Balance)
 	if zState.Balance != balance {
+		time.Sleep(commandSpaceInterval)
 		if err = zone.SetBalance(balance); err != nil {
 			return err
 		}

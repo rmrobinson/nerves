@@ -77,6 +77,9 @@ func main() {
 				logger.Warn("unable to get weather")
 			}
 
+			if report == nil {
+				report = &weather.GetCurrentReportResponse{}
+			}
 			weatherView.Refresh(report.Report)
 
 			time.Sleep(time.Second * 3)
