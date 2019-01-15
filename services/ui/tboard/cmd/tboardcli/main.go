@@ -103,7 +103,7 @@ func main() {
 		}
 	}()
 
-	domoticsConn, err := grpc.Dial("10.16.3.117:10102", grpcOpts...)
+	domoticsConn, err := grpc.Dial("127.0.0.1:10102", grpcOpts...)
 	if err != nil {
 		logger.Warn("unable to dial domotics server",
 			zap.Error(err),
