@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	mpa "github.com/rmrobinson/monoprice-amp-go"
 	"github.com/rmrobinson/nerves/services/domotics"
@@ -26,6 +27,11 @@ type monopampImpl struct {
 func (b *monopampImpl) setup(config *domotics.BridgeConfig) error {
 	if config.Address.Usb == nil {
 		return ErrBridgeConfigInvalid
+	}
+
+	setupNeeded := false
+	if _, err := os.Stat(config.CachePath); os.IsNotExist(err) {
+		setupNeeded = true
 	}
 
 	b.db = &domotics.BridgeDB{}
@@ -62,7 +68,11 @@ func (b *monopampImpl) setup(config *domotics.BridgeConfig) error {
 
 	monopBridge := bridge.NewMonopAmpBridge(amp, b.db)
 	b.bridge = monopBridge
-	return monopBridge.Setup(context.Background())
+
+	if setupNeeded {
+		return monopBridge.Setup(context.Background())
+	}
+	return nil
 }
 
 // Close cleans up any open resources
