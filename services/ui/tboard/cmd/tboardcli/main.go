@@ -63,8 +63,6 @@ func main() {
 
 	torontoTime := widget.NewTime(app, tzLocations[0])
 	go torontoTime.Run()
-	calgaryTime := widget.NewTime(app, tzLocations[1])
-	go calgaryTime.Run()
 
 	weatherView := widget.NewWeatherCondition(app)
 	go func() {
@@ -138,13 +136,42 @@ func main() {
 	articlesView.SetNextWidget(devicesView)
 	devicesView.SetNextWidget(articlesView)
 
+	transitView := widget.NewTransit(app, 5)
+	go func() {
+		for {
+			transitView.Refresh([]widget.TransitArrivalInfo{
+				{
+					"iXpress 200",
+					0,
+				},
+				{
+					"7 North",
+					7,
+				},
+				{
+					"13 South",
+					8,
+				},
+				{
+					"14 East",
+					9,
+				},
+				{
+					"14 West",
+					17,
+				},
+			})
+
+			time.Sleep(time.Second * 3)
+		}
+	}()
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(tview.NewFlex().
 			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 				AddItem(torontoTime, 4, 1, false).
-				AddItem(calgaryTime, 4, 1, false).
 				AddItem(weatherView, 17, 1, false).
-				AddItem(forecastView, 0, 1, false), 24, 1, false).
+				AddItem(forecastView, 0, 1, false).
+				AddItem(transitView, 7, 1, false), 28, 1, false).
 			AddItem(articlesView, 50, 1, true).
 			AddItem(devicesView, 0, 1, true), 0, 1, true).
 		AddItem(debugView, 3, 1, false)
