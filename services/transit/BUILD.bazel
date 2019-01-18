@@ -16,11 +16,16 @@ go_proto_library(
 
 go_library(
     name = "go_default_library",
-    srcs = ["service.go"],
+    srcs = [
+        "service.go",
+        "stop.go",
+    ],
     embed = [":transit_realtime_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/transit",
     visibility = ["//visibility:public"],
     deps = [
+        "//lib/geoset:go_default_library",
+        "//vendor/github.com/gocarina/gocsv:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
     ],

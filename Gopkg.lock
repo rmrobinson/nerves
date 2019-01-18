@@ -53,6 +53,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:85ca5bde4e2a5d61183ace07f602873843f36f8e5a99017eb291e460085d02e8"
+  name = "github.com/gocarina/gocsv"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "af1d9380204a6897e3a44ad3dc6397e16a21ee40"
+
+[[projects]]
   digest = "1:4c0989ca0bcd10799064318923b9bc2db6b4d6338dd75f3f2d86c3511aaaf5cf"
   name = "github.com/golang/protobuf"
   packages = [
@@ -421,6 +429,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/gdamore/tcell",
+    "github.com/gocarina/gocsv",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/timestamp",
