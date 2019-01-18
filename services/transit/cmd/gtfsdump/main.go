@@ -15,14 +15,24 @@ func main() {
 	}
 
 	svc := transit.NewService(logger)
-	feed, err := svc.GetRealtimeFeed(context.Background(), "http://192.237.29.212:8080/gtfsrealtime/VehiclePositions")
+
+	rtFeed, err := svc.GetRealtimeFeed(context.Background(), "http://192.237.29.212:8080/gtfsrealtime/VehiclePositions")
 	if err != nil {
-		logger.Warn("error getting feed")
+		logger.Warn("error getting rtFeed")
 		return
 	}
 
-	fmt.Printf("%v\n", feed.Header)
-	for _, entity := range feed.Entity {
+	fmt.Printf("%v\n", rtFeed.Header)
+	for _, entity := range rtFeed.Entity {
 		fmt.Printf("%v\n", entity)
 	}
+
+	err = svc.GetFeed(context.Background(), "https://www.regionofwaterloo.ca/opendatadownloads/GRT_GTFS.zip")
+	if err != nil {
+		logger.Warn("error getting feed")
+	}
+
+	// University of Waterloo
+	stop := svc.GetClosestStop(43.4722854,-80.5470516)
+	fmt.Printf("%+v\n", stop)
 }

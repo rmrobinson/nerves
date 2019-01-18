@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "csv.go",
+        "decode.go",
+        "encode.go",
+        "reflect.go",
+        "safe_csv.go",
+        "types.go",
+        "unmarshaller.go",
+    ],
+    importmap = "github.com/rmrobinson/nerves/vendor/github.com/gocarina/gocsv",
+    importpath = "github.com/gocarina/gocsv",
+    visibility = ["//visibility:public"],
+)
