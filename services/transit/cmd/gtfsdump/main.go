@@ -32,7 +32,13 @@ func main() {
 		logger.Warn("error getting feed")
 	}
 
+	agencies := svc.GetAgencies()
+
+	for _, agency := range agencies {
+		fmt.Printf("%v\n", agency)
+	}
+
 	// University of Waterloo
-	stop := svc.GetClosestStop(43.4722854,-80.5470516)
+	stop := svc.GetClosestStop(43.4722854, -80.5470516)
 	fmt.Printf("%+v\n", stop)
 }
