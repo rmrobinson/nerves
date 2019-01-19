@@ -15,6 +15,7 @@ type Float struct {
 func (f *Float) MarshalCSV() (string, error) {
 	return fmt.Sprintf("%f", f), nil
 }
+
 // UnmarshalCSV takes the string representation from a CSV file and attempts to convert it to a float64.
 func (f *Float) UnmarshalCSV(csv string) (err error) {
 	f.float64, err = strconv.ParseFloat(strings.TrimSpace(csv), 64)
@@ -26,11 +27,11 @@ type LocationType int
 
 const (
 	// LocationTypeStop is a standard stop
-	LocationTypeStop                LocationType = 0
+	LocationTypeStop LocationType = 0
 	// LocationTypeStation is a transit station
-	LocationTypeStation                          = 1
+	LocationTypeStation = 1
 	// LocationTypeStationEntranceExit is the entrance/exit of a station.
-	LocationTypeStationEntranceExit              = 2
+	LocationTypeStationEntranceExit = 2
 )
 
 // String presents the caller with a human readable version of this enum.

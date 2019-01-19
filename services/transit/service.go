@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -19,6 +18,11 @@ import (
 type Service struct {
 	logger *zap.Logger
 
+	agencies  []*Agency
+	trips     []*Trip
+	stopTimes []*StopTime
+	calendar  []*Calendar
+
 	stops *geoset.GeoSet
 }
 
@@ -26,7 +30,7 @@ type Service struct {
 func NewService(logger *zap.Logger) *Service {
 	return &Service{
 		logger: logger,
-		stops: geoset.NewGeoSet(),
+		stops:  geoset.NewGeoSet(),
 	}
 }
 
@@ -126,34 +130,80 @@ func (s *Service) GetFeed(ctx context.Context, path string) error {
 
 	// Read all the files from zip archive
 	for _, zipFile := range zipReader.File {
-		if !strings.HasSuffix(zipFile.Name, "stops.txt") {
-			s.logger.Debug("skipping file",
-				zap.String("file_name", zipFile.Name),
-			)
-			continue
-		}
-
-		s.logger.Debug("reading file",
+		s.logger.Debug("handling file",
 			zap.String("file_name", zipFile.Name),
 		)
 
-		stops, err := parseStopsFile(zipFile)
-		if err != nil {
-			s.logger.Warn("error reading stops file",
-				zap.String("file_name", zipFile.Name),
-				zap.Error(err),
-			)
-			continue
-		}
+		switch zipFile.Name {
+		case "stops.txt":
+			var stops []*Stop
+			err = parseCSVFile(zipFile, &stops)
+			if err != nil {
+				s.logger.Warn("error reading stops file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
 
-		for _, stop := range stops {
-			s.stops.Add(stop.Latitude.float64, stop.Longitude.float64, stop)
+			for _, stop := range stops {
+				s.stops.Add(stop.Latitude.float64, stop.Longitude.float64, stop)
+			}
+			s.logger.Debug("parsed stops")
+		case "agency.txt":
+			err = parseCSVFile(zipFile, &s.agencies)
+			if err != nil {
+				s.logger.Warn("error reading stops file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed agencies")
+		case "trips.txt":
+			err = parseCSVFile(zipFile, &s.trips)
+			if err != nil {
+				s.logger.Warn("error reading trips file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed trips")
+		case "stop_times.txt":
+			err = parseCSVFile(zipFile, &s.stopTimes)
+			if err != nil {
+				s.logger.Warn("error reading stop times file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed stop times")
+		case "calendar.txt":
+			err = parseCSVFile(zipFile, &s.calendar)
+			if err != nil {
+				s.logger.Warn("error reading calendar file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed calendars")
+		default:
+			if !strings.HasSuffix(zipFile.Name, "stops.txt") {
+				s.logger.Debug("skipping file",
+					zap.String("file_name", zipFile.Name),
+				)
+			}
 		}
-
-		return nil
 	}
+	return nil
+}
 
-	return errors.New("file not found")
+// GetAgencies returns the set of agencies in this service.
+func (s *Service) GetAgencies() []*Agency {
+	return s.agencies
 }
 
 // GetClosestStop returns the closest stop to the supplied location
@@ -161,18 +211,17 @@ func (s *Service) GetClosestStop(lat float64, lon float64) *Stop {
 	return s.stops.Closest(lat, lon).(*Stop)
 }
 
-func parseStopsFile(zf *zip.File) ([]*Stop, error) {
+func parseCSVFile(zf *zip.File, out interface{}) error {
 	f, err := zf.Open()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer f.Close()
 
-	var stops []*Stop
-	err = gocsv.Unmarshal(f, &stops)
+	err = gocsv.Unmarshal(f, out)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return stops, nil
+	return nil
 }
