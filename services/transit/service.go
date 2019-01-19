@@ -18,8 +18,12 @@ import (
 type Service struct {
 	logger *zap.Logger
 
-	agencies []*Agency
-	stops    *geoset.GeoSet
+	agencies  []*Agency
+	trips     []*Trip
+	stopTimes []*StopTime
+	calendar  []*Calendar
+
+	stops *geoset.GeoSet
 }
 
 // NewService creates a new service
@@ -156,6 +160,36 @@ func (s *Service) GetFeed(ctx context.Context, path string) error {
 				continue
 			}
 			s.logger.Debug("parsed agencies")
+		case "trips.txt":
+			err = parseCSVFile(zipFile, &s.trips)
+			if err != nil {
+				s.logger.Warn("error reading trips file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed trips")
+		case "stop_times.txt":
+			err = parseCSVFile(zipFile, &s.stopTimes)
+			if err != nil {
+				s.logger.Warn("error reading stop times file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed stop times")
+		case "calendar.txt":
+			err = parseCSVFile(zipFile, &s.calendar)
+			if err != nil {
+				s.logger.Warn("error reading calendar file",
+					zap.String("file_name", zipFile.Name),
+					zap.Error(err),
+				)
+				continue
+			}
+			s.logger.Debug("parsed calendars")
 		default:
 			if !strings.HasSuffix(zipFile.Name, "stops.txt") {
 				s.logger.Debug("skipping file",
@@ -164,7 +198,6 @@ func (s *Service) GetFeed(ctx context.Context, path string) error {
 			}
 		}
 	}
-	q
 	return nil
 }
 
