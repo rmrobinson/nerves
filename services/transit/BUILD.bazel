@@ -17,11 +17,11 @@ go_proto_library(
 go_library(
     name = "go_default_library",
     srcs = [
+        "arrival.go",
         "feed.go",
         "route.go",
         "service.go",
         "stop.go",
-        "stop_time.go",
         "trip.go",
     ],
     embed = [":transit_realtime_go_proto"],
