@@ -1,4 +1,4 @@
-package transit
+package gtfs
 
 // Agency represents the transit agency supplying service.
 type Agency struct {

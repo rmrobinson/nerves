@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//services/transit:go_default_library",
+        "//services/transit/gtfs:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
     ],
 )
