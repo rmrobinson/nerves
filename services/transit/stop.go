@@ -66,11 +66,7 @@ func (s *Stop) arrivalsForDay(date time.Time) []*Arrival {
 			}
 		}
 
-		if date.Hour() > arrival.ArrivalTime.Hour {
-			shouldAdd = false
-		} else if date.Hour() == arrival.ArrivalTime.Hour && date.Minute() > arrival.ArrivalTime.Minute {
-			shouldAdd = false
-		} else if date.Hour() == arrival.ArrivalTime.Hour && date.Minute() == arrival.ArrivalTime.Minute && date.Second() > arrival.ArrivalTime.Second {
+		if arrival.ArrivalTime.BeforeTime(date) {
 			shouldAdd = false
 		}
 
