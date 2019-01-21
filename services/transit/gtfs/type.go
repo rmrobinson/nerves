@@ -9,12 +9,15 @@ import (
 )
 
 const (
-	gtfsDateFormat = "20060102"
+	// DateFormat is the GTFS-described date format
+	DateFormat = "20060102"
 )
 
 var (
 	// ErrInvalidBoolField is returned if a boolean field has invalid data
 	ErrInvalidBoolField = errors.New("invalid boolean field supplied")
+	// ErrInvalidTimeField is returned if a time field has invalid data
+	ErrInvalidTimeField = errors.New("invalid time field supplied")
 )
 
 // CSVBool is a CSV marshalable boolean value
@@ -58,13 +61,55 @@ type CSVDate struct {
 
 // MarshalCSV marshals the value into a string format
 func (d *CSVDate) MarshalCSV() (string, error) {
-	return d.Format(gtfsDateFormat), nil
+	return d.Format(DateFormat), nil
 }
 
-// UnmarshalCSV takes the string representation from a CSV file and attempts to convert it to a float64.
+// UnmarshalCSV takes the string representation from a CSV file and attempts to convert it to a time.Time.
 func (d *CSVDate) UnmarshalCSV(csv string) (err error) {
-	d.Time, err = time.Parse(gtfsDateFormat, csv)
+	d.Time, err = time.Parse(DateFormat, csv)
 	return err
+}
+
+// CSVTime is a GTFS time parsed from CSV
+type CSVTime struct {
+	Hour   int
+	Minute int
+	Second int
+}
+
+// MarshalCSV marshals the value into a string format
+func (t *CSVTime) MarshalCSV() (string, error) {
+	return fmt.Sprintf("%02d:%02d:%02d", t.Hour, t.Minute, t.Second), nil
+}
+
+// UnmarshalCSV takes the string representation from a CSV file and attempts to convert it to a time.Time.
+func (t *CSVTime) UnmarshalCSV(csv string) (err error) {
+	at := strings.Split(csv, ":")
+
+	if len(at) != 3 {
+		return ErrInvalidTimeField
+	}
+
+	val, err := strconv.ParseInt(at[0], 10, 32)
+	if err != nil {
+		return err
+	}
+	t.Hour = int(val)
+	val, err = strconv.ParseInt(at[1], 10, 32)
+	if err != nil {
+		return err
+	}
+	t.Minute = int(val)
+	val, err = strconv.ParseInt(at[2], 10, 32)
+	if err != nil {
+		return err
+	}
+	t.Second = int(val)
+
+	return nil
+}
+func (t *CSVTime) String() string {
+	return fmt.Sprintf("%02d:%02d:%02d", t.Hour, t.Minute, t.Second)
 }
 
 // CSVFloat is a CSV marshalable float64 value

@@ -11,8 +11,7 @@ import (
 
 func getExampleFeed(logger *zap.Logger) (*transit.Feed, error) {
 	exampleDataset := gtfs.NewDataset(logger)
-	err := exampleDataset.LoadFromFSPath(context.Background(), "/tmp/sample-feed")
-	//err := exampleDataset.LoadFromURL(context.Background(), "https://developers.google.com/transit/gtfs/examples/sample-feed.zip")
+	err := exampleDataset.LoadFromFSPath(context.Background(), "/Users/robert.robinson/Downloads/GRT_GTFS")
 	if err != nil {
 		logger.Warn("error loading dataset",
 			zap.Error(err),
@@ -22,24 +21,25 @@ func getExampleFeed(logger *zap.Logger) (*transit.Feed, error) {
 
 	exampleFeed := transit.NewFeed(logger, exampleDataset, "")
 
-	for routeID, route := range exampleFeed.Routes() {
-		fmt.Printf("Route %s:\n", routeID)
+	return exampleFeed, nil
+}
+
+func printFeed(f *transit.Feed) {
+	for _, route := range f.Routes() {
+		fmt.Printf("Route %s (%s):\n", route.ID, route.ShortName)
 		for _, trip := range route.Trips() {
-			fmt.Printf(" Trip %s (%s):\n", trip.ID, trip.Headsign)
-			for _, stop := range trip.Plan() {
-				fmt.Printf("  %s at %s (%f,%f)\n", stop.ArrivalTime, stop.Stop().Name, stop.Stop().Latitude, stop.Stop().Longitude)
-			}
+			fmt.Printf(" Trip %s (%s) starts at %s at %s:\n", trip.ID, trip.Headsign, trip.Plan()[0].ArrivalTime, trip.Plan()[0].Stop().Name)
 		}
+
 	}
 
-	for stopID, stop := range exampleFeed.Stops() {
+	for stopID, stop := range f.Stops() {
 		fmt.Printf("Stop %s (%s):\n", stopID, stop.Name)
-		for _, arrival := range stop.Arrivals() {
+		arrivals := stop.ArrivalsToday()
+		for _, arrival := range arrivals {
 			fmt.Printf(" Trip %s (%s) arriving at %s\n", arrival.TripID, arrival.VehicleHeadsign(), arrival.ArrivalTime)
 		}
 	}
-
-	return exampleFeed, nil
 }
 
 func main() {
@@ -58,4 +58,19 @@ func main() {
 	}
 
 	svc.AddFeed(exampleFeed)
+
+	// UW DC station
+	s := svc.StopClosestTo(43.4728998, -80.5420669)
+	fmt.Printf("Stop %s (%s):\n", s.ID, s.Name)
+	arrivals := s.RemainingArrivalsToday()
+	for _, arrival := range arrivals {
+		fmt.Printf(" Route %s (%s) arriving at %s\n", arrival.RouteID(), arrival.VehicleHeadsign(), arrival.ArrivalTime.String())
+	}
+
+	s = svc.StopByID("3629")
+	fmt.Printf("Stop %s (%s):\n", s.ID, s.Name)
+	arrivals = s.RemainingArrivalsToday()
+	for _, arrival := range arrivals {
+		fmt.Printf(" Route %s (%s) arriving at %s\n", arrival.RouteID(), arrival.VehicleHeadsign(), arrival.ArrivalTime.String())
+	}
 }
