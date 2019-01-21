@@ -30,7 +30,18 @@ func (s *Service) AddFeed(feed *Feed) {
 	}
 }
 
-// Stop retrieves the closest stop to the specified lat/lon.
-func (s *Service) Stop(lat float64, lon float64) *Stop {
+// StopClosestTo retrieves the closest stop to the specified lat/lon.
+func (s *Service) StopClosestTo(lat float64, lon float64) *Stop {
 	return s.stops.Closest(lat, lon).(*Stop)
+}
+
+// StopByID returns the first stop with the specified ID.
+func (s *Service) StopByID(id string) *Stop {
+	for _, feed := range s.feeds {
+		if stop, ok := feed.stops[id]; ok {
+			return stop
+		}
+	}
+
+	return nil
 }

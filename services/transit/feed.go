@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
-	"strconv"
-	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
@@ -20,9 +18,14 @@ type Feed struct {
 
 	dataset *gtfs.Dataset
 
-	agencies map[string]*gtfs.Agency
-	stops    map[string]*Stop
-	routes   map[string]*Route
+	agencies  map[string]*gtfs.Agency
+	calendars map[string]*gtfs.Calendar
+	// Double map; first keyed by service ID, second by override date
+	calendarDates map[string]map[string]*gtfs.CalendarDate
+
+	stops        map[string]*Stop
+	routes       map[string]*Route
+	sortedRoutes []*Route
 }
 
 // NewFeed creates a new feed from the supplied dataset and the realtime path.
@@ -32,9 +35,11 @@ func NewFeed(logger *zap.Logger, dataset *gtfs.Dataset, realtimePath string) *Fe
 		dataset:      dataset,
 		realtimePath: realtimePath,
 
-		agencies: map[string]*gtfs.Agency{},
-		stops:    map[string]*Stop{},
-		routes:   map[string]*Route{},
+		agencies:      map[string]*gtfs.Agency{},
+		calendars:     map[string]*gtfs.Calendar{},
+		calendarDates: map[string]map[string]*gtfs.CalendarDate{},
+		stops:         map[string]*Stop{},
+		routes:        map[string]*Route{},
 	}
 
 	f.setup()
@@ -46,9 +51,23 @@ func (f *Feed) setup() {
 	for _, a := range f.dataset.Agencies {
 		f.agencies[a.ID] = a
 	}
+	for _, c := range f.dataset.Calendar {
+		f.calendars[c.ServiceID] = c
+	}
+	for _, cd := range f.dataset.CalendarDate {
+		if cdmap, ok := f.calendarDates[cd.ServiceID]; ok {
+			cdmap[cd.Date.Format(gtfs.DateFormat)] = cd
+		} else {
+			cdmap := map[string]*gtfs.CalendarDate{}
+			cdmap[cd.Date.Format(gtfs.DateFormat)] = cd
+			f.calendarDates[cd.ServiceID] = cdmap
+		}
+	}
+
 	for _, s := range f.dataset.Stops {
 		f.stops[s.ID] = &Stop{
 			Stop: s,
+			f:    f,
 		}
 	}
 	for _, r := range f.dataset.Routes {
@@ -83,14 +102,14 @@ func (f *Feed) setup() {
 			f.logger.Info("stop time specified missing trip ID",
 				zap.String("trip_id", gtfsStopTime.TripID),
 				zap.String("stop_id", gtfsStopTime.StopID),
-				zap.String("arrival_time", gtfsStopTime.ArrivalTime),
+				zap.String("arrival_time", gtfsStopTime.ArrivalTime.String()),
 			)
 			continue
 		} else if _, ok := f.stops[gtfsStopTime.StopID]; !ok {
 			f.logger.Info("stop time specified missing stop ID",
 				zap.String("trip_id", gtfsStopTime.TripID),
 				zap.String("stop_id", gtfsStopTime.StopID),
-				zap.String("arrival_time", gtfsStopTime.ArrivalTime),
+				zap.String("arrival_time", gtfsStopTime.ArrivalTime.String()),
 			)
 			continue
 		}
@@ -121,16 +140,13 @@ func (f *Feed) setup() {
 
 	for stopID, stop := range f.stops {
 		sort.Slice(stop.arrivals, func(i, j int) bool {
-			at1 := strings.Split(stop.arrivals[i].ArrivalTime, ":")
-			at2 := strings.Split(stop.arrivals[j].ArrivalTime, ":")
+			h1 := stop.arrivals[i].ArrivalTime.Hour
+			m1 := stop.arrivals[i].ArrivalTime.Minute
+			s1 := stop.arrivals[i].ArrivalTime.Second
 
-			h1, _ := strconv.ParseInt(at1[0], 10, 32)
-			m1, _ := strconv.ParseInt(at1[1], 10, 32)
-			s1, _ := strconv.ParseInt(at1[2], 10, 32)
-
-			h2, _ := strconv.ParseInt(at2[0], 10, 32)
-			m2, _ := strconv.ParseInt(at2[1], 10, 32)
-			s2, _ := strconv.ParseInt(at2[2], 10, 32)
+			h2 := stop.arrivals[j].ArrivalTime.Hour
+			m2 := stop.arrivals[j].ArrivalTime.Minute
+			s2 := stop.arrivals[j].ArrivalTime.Second
 
 			if h1 < h2 {
 				return true
@@ -147,16 +163,13 @@ func (f *Feed) setup() {
 
 	for routeID, route := range f.routes {
 		sort.Slice(route.trips, func(i, j int) bool {
-			at1 := strings.Split(route.trips[i].stops[0].ArrivalTime, ":")
-			at2 := strings.Split(route.trips[j].stops[0].ArrivalTime, ":")
+			h1 := route.trips[i].stops[0].ArrivalTime.Hour
+			m1 := route.trips[i].stops[0].ArrivalTime.Minute
+			s1 := route.trips[i].stops[0].ArrivalTime.Second
 
-			h1, _ := strconv.ParseInt(at1[0], 10, 32)
-			m1, _ := strconv.ParseInt(at1[1], 10, 32)
-			s1, _ := strconv.ParseInt(at1[2], 10, 32)
-
-			h2, _ := strconv.ParseInt(at2[0], 10, 32)
-			m2, _ := strconv.ParseInt(at2[1], 10, 32)
-			s2, _ := strconv.ParseInt(at2[2], 10, 32)
+			h2 := route.trips[j].stops[0].ArrivalTime.Hour
+			m2 := route.trips[j].stops[0].ArrivalTime.Minute
+			s2 := route.trips[j].stops[0].ArrivalTime.Second
 
 			if h1 < h2 {
 				return true
@@ -170,6 +183,14 @@ func (f *Feed) setup() {
 
 		f.routes[routeID] = route
 	}
+
+	for _, route := range f.routes {
+		f.sortedRoutes = append(f.sortedRoutes, route)
+	}
+	sort.Slice(f.sortedRoutes, func(i, j int) bool {
+		return f.sortedRoutes[i].SortOrder > f.sortedRoutes[j].SortOrder
+	})
+
 }
 
 // GetRealtimeFeed retrieves the GTFS realtime data.
@@ -226,8 +247,8 @@ func (f *Feed) getPath(ctx context.Context, path string) ([]byte, error) {
 }
 
 // Routes returns the set of routes loaded into this feed.
-func (f *Feed) Routes() map[string]*Route {
-	return f.routes
+func (f *Feed) Routes() []*Route {
+	return f.sortedRoutes
 }
 
 // Stops returns the set of stops loaded into this feed.
