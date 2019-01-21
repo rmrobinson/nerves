@@ -108,8 +108,34 @@ func (t *CSVTime) UnmarshalCSV(csv string) (err error) {
 
 	return nil
 }
+
+// String returns a printable version of this type
 func (t *CSVTime) String() string {
 	return fmt.Sprintf("%02d:%02d:%02d", t.Hour, t.Minute, t.Second)
+}
+
+// Before returns if this time is earlier than the supplied time.
+func (t CSVTime) Before(o CSVTime) bool {
+	if t.Hour < o.Hour {
+		return true
+	} else if t.Hour == o.Hour && t.Minute < o.Minute {
+		return true
+	} else if t.Hour == o.Hour && t.Minute == o.Minute && t.Second < o.Second {
+		return true
+	}
+	return false
+}
+
+// BeforeTime returns if this time is earlier than the supplied standard 'time' type
+func (t CSVTime) BeforeTime(o time.Time) bool {
+	if t.Hour < o.Hour() {
+		return true
+	} else if t.Hour == o.Hour() && t.Minute < o.Minute() {
+		return true
+	} else if t.Hour == o.Hour() && t.Minute == o.Minute() && t.Second == o.Second() {
+		return true
+	}
+	return false
 }
 
 // CSVFloat is a CSV marshalable float64 value

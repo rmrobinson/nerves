@@ -140,22 +140,7 @@ func (f *Feed) setup() {
 
 	for stopID, stop := range f.stops {
 		sort.Slice(stop.arrivals, func(i, j int) bool {
-			h1 := stop.arrivals[i].ArrivalTime.Hour
-			m1 := stop.arrivals[i].ArrivalTime.Minute
-			s1 := stop.arrivals[i].ArrivalTime.Second
-
-			h2 := stop.arrivals[j].ArrivalTime.Hour
-			m2 := stop.arrivals[j].ArrivalTime.Minute
-			s2 := stop.arrivals[j].ArrivalTime.Second
-
-			if h1 < h2 {
-				return true
-			} else if h1 == h2 && m1 < m2 {
-				return true
-			} else if h1 == h2 && m1 == m2 && s1 < s2 {
-				return true
-			}
-			return false
+			return stop.arrivals[i].ArrivalTime.Before(stop.arrivals[j].ArrivalTime)
 		})
 
 		f.stops[stopID] = stop
@@ -163,22 +148,7 @@ func (f *Feed) setup() {
 
 	for routeID, route := range f.routes {
 		sort.Slice(route.trips, func(i, j int) bool {
-			h1 := route.trips[i].stops[0].ArrivalTime.Hour
-			m1 := route.trips[i].stops[0].ArrivalTime.Minute
-			s1 := route.trips[i].stops[0].ArrivalTime.Second
-
-			h2 := route.trips[j].stops[0].ArrivalTime.Hour
-			m2 := route.trips[j].stops[0].ArrivalTime.Minute
-			s2 := route.trips[j].stops[0].ArrivalTime.Second
-
-			if h1 < h2 {
-				return true
-			} else if h1 == h2 && m1 < m2 {
-				return true
-			} else if h1 == h2 && m1 == m2 && s1 < s2 {
-				return true
-			}
-			return false
+			return route.trips[i].stops[0].ArrivalTime.Before(route.trips[j].stops[0].ArrivalTime)
 		})
 
 		f.routes[routeID] = route
