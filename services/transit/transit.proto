@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package faltung.nerves.transit;
+
+import "google/protobuf/timestamp.proto";
+
+// Arrival is a modified version of the GTFS spec to include some real-time data.
+message Arrival {
+//    google.protobuf.Timestamp scheduled_arrival_time = 1;
+//    google.protobuf.Timestamp scheduled_departure_time = 2;
+//    google.protobuf.Timestamp estimated_arrival_time = 3;
+    string scheduled_arrival_time = 1;
+    string scheduled_departure_time = 2;
+    string estimated_arrival_time = 3;
+    string route_id = 4;
+    string headsign = 5;
+}
+
+// RouteType is straight from the GTFS spec.
+enum RouteType {
+    // ROUTE_TYPE_LRT is a route served by an LRT or streetcar
+    ROUTE_TYPE_LRT = 0;
+    // ROUTE_TYPE_SUBWAY is a route served by a subway
+    ROUTE_TYPE_SUBWAY = 1;
+    // ROUTE_TYPE_RAIL is a route served by a heavy rail system
+    ROUTE_TYPE_RAIL = 2;
+    // ROUTE_TYPE_BUS is a route served by a bus
+    ROUTE_TYPE_BUS = 3;
+    // ROUTE_TYPE_FERRY is a route served by a ferry
+    ROUTE_TYPE_FERRY = 4;
+    // ROUTE_TYPE_CABLE_TRAM is a route served by a cable-driven tram system
+    ROUTE_TYPE_CABLE_TRAM = 5;
+    // ROUTE_TYPE_AERIAL_LIFT is a route served by an aerial lift system
+    ROUTE_TYPE_AERIAL_LIFT = 6;
+    // ROUTE_TYPE_FUNICULAR is a route served by a funicular system
+    ROUTE_TYPE_FUNICULAR = 7;
+}
+// Route is straight from the GTFS spec.
+message Route {
+    string id = 1;
+    string agency_id = 2;
+    string short_name = 3;
+    string long_name = 4;
+    string description = 5;
+    RouteType type = 6;
+    string url = 7;
+    string color = 8;
+    string text_color = 9;
+}
+// Stop is straight from the GTFS spec.
+message Stop {
+    string id = 1;
+    string code = 2;
+    string name = 3;
+    double latitude = 10;
+    double longitude = 11;
+}
+
+// GetStopArrivalsRequest documents the parameters we can supply to retrieve the arrivals for a stop.
+// Either a location or a stop code can be queried; the data returned can be filtered to only show
+// future arrivals by supplying a value of 'now' to 'exclude_arrivals_before'.
+message GetStopArrivalsRequest {
+    message Location {
+        double latitude = 1;
+        double longitude = 2;
+        double radius = 3;
+    }
+    Location location = 1;
+    string stop_code = 2;
+    google.protobuf.Timestamp exclude_arrivals_before = 3;
+
+}
+// GetStopArrivalsResponse returns the data queried.
+message GetStopArrivalsResponse {
+    Stop stop = 1;
+    repeated Arrival arrivals = 2;
+}
+
+service TransitService {
+    rpc GetStopArrivals(GetStopArrivalsRequest) returns (GetStopArrivalsResponse) {}
+}

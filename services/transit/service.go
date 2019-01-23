@@ -1,8 +1,21 @@
 package transit
 
 import (
+	"context"
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rmrobinson/nerves/lib/geoset"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+var (
+	// ErrStopNotFound is returned if the queried stop isn't found
+	ErrStopNotFound = status.New(codes.NotFound, "stop not found")
+	// ErrStopCutoffInvalid is returned if the stop cutoff is invalid
+	ErrStopCutoffInvalid = status.New(codes.InvalidArgument, "stop cutoff not a valid time")
 )
 
 // Service is a really simple service that retrieves a transit feed
@@ -30,18 +43,61 @@ func (s *Service) AddFeed(feed *Feed) {
 	}
 }
 
-// StopClosestTo retrieves the closest stop to the specified lat/lon.
-func (s *Service) StopClosestTo(lat float64, lon float64) *Stop {
-	return s.stops.Closest(lat, lon).(*Stop)
-}
+// GetStopArrivals returns the arrival info for the specified stop.
+func (s *Service) GetStopArrivals(ctx context.Context, req *GetStopArrivalsRequest) (*GetStopArrivalsResponse, error) {
+	if req.Location == nil && len(req.StopCode) < 1 {
+		return nil, ErrStopNotFound.Err()
+	}
 
-// StopByID returns the first stop with the specified ID.
-func (s *Service) StopByID(id string) *Stop {
-	for _, feed := range s.feeds {
-		if stop, ok := feed.stops[id]; ok {
-			return stop
+	var stop *stopInfo
+	if req.Location != nil {
+		stop = s.stops.Closest(req.Location.Latitude, req.Location.Longitude).(*stopInfo)
+	} else {
+		for _, feed := range s.feeds {
+			if feedStop, ok := feed.stops[req.StopCode]; ok {
+				stop = feedStop
+				break
+			}
+		}
+
+		if stop == nil {
+			return nil, ErrStopNotFound.Err()
 		}
 	}
 
-	return nil
+	var cutoff time.Time
+	if req.ExcludeArrivalsBefore == nil {
+		cutoff = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Now().Location())
+	} else {
+		var err error
+		cutoff, err = ptypes.Timestamp(req.ExcludeArrivalsBefore)
+		if err != nil {
+			return nil, ErrStopCutoffInvalid.Err()
+		}
+	}
+
+	arrivals := stop.arrivalsForDay(cutoff)
+
+	resp := &GetStopArrivalsResponse{
+		Stop: &Stop{
+			Id: stop.ID,
+			Code: stop.Code,
+			Name: stop.Name,
+			Latitude: float64(stop.Latitude),
+			Longitude: float64(stop.Longitude),
+		},
+	}
+
+	for _, arrival := range arrivals {
+		a := &Arrival{
+			ScheduledArrivalTime: arrival.ArrivalTime.String(),
+			ScheduledDepartureTime: arrival.DepartureTime.String(),
+			RouteId: arrival.RouteID(),
+			Headsign: arrival.VehicleHeadsign(),
+		}
+
+		resp.Arrivals = append(resp.Arrivals, a)
+	}
+
+	return resp, nil
 }

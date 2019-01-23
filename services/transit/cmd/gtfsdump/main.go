@@ -59,18 +59,37 @@ func main() {
 
 	svc.AddFeed(exampleFeed)
 
-	// UW DC station
-	s := svc.StopClosestTo(43.4728998, -80.5420669)
-	fmt.Printf("Stop %s (%s):\n", s.ID, s.Name)
-	arrivals := s.RemainingArrivalsToday()
-	for _, arrival := range arrivals {
-		fmt.Printf(" Route %s (%s) arriving at %s\n", arrival.RouteID(), arrival.VehicleHeadsign(), arrival.ArrivalTime.String())
+	req := &transit.GetStopArrivalsRequest{
+		Location: &transit.GetStopArrivalsRequest_Location{
+			Latitude: 43.4728998,
+			Longitude: -80.5420669,
+		},
 	}
 
-	s = svc.StopByID("3629")
-	fmt.Printf("Stop %s (%s):\n", s.ID, s.Name)
-	arrivals = s.RemainingArrivalsToday()
-	for _, arrival := range arrivals {
-		fmt.Printf(" Route %s (%s) arriving at %s\n", arrival.RouteID(), arrival.VehicleHeadsign(), arrival.ArrivalTime.String())
+	// UW DC station
+	resp, err := svc.GetStopArrivals(context.Background(), req)
+	if err != nil {
+		logger.Fatal("error getting stop arrivals",
+			zap.Error(err),
+		)
+	}
+
+	fmt.Printf("Stop %s (%s):\n", resp.Stop.Id, resp.Stop.Name)
+	for _, arrival := range resp.Arrivals {
+		fmt.Printf(" Route %s (%s) arriving at %s\n", arrival.RouteId, arrival.Headsign, arrival.ScheduledArrivalTime)
+	}
+
+	req.Location = nil
+	req.StopCode = "3629"
+	resp, err = svc.GetStopArrivals(context.Background(), req)
+	if err != nil {
+		logger.Fatal("error getting stop arrivals",
+			zap.Error(err),
+		)
+	}
+
+	fmt.Printf("Stop %s (%s):\n", resp.Stop.Id, resp.Stop.Name)
+	for _, arrival := range resp.Arrivals {
+		fmt.Printf(" Route %s (%s) arriving at %s\n", arrival.RouteId, arrival.Headsign, arrival.ScheduledArrivalTime)
 	}
 }
