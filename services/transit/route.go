@@ -6,13 +6,13 @@ import (
 
 // Route is a logical unit of service that visits a collection of stops.
 // The physical instantiation of a route is a trip.
-type Route struct {
+type routeInfo struct {
 	*gtfs.Route
 
-	trips []*Trip
+	trips []*tripInfo
 }
 
 // Trips returns the set of trips that are following this route.
-func (r *Route) Trips() []*Trip {
+func (r *routeInfo) Trips() []*tripInfo {
 	return r.trips
 }

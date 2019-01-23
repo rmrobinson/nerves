@@ -7,30 +7,30 @@ import (
 )
 
 // Stop represents a single stop that one or more route trips may visit.
-type Stop struct {
+type stopInfo struct {
 	*gtfs.Stop
 
 	f        *Feed
-	arrivals []*Arrival
+	arrivals []*arrivalInfo
 }
 
 // Arrivals is the set of trips that will visit this location, sorted by arrival time.
-func (s *Stop) Arrivals() []*Arrival {
+func (s *stopInfo) Arrivals() []*arrivalInfo {
 	return s.arrivals
 }
 
 // RemainingArrivalsToday returns the ordered list of arrivals that have not yet arrived today.
-func (s *Stop) RemainingArrivalsToday() []*Arrival {
+func (s *stopInfo) RemainingArrivalsToday() []*arrivalInfo {
 	return s.arrivalsForDay(time.Now())
 }
 
 // ArrivalsToday returns the ordered list of arrivals that will visit the stop today.
-func (s *Stop) ArrivalsToday() []*Arrival {
+func (s *stopInfo) ArrivalsToday() []*arrivalInfo {
 	return s.arrivalsForDay(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Now().Location()))
 }
 
-func (s *Stop) arrivalsForDay(date time.Time) []*Arrival {
-	var ret []*Arrival
+func (s *stopInfo) arrivalsForDay(date time.Time) []*arrivalInfo {
+	var ret []*arrivalInfo
 
 	for _, arrival := range s.arrivals {
 		shouldAdd := false

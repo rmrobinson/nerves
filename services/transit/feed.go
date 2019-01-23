@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
+	"github.com/rmrobinson/nerves/services/transit/gtfs_realtime"
 	"go.uber.org/zap"
 )
 
@@ -23,9 +24,9 @@ type Feed struct {
 	// Double map; first keyed by service ID, second by override date
 	calendarDates map[string]map[string]*gtfs.CalendarDate
 
-	stops        map[string]*Stop
-	routes       map[string]*Route
-	sortedRoutes []*Route
+	stops        map[string]*stopInfo
+	routes       map[string]*routeInfo
+	sortedRoutes []*routeInfo
 }
 
 // NewFeed creates a new feed from the supplied dataset and the realtime path.
@@ -38,8 +39,8 @@ func NewFeed(logger *zap.Logger, dataset *gtfs.Dataset, realtimePath string) *Fe
 		agencies:      map[string]*gtfs.Agency{},
 		calendars:     map[string]*gtfs.Calendar{},
 		calendarDates: map[string]map[string]*gtfs.CalendarDate{},
-		stops:         map[string]*Stop{},
-		routes:        map[string]*Route{},
+		stops:         map[string]*stopInfo{},
+		routes:        map[string]*routeInfo{},
 	}
 
 	f.setup()
@@ -65,18 +66,18 @@ func (f *Feed) setup() {
 	}
 
 	for _, s := range f.dataset.Stops {
-		f.stops[s.ID] = &Stop{
+		f.stops[s.ID] = &stopInfo{
 			Stop: s,
 			f:    f,
 		}
 	}
 	for _, r := range f.dataset.Routes {
-		f.routes[r.ID] = &Route{
+		f.routes[r.ID] = &routeInfo{
 			Route: r,
 		}
 	}
 
-	trips := map[string]*Trip{}
+	trips := map[string]*tripInfo{}
 	for _, gtfsTrip := range f.dataset.Trips {
 		if _, ok := f.routes[gtfsTrip.RouteID]; !ok {
 			f.logger.Info("trip specified missing route ID",
@@ -88,7 +89,7 @@ func (f *Feed) setup() {
 
 		route := f.routes[gtfsTrip.RouteID]
 
-		trip := &Trip{
+		trip := &tripInfo{
 			Trip:  gtfsTrip,
 			route: route,
 		}
@@ -117,7 +118,7 @@ func (f *Feed) setup() {
 		trip := trips[gtfsStopTime.TripID]
 		stop := f.stops[gtfsStopTime.StopID]
 
-		stopTime := &Arrival{
+		stopTime := &arrivalInfo{
 			StopTime: gtfsStopTime,
 			stop:     f.stops[gtfsStopTime.StopID],
 			trip:     trips[gtfsStopTime.TripID],
@@ -164,7 +165,7 @@ func (f *Feed) setup() {
 }
 
 // GetRealtimeFeed retrieves the GTFS realtime data.
-func (f *Feed) GetRealtimeFeed(ctx context.Context) (*FeedMessage, error) {
+func (f *Feed) GetRealtimeFeed(ctx context.Context) (*gtfs_realtime.FeedMessage, error) {
 	body, err := f.getPath(ctx, f.realtimePath)
 	if err != nil {
 		f.logger.Warn("error retrieving body",
@@ -173,7 +174,7 @@ func (f *Feed) GetRealtimeFeed(ctx context.Context) (*FeedMessage, error) {
 		return nil, err
 	}
 
-	feed := &FeedMessage{}
+	feed := &gtfs_realtime.FeedMessage{}
 	err = proto.Unmarshal(body, feed)
 	if err != nil {
 		f.logger.Warn("error unmarshaling body",
@@ -217,11 +218,11 @@ func (f *Feed) getPath(ctx context.Context, path string) ([]byte, error) {
 }
 
 // Routes returns the set of routes loaded into this feed.
-func (f *Feed) Routes() []*Route {
+func (f *Feed) Routes() []*routeInfo {
 	return f.sortedRoutes
 }
 
 // Stops returns the set of stops loaded into this feed.
-func (f *Feed) Stops() map[string]*Stop {
+func (f *Feed) Stops() map[string]*stopInfo {
 	return f.stops
 }
