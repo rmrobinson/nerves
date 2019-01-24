@@ -5,9 +5,11 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/news"
+	"github.com/rmrobinson/nerves/services/transit"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
 	"go.uber.org/zap"
@@ -136,33 +138,33 @@ func main() {
 	articlesView.SetNextWidget(devicesView)
 	devicesView.SetNextWidget(articlesView)
 
+	transitConn, err := grpc.Dial("127.0.0.1:10104", grpcOpts...)
+	if err != nil {
+		logger.Warn("unable to dial transit server",
+			zap.Error(err),
+		)
+	}
+	defer transitConn.Close()
+
+	transitClient := transit.NewTransitServiceClient(transitConn)
+
+	getStopArrivalsResp, err := transitClient.GetStopArrivals(context.Background(), &transit.GetStopArrivalsRequest{
+		StopCode: "3629",
+		ExcludeArrivalsBefore: ptypes.TimestampNow(),
+	})
+	if err != nil {
+		logger.Warn("unable to retrieve transit arrivals",
+			zap.Error(err),
+		)
+		getStopArrivalsResp = &transit.GetStopArrivalsResponse{}
+	}
+
 	transitView := widget.NewTransit(app, 5)
 	go func() {
 		for {
-			transitView.Refresh([]widget.TransitArrivalInfo{
-				{
-					"iXpress 200",
-					0,
-				},
-				{
-					"7 North",
-					7,
-				},
-				{
-					"13 South",
-					8,
-				},
-				{
-					"14 East",
-					9,
-				},
-				{
-					"14 West",
-					17,
-				},
-			})
+			transitView.Refresh(getStopArrivalsResp.Stop, getStopArrivalsResp.Arrivals)
 
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second * 30)
 		}
 	}()
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).
