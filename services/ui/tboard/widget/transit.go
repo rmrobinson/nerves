@@ -1,16 +1,9 @@
 package widget
 
 import (
-	"fmt"
-
 	"github.com/rivo/tview"
+	"github.com/rmrobinson/nerves/services/transit"
 )
-
-// TransitArrivalInfo is a temporary struct holding the arrival info for a transit vehicle
-type TransitArrivalInfo struct {
-	RouteName     string
-	ArrivesInMins int
-}
 
 type transitRecord struct {
 	*tview.Flex
@@ -31,7 +24,7 @@ func newTransitRecord() *transitRecord {
 
 	tr.SetDirection(tview.FlexColumn).
 		AddItem(tr.routeText, 0, 1, false).
-		AddItem(tr.arrivalTimeText, 7, 1, false)
+		AddItem(tr.arrivalTimeText, 9, 1, false)
 
 	return tr
 }
@@ -67,8 +60,9 @@ func NewTransit(app *tview.Application, rowCount int) *Transit {
 }
 
 // Refresh causes the transit data to be updated.
-func (wf *Transit) Refresh(records []TransitArrivalInfo) {
+func (wf *Transit) Refresh(stop *transit.Stop, records []*transit.Arrival) {
 	wf.app.QueueUpdateDraw(func() {
+		wf.SetTitle(stop.Name + " Arrivals")
 		for i := 0; i < len(wf.records); i++ {
 			if i >= len(records) {
 				wf.records[i].routeText.Clear()
@@ -78,12 +72,8 @@ func (wf *Transit) Refresh(records []TransitArrivalInfo) {
 
 			record := records[i]
 
-			wf.records[i].routeText.SetText(record.RouteName)
-			if record.ArrivesInMins < 1 {
-				wf.records[i].arrivalTimeText.SetText("Due")
-			} else {
-				wf.records[i].arrivalTimeText.SetText(fmt.Sprintf("%d mins", record.ArrivesInMins))
-			}
+			wf.records[i].routeText.SetText(record.RouteId + " " + record.Headsign)
+			wf.records[i].arrivalTimeText.SetText(record.ScheduledArrivalTime)
 		}
 	})
 }

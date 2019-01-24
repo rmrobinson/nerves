@@ -11,10 +11,12 @@ go_library(
     deps = [
         "//services/domotics:go_default_library",
         "//services/news:go_default_library",
+        "//services/transit:go_default_library",
         "//services/ui/tboard/widget:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/rivo/tview:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

@@ -74,6 +74,7 @@ func (s *Service) GetStopArrivals(ctx context.Context, req *GetStopArrivalsReque
 		if err != nil {
 			return nil, ErrStopCutoffInvalid.Err()
 		}
+		cutoff = cutoff.In(time.Now().Location())
 	}
 
 	arrivals := stop.arrivalsForDay(cutoff)
