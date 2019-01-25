@@ -24,9 +24,9 @@ type Feed struct {
 	// Double map; first keyed by service ID, second by override date
 	calendarDates map[string]map[string]*gtfs.CalendarDate
 
-	stops        map[string]*stopInfo
-	routes       map[string]*routeInfo
-	sortedRoutes []*routeInfo
+	stops        map[string]*stopDetails
+	routes       map[string]*routeDetails
+	sortedRoutes []*routeDetails
 }
 
 // NewFeed creates a new feed from the supplied dataset and the realtime path.
@@ -39,8 +39,8 @@ func NewFeed(logger *zap.Logger, dataset *gtfs.Dataset, realtimePath string) *Fe
 		agencies:      map[string]*gtfs.Agency{},
 		calendars:     map[string]*gtfs.Calendar{},
 		calendarDates: map[string]map[string]*gtfs.CalendarDate{},
-		stops:         map[string]*stopInfo{},
-		routes:        map[string]*routeInfo{},
+		stops:         map[string]*stopDetails{},
+		routes:        map[string]*routeDetails{},
 	}
 
 	f.setup()
@@ -66,18 +66,18 @@ func (f *Feed) setup() {
 	}
 
 	for _, s := range f.dataset.Stops {
-		f.stops[s.ID] = &stopInfo{
+		f.stops[s.ID] = &stopDetails{
 			Stop: s,
 			f:    f,
 		}
 	}
 	for _, r := range f.dataset.Routes {
-		f.routes[r.ID] = &routeInfo{
+		f.routes[r.ID] = &routeDetails{
 			Route: r,
 		}
 	}
 
-	trips := map[string]*tripInfo{}
+	trips := map[string]*tripDetails{}
 	for _, gtfsTrip := range f.dataset.Trips {
 		if _, ok := f.routes[gtfsTrip.RouteID]; !ok {
 			f.logger.Info("trip specified missing route ID",
@@ -89,7 +89,7 @@ func (f *Feed) setup() {
 
 		route := f.routes[gtfsTrip.RouteID]
 
-		trip := &tripInfo{
+		trip := &tripDetails{
 			Trip:  gtfsTrip,
 			route: route,
 		}
@@ -118,7 +118,7 @@ func (f *Feed) setup() {
 		trip := trips[gtfsStopTime.TripID]
 		stop := f.stops[gtfsStopTime.StopID]
 
-		stopTime := &arrivalInfo{
+		stopTime := &arrivalDetails{
 			StopTime: gtfsStopTime,
 			stop:     f.stops[gtfsStopTime.StopID],
 			trip:     trips[gtfsStopTime.TripID],
@@ -215,14 +215,4 @@ func (f *Feed) getPath(ctx context.Context, path string) ([]byte, error) {
 	}
 
 	return ioutil.ReadAll(resp.Body)
-}
-
-// Routes returns the set of routes loaded into this feed.
-func (f *Feed) Routes() []*routeInfo {
-	return f.sortedRoutes
-}
-
-// Stops returns the set of stops loaded into this feed.
-func (f *Feed) Stops() map[string]*stopInfo {
-	return f.stops
 }

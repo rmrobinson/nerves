@@ -4,15 +4,15 @@ import (
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
 )
 
-// Route is a logical unit of service that visits a collection of stops.
+// routeDetails is a logical unit of service that visits a collection of stops.
 // The physical instantiation of a route is a trip.
-type routeInfo struct {
+type routeDetails struct {
 	*gtfs.Route
 
-	trips []*tripInfo
+	trips []*tripDetails
 }
 
 // Trips returns the set of trips that are following this route.
-func (r *routeInfo) Trips() []*tripInfo {
+func (r *routeDetails) Trips() []*tripDetails {
 	return r.trips
 }

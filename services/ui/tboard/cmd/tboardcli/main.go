@@ -149,7 +149,7 @@ func main() {
 	transitClient := transit.NewTransitServiceClient(transitConn)
 
 	getStopArrivalsResp, err := transitClient.GetStopArrivals(context.Background(), &transit.GetStopArrivalsRequest{
-		StopCode: "3629",
+		StopCode:              "3629",
 		ExcludeArrivalsBefore: ptypes.TimestampNow(),
 	})
 	if err != nil {

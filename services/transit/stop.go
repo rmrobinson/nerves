@@ -6,31 +6,31 @@ import (
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
 )
 
-// Stop represents a single stop that one or more route trips may visit.
-type stopInfo struct {
+// stopDetails represents a single stop that one or more route trips may visit.
+type stopDetails struct {
 	*gtfs.Stop
 
 	f        *Feed
-	arrivals []*arrivalInfo
+	arrivals []*arrivalDetails
 }
 
 // Arrivals is the set of trips that will visit this location, sorted by arrival time.
-func (s *stopInfo) Arrivals() []*arrivalInfo {
+func (s *stopDetails) Arrivals() []*arrivalDetails {
 	return s.arrivals
 }
 
 // RemainingArrivalsToday returns the ordered list of arrivals that have not yet arrived today.
-func (s *stopInfo) RemainingArrivalsToday() []*arrivalInfo {
+func (s *stopDetails) RemainingArrivalsToday() []*arrivalDetails {
 	return s.arrivalsForDay(time.Now())
 }
 
 // ArrivalsToday returns the ordered list of arrivals that will visit the stop today.
-func (s *stopInfo) ArrivalsToday() []*arrivalInfo {
+func (s *stopDetails) ArrivalsToday() []*arrivalDetails {
 	return s.arrivalsForDay(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Now().Location()))
 }
 
-func (s *stopInfo) arrivalsForDay(date time.Time) []*arrivalInfo {
-	var ret []*arrivalInfo
+func (s *stopDetails) arrivalsForDay(date time.Time) []*arrivalDetails {
+	var ret []*arrivalDetails
 
 	for _, arrival := range s.arrivals {
 		shouldAdd := false
