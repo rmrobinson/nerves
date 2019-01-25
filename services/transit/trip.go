@@ -4,15 +4,15 @@ import (
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
 )
 
-// Trip represents a single instance of a Route, with a specified set of scheduled arrivals.
-type tripInfo struct {
+// tripDetails represents a single instance of a route, with a specified set of scheduled arrivals.
+type tripDetails struct {
 	*gtfs.Trip
 
-	route *routeInfo
-	stops []*arrivalInfo
+	route *routeDetails
+	stops []*arrivalDetails
 }
 
 // Plan is the set of stops that this trip will visit, sorted by Sequence.
-func (t *tripInfo) Plan() []*arrivalInfo {
+func (t *tripDetails) Plan() []*arrivalDetails {
 	return t.stops
 }

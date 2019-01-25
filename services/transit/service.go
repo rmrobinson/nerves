@@ -49,9 +49,9 @@ func (s *Service) GetStopArrivals(ctx context.Context, req *GetStopArrivalsReque
 		return nil, ErrStopNotFound.Err()
 	}
 
-	var stop *stopInfo
+	var stop *stopDetails
 	if req.Location != nil {
-		stop = s.stops.Closest(req.Location.Latitude, req.Location.Longitude).(*stopInfo)
+		stop = s.stops.Closest(req.Location.Latitude, req.Location.Longitude).(*stopDetails)
 	} else {
 		for _, feed := range s.feeds {
 			if feedStop, ok := feed.stops[req.StopCode]; ok {
@@ -81,20 +81,20 @@ func (s *Service) GetStopArrivals(ctx context.Context, req *GetStopArrivalsReque
 
 	resp := &GetStopArrivalsResponse{
 		Stop: &Stop{
-			Id: stop.ID,
-			Code: stop.Code,
-			Name: stop.Name,
-			Latitude: float64(stop.Latitude),
+			Id:        stop.ID,
+			Code:      stop.Code,
+			Name:      stop.Name,
+			Latitude:  float64(stop.Latitude),
 			Longitude: float64(stop.Longitude),
 		},
 	}
 
 	for _, arrival := range arrivals {
 		a := &Arrival{
-			ScheduledArrivalTime: arrival.ArrivalTime.String(),
+			ScheduledArrivalTime:   arrival.ArrivalTime.String(),
 			ScheduledDepartureTime: arrival.DepartureTime.String(),
-			RouteId: arrival.RouteID(),
-			Headsign: arrival.VehicleHeadsign(),
+			RouteId:                arrival.RouteID(),
+			Headsign:               arrival.VehicleHeadsign(),
 		}
 
 		resp.Arrivals = append(resp.Arrivals, a)

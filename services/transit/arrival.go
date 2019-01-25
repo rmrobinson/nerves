@@ -4,31 +4,31 @@ import (
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
 )
 
-// Arrival is the occurrence of a trip visiting a stop.
-type arrivalInfo struct {
+// arrivalDetails is the occurrence of a trip visiting a stop.
+type arrivalDetails struct {
 	*gtfs.StopTime
 
-	trip *tripInfo
-	stop *stopInfo
+	trip *tripDetails
+	stop *stopDetails
 }
 
 // RouteID is the ID of the route the trip making the arrival is from.
-func (a *arrivalInfo) RouteID() string {
+func (a *arrivalDetails) RouteID() string {
 	return a.trip.RouteID
 }
 
 // Stop returns the stop that this arrival is occurring at.
-func (a *arrivalInfo) Stop() *stopInfo {
+func (a *arrivalDetails) Stop() *stopDetails {
 	return a.stop
 }
 
 // VehicleType returns the type of vehicle that will be making this arrival.
-func (a *arrivalInfo) VehicleType() gtfs.RouteType {
+func (a *arrivalDetails) VehicleType() gtfs.RouteType {
 	return a.trip.route.Type
 }
 
 // VehicleHeadsign is the text that the vehicle will be displaying.
-func (a *arrivalInfo) VehicleHeadsign() string {
+func (a *arrivalDetails) VehicleHeadsign() string {
 	if len(a.Headsign) > 0 {
 		return a.Headsign
 	} else if len(a.trip.Headsign) > 0 {
