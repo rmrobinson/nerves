@@ -1,6 +1,8 @@
 package transit
 
 import (
+	"time"
+
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
 )
 
@@ -8,11 +10,38 @@ import (
 type arrivalDetails struct {
 	*gtfs.StopTime
 
-	estimatedArrivalTime   *gtfs.CSVTime
-	estimatedDepartureTime *gtfs.CSVTime
+	arrivalTime time.Time
+	departureTime time.Time
+
+	estimatedArrivalTime *time.Time
+	estimatedDepartureTime *time.Time
 
 	trip *tripDetails
 	stop *stopDetails
+}
+
+func gtfsTimeToCalendarTime(in gtfs.CSVTime, loc *time.Location) time.Time {
+	now := time.Now()
+
+	day := now.Day()
+	hour := in.Hour
+	minute := in.Minute
+	second := in.Second
+
+	if hour > 24 {
+		hour %= 24
+		day++
+	}
+
+	return time.Date(now.Year(), now.Month(), day, hour, minute, second, 0, loc)
+}
+
+func newArrivalDetails(st *gtfs.StopTime, loc *time.Location) *arrivalDetails {
+	return &arrivalDetails{
+		StopTime: st,
+		arrivalTime: gtfsTimeToCalendarTime(st.ArrivalTime, loc),
+		departureTime: gtfsTimeToCalendarTime(st.DepartureTime, loc),
+	}
 }
 
 // RouteID is the ID of the route the trip making the arrival is from.
