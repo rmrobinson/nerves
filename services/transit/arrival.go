@@ -8,6 +8,9 @@ import (
 type arrivalDetails struct {
 	*gtfs.StopTime
 
+	estimatedArrivalTime   *gtfs.CSVTime
+	estimatedDepartureTime *gtfs.CSVTime
+
 	trip *tripDetails
 	stop *stopDetails
 }

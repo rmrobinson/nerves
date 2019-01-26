@@ -159,7 +159,7 @@ func main() {
 		getStopArrivalsResp = &transit.GetStopArrivalsResponse{}
 	}
 
-	transitView := widget.NewTransit(app, 5)
+	transitView := widget.NewTransit(app, 3)
 	go func() {
 		for {
 			transitView.Refresh(getStopArrivalsResp.Stop, getStopArrivalsResp.Arrivals)
@@ -173,7 +173,7 @@ func main() {
 				AddItem(torontoTime, 4, 1, false).
 				AddItem(weatherView, 17, 1, false).
 				AddItem(forecastView, 0, 1, false).
-				AddItem(transitView, 7, 1, false), 28, 1, false).
+				AddItem(transitView, 8, 1, false), 29, 1, false).
 			AddItem(articlesView, 50, 1, true).
 			AddItem(devicesView, 0, 1, true), 0, 1, true).
 		AddItem(debugView, 3, 1, false)

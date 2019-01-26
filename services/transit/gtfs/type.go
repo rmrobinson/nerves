@@ -77,6 +77,15 @@ type CSVTime struct {
 	Second int
 }
 
+// NewCSVTime creates a new CSVTime from the supplied time.
+func NewCSVTime(t time.Time) *CSVTime {
+	return &CSVTime{
+		t.Hour(),
+		t.Minute(),
+		t.Second(),
+	}
+}
+
 // MarshalCSV marshals the value into a string format
 func (t *CSVTime) MarshalCSV() (string, error) {
 	return fmt.Sprintf("%02d:%02d:%02d", t.Hour, t.Minute, t.Second), nil

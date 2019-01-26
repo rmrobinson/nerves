@@ -96,6 +96,10 @@ func (s *Service) GetStopArrivals(ctx context.Context, req *GetStopArrivalsReque
 			RouteId:                arrival.RouteID(),
 			Headsign:               arrival.VehicleHeadsign(),
 		}
+		if arrival.estimatedArrivalTime != nil {
+			a.EstimatedArrivalTime = arrival.estimatedArrivalTime.String()
+
+		}
 
 		resp.Arrivals = append(resp.Arrivals, a)
 	}

@@ -25,7 +25,8 @@ func main() {
 		)
 	}
 
-	feed := transit.NewFeed(logger, dataset, "")
+	feed := transit.NewFeed(logger, dataset, "http://192.237.29.212:8080/gtfsrealtime/TripUpdates")
+	go feed.MonitorRealtimeFeed(context.Background())
 
 	svc := transit.NewService(logger)
 	svc.AddFeed(feed)

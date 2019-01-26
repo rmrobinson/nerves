@@ -5,11 +5,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
 	"github.com/rmrobinson/nerves/services/transit/gtfs_realtime"
 	"go.uber.org/zap"
+)
+
+const (
+	realtimePollInterval = time.Second * 30
 )
 
 // Feed represents a single feed, potentially encapsulating both static and real-time elements.
@@ -26,6 +31,7 @@ type Feed struct {
 
 	stops        map[string]*stopDetails
 	routes       map[string]*routeDetails
+	trips        map[string]*tripDetails
 	sortedRoutes []*routeDetails
 }
 
@@ -41,6 +47,7 @@ func NewFeed(logger *zap.Logger, dataset *gtfs.Dataset, realtimePath string) *Fe
 		calendarDates: map[string]map[string]*gtfs.CalendarDate{},
 		stops:         map[string]*stopDetails{},
 		routes:        map[string]*routeDetails{},
+		trips:         map[string]*tripDetails{},
 	}
 
 	f.setup()
@@ -77,7 +84,6 @@ func (f *Feed) setup() {
 		}
 	}
 
-	trips := map[string]*tripDetails{}
 	for _, gtfsTrip := range f.dataset.Trips {
 		if _, ok := f.routes[gtfsTrip.RouteID]; !ok {
 			f.logger.Info("trip specified missing route ID",
@@ -93,13 +99,13 @@ func (f *Feed) setup() {
 			Trip:  gtfsTrip,
 			route: route,
 		}
-		trips[gtfsTrip.ID] = trip
+		f.trips[gtfsTrip.ID] = trip
 
 		route.trips = append(route.trips, trip)
 	}
 
 	for _, gtfsStopTime := range f.dataset.StopTimes {
-		if _, ok := trips[gtfsStopTime.TripID]; !ok {
+		if _, ok := f.trips[gtfsStopTime.TripID]; !ok {
 			f.logger.Info("stop time specified missing trip ID",
 				zap.String("trip_id", gtfsStopTime.TripID),
 				zap.String("stop_id", gtfsStopTime.StopID),
@@ -115,13 +121,13 @@ func (f *Feed) setup() {
 			continue
 		}
 
-		trip := trips[gtfsStopTime.TripID]
+		trip := f.trips[gtfsStopTime.TripID]
 		stop := f.stops[gtfsStopTime.StopID]
 
 		stopTime := &arrivalDetails{
 			StopTime: gtfsStopTime,
 			stop:     f.stops[gtfsStopTime.StopID],
-			trip:     trips[gtfsStopTime.TripID],
+			trip:     f.trips[gtfsStopTime.TripID],
 		}
 
 		trip.stops = append(trip.stops, stopTime)
@@ -133,7 +139,7 @@ func (f *Feed) setup() {
 	// Stops have their arrivals ordered by arrival time
 	// Routes have their trips ordered by the arrival time of the vehicle at the first stop on the trip
 
-	for _, trip := range trips {
+	for _, trip := range f.trips {
 		sort.Slice(trip.stops, func(i, j int) bool {
 			return trip.stops[i].Sequence < trip.stops[j].Sequence
 		})
@@ -162,6 +168,91 @@ func (f *Feed) setup() {
 		return f.sortedRoutes[i].SortOrder > f.sortedRoutes[j].SortOrder
 	})
 
+}
+
+// MonitorRealtimeFeed periodically polls the realtime feed endpoint and updates the times for the trips.
+func (f *Feed) MonitorRealtimeFeed(ctx context.Context) {
+	if len(f.realtimePath) < 1 {
+		f.logger.Warn("realtime path not set, cannot monitor feed")
+		return
+	}
+
+	for {
+		feed, err := f.GetRealtimeFeed(ctx)
+		if err != nil {
+			f.logger.Warn("error retrieving feed",
+				zap.Error(err),
+			)
+			return
+		}
+		if feed.Header.Incrementality != nil &&
+			*feed.Header.Incrementality != gtfs_realtime.FeedHeader_FULL_DATASET {
+			f.logger.Warn("realtime feed not supported")
+			return
+		}
+		for _, entity := range feed.Entity {
+			if entity.TripUpdate == nil {
+				f.logger.Debug("non-trip update")
+				continue
+			} else if entity.TripUpdate.Trip == nil {
+				f.logger.Debug("trip update missing trip details")
+			}
+
+			trip := f.trips[*entity.TripUpdate.Trip.TripId]
+			if trip == nil {
+				f.logger.Debug("trip not found",
+					zap.String("trip_id", *entity.TripUpdate.Trip.TripId),
+				)
+				continue
+			}
+
+			updates := map[string]*gtfs_realtime.TripUpdate_StopTimeUpdate{}
+
+			// Get a map of updates, indexed by stop ID
+			for _, update := range entity.TripUpdate.StopTimeUpdate {
+				updates[*update.StopId] = update
+			}
+
+			// Iterate over the stops for the trip. Set any estimated times, if they exist.
+			for _, stop := range trip.stops {
+				update := updates[stop.StopID]
+
+				// If we have no update for this stop assume it occurred in the past and we can clear its estimated arrival time value.
+				if update == nil {
+					stop.estimatedArrivalTime = nil
+					continue
+				}
+
+				// If we have no data, skip this stop
+				if update.ScheduleRelationship != nil &&
+					*update.ScheduleRelationship == gtfs_realtime.TripUpdate_StopTimeUpdate_NO_DATA {
+					continue
+				}
+
+				if update.Arrival != nil {
+					if update.Arrival.Time != nil {
+						stop.estimatedArrivalTime = gtfs.NewCSVTime(time.Unix(*update.Arrival.Time, 0))
+					} else if update.Arrival.Delay != nil {
+						f.logger.Info("arrival delay present")
+					}
+				} else {
+					stop.estimatedArrivalTime = nil
+				}
+
+				if update.Departure != nil {
+					if update.Departure.Time != nil {
+						stop.estimatedDepartureTime = gtfs.NewCSVTime(time.Unix(*update.Departure.Time, 0))
+					} else if update.Departure.Delay != nil {
+						f.logger.Info("departure delay present")
+					}
+				} else {
+					stop.estimatedDepartureTime = nil
+				}
+			}
+		}
+
+		time.Sleep(realtimePollInterval)
+	}
 }
 
 // GetRealtimeFeed retrieves the GTFS realtime data.
