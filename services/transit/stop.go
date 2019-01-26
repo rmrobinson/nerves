@@ -66,7 +66,7 @@ func (s *stopDetails) arrivalsForDay(date time.Time) []*arrivalDetails {
 			}
 		}
 
-		if arrival.ArrivalTime.BeforeTime(date) {
+		if arrival.arrivalTime.Before(date) {
 			shouldAdd = false
 		}
 

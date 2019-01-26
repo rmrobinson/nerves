@@ -24,7 +24,7 @@ type Feed struct {
 
 	dataset *gtfs.Dataset
 
-	agencies  map[string]*gtfs.Agency
+	agencies  map[string]*agencyDetails
 	calendars map[string]*gtfs.Calendar
 	// Double map; first keyed by service ID, second by override date
 	calendarDates map[string]map[string]*gtfs.CalendarDate
@@ -42,7 +42,7 @@ func NewFeed(logger *zap.Logger, dataset *gtfs.Dataset, realtimePath string) *Fe
 		dataset:      dataset,
 		realtimePath: realtimePath,
 
-		agencies:      map[string]*gtfs.Agency{},
+		agencies:      map[string]*agencyDetails{},
 		calendars:     map[string]*gtfs.Calendar{},
 		calendarDates: map[string]map[string]*gtfs.CalendarDate{},
 		stops:         map[string]*stopDetails{},
@@ -57,7 +57,7 @@ func NewFeed(logger *zap.Logger, dataset *gtfs.Dataset, realtimePath string) *Fe
 // setup populates the internal data structures used to support queries against this feed.
 func (f *Feed) setup() {
 	for _, a := range f.dataset.Agencies {
-		f.agencies[a.ID] = a
+		f.agencies[a.ID] = newAgencyDetails(a)
 	}
 	for _, c := range f.dataset.Calendar {
 		f.calendars[c.ServiceID] = c
@@ -124,11 +124,9 @@ func (f *Feed) setup() {
 		trip := f.trips[gtfsStopTime.TripID]
 		stop := f.stops[gtfsStopTime.StopID]
 
-		stopTime := &arrivalDetails{
-			StopTime: gtfsStopTime,
-			stop:     f.stops[gtfsStopTime.StopID],
-			trip:     f.trips[gtfsStopTime.TripID],
-		}
+		stopTime := newArrivalDetails(gtfsStopTime, f.agencies[f.routes[trip.RouteID].AgencyID].loc)
+		stopTime.stop = f.stops[gtfsStopTime.StopID]
+		stopTime.trip = f.trips[gtfsStopTime.TripID]
 
 		trip.stops = append(trip.stops, stopTime)
 		stop.arrivals = append(stop.arrivals, stopTime)
@@ -147,7 +145,7 @@ func (f *Feed) setup() {
 
 	for stopID, stop := range f.stops {
 		sort.Slice(stop.arrivals, func(i, j int) bool {
-			return stop.arrivals[i].ArrivalTime.Before(stop.arrivals[j].ArrivalTime)
+			return stop.arrivals[i].arrivalTime.Before(stop.arrivals[j].arrivalTime)
 		})
 
 		f.stops[stopID] = stop
@@ -155,7 +153,7 @@ func (f *Feed) setup() {
 
 	for routeID, route := range f.routes {
 		sort.Slice(route.trips, func(i, j int) bool {
-			return route.trips[i].stops[0].ArrivalTime.Before(route.trips[j].stops[0].ArrivalTime)
+			return route.trips[i].stops[0].arrivalTime.Before(route.trips[j].stops[0].arrivalTime)
 		})
 
 		f.routes[routeID] = route
@@ -231,7 +229,8 @@ func (f *Feed) MonitorRealtimeFeed(ctx context.Context) {
 
 				if update.Arrival != nil {
 					if update.Arrival.Time != nil {
-						stop.estimatedArrivalTime = gtfs.NewCSVTime(time.Unix(*update.Arrival.Time, 0))
+						t := time.Unix(*update.Arrival.Time, 0)
+						stop.estimatedArrivalTime = &t
 					} else if update.Arrival.Delay != nil {
 						f.logger.Info("arrival delay present")
 					}
@@ -241,7 +240,8 @@ func (f *Feed) MonitorRealtimeFeed(ctx context.Context) {
 
 				if update.Departure != nil {
 					if update.Departure.Time != nil {
-						stop.estimatedDepartureTime = gtfs.NewCSVTime(time.Unix(*update.Departure.Time, 0))
+						t := time.Unix(*update.Departure.Time, 0)
+						stop.estimatedDepartureTime = &t
 					} else if update.Departure.Delay != nil {
 						f.logger.Info("departure delay present")
 					}
