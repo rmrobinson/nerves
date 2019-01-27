@@ -67,7 +67,12 @@ func NewTransit(app *tview.Application, rowCount int) *Transit {
 // Refresh causes the transit data to be updated.
 func (wf *Transit) Refresh(stop *transit.Stop, records []*transit.Arrival) {
 	wf.app.QueueUpdateDraw(func() {
-		wf.SetTitle(stop.Name + " Arrivals")
+		if stop != nil {
+			wf.SetTitle(stop.Name + " Arrivals")
+		} else {
+			wf.SetTitle("Arrivals")
+		}
+		
 		for i := 0; i < len(wf.records); i++ {
 			if i >= len(records) {
 				wf.records[i].routeText.Clear()
