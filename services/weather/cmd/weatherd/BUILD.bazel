@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//services/weather:go_default_library",
         "//services/weather/envcan:go_default_library",
+        "//vendor/github.com/spf13/viper:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
