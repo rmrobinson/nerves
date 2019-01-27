@@ -398,6 +398,7 @@ func (h *Hub) DeviceRemoved(bridgeID string, device *Device) error {
 // sendDeviceUpdate is the internal function that takes a notification and propagates it to all registered watchers.
 func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, device *Device) {
 	h.logger.Debug("sending device update",
+		zap.String("action", action.String()),
 		zap.String("device_info", device.String()),
 	)
 
@@ -411,6 +412,7 @@ func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, devi
 // sendBridgeUpdate is the internal function that takes a notification and propagates it to all registered watchers.
 func (h *Hub) sendBridgeUpdate(action BridgeUpdate_Action, bridge *Bridge) {
 	h.logger.Debug("sending bridge update",
+		zap.String("action", action.String()),
 		zap.String("bridge_info", bridge.String()),
 	)
 	h.bridgeUpdatesSource.SendMessage(&BridgeUpdate{

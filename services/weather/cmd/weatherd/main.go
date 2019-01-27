@@ -6,15 +6,17 @@ import (
 
 	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/rmrobinson/nerves/services/weather/envcan"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	ecStations := "/tmp/weather.json"
+	viper.SetEnvPrefix("NVS")
+	viper.BindEnv("ENVCAN_MAP")
 
 	logger, _ := zap.NewDevelopment()
-	ecsvc, err := envcan.NewService(logger, ecStations)
+	ecsvc, err := envcan.NewService(logger, viper.GetString("ENVCAN_MAP"))
 	if err != nil {
 		logger.Fatal("error creating feed",
 			zap.Error(err),

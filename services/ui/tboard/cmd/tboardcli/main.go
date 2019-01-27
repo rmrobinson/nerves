@@ -12,11 +12,31 @@ import (
 	"github.com/rmrobinson/nerves/services/transit"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
 	"github.com/rmrobinson/nerves/services/weather"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
+const (
+	envVarWeatherdEndpoint = "WEATHERD_ENDPOINT"
+	envVarDomoticsdEndpoint = "DOMOTICSD_ENDPOINT"
+	envVarNewsdEndpoint = "NEWSD_ENDPOINT"
+	envVarTransitdEndpoint = "TRANSITD_ENDPOINT"
+	envVarLatitude = "LATITUDE"
+	envVarLongitude = "LONGITUDE"
+	envVarTransitdStopID = "TRANSIT_STOP_ID"
+)
+
 func main() {
+	viper.SetEnvPrefix("NVS")
+	viper.BindEnv(envVarWeatherdEndpoint)
+	viper.BindEnv(envVarDomoticsdEndpoint)
+	viper.BindEnv(envVarNewsdEndpoint)
+	viper.BindEnv(envVarTransitdEndpoint)
+	viper.BindEnv(envVarLatitude)
+	viper.BindEnv(envVarLongitude)
+	viper.BindEnv(envVarTransitdStopID)
+
 	app := tview.NewApplication()
 
 	debugView := widget.NewDebug(app)
@@ -37,9 +57,10 @@ func main() {
 	var grpcOpts []grpc.DialOption
 	grpcOpts = append(grpcOpts, grpc.WithInsecure())
 
-	weatherConn, err := grpc.Dial("127.0.0.1:10101", grpcOpts...)
+	weatherConn, err := grpc.Dial(viper.GetString(envVarWeatherdEndpoint), grpcOpts...)
 	if err != nil {
 		logger.Warn("unable to dial weather server",
+			zap.String("endpoint", viper.GetString(envVarWeatherdEndpoint)),
 			zap.Error(err),
 		)
 	}
@@ -70,8 +91,8 @@ func main() {
 	go func() {
 		for {
 			report, err := weatherClient.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{
-				Latitude:  43.4516,
-				Longitude: -80.4925,
+				Latitude:  viper.GetFloat64(envVarLatitude),
+				Longitude: viper.GetFloat64(envVarLongitude),
 			})
 			if err != nil {
 				logger.Warn("unable to get weather")
@@ -90,8 +111,8 @@ func main() {
 	go func() {
 		for {
 			forecast, err := weatherClient.GetForecast(context.Background(), &weather.GetForecastRequest{
-				Latitude:  43.4516,
-				Longitude: -80.4925,
+				Latitude:  viper.GetFloat64(envVarLatitude),
+				Longitude: viper.GetFloat64(envVarLongitude),
 			})
 			if err != nil {
 				logger.Warn("unable to get weather")
@@ -103,9 +124,10 @@ func main() {
 		}
 	}()
 
-	domoticsConn, err := grpc.Dial("127.0.0.1:10102", grpcOpts...)
+	domoticsConn, err := grpc.Dial(viper.GetString(envVarDomoticsdEndpoint), grpcOpts...)
 	if err != nil {
 		logger.Warn("unable to dial domotics server",
+			zap.String("endpoint", viper.GetString(envVarDomoticsdEndpoint)),
 			zap.Error(err),
 		)
 	}
@@ -115,9 +137,10 @@ func main() {
 
 	devicesView := widget.NewDevices(app, logger, devicesClient)
 
-	newsConn, err := grpc.Dial("127.0.0.1:10103", grpcOpts...)
+	newsConn, err := grpc.Dial(viper.GetString(envVarNewsdEndpoint), grpcOpts...)
 	if err != nil {
 		logger.Warn("unable to dial news server",
+			zap.String("endpoint", viper.GetString(envVarNewsdEndpoint)),
 			zap.Error(err),
 		)
 	}
@@ -138,9 +161,10 @@ func main() {
 	articlesView.SetNextWidget(devicesView)
 	devicesView.SetNextWidget(articlesView)
 
-	transitConn, err := grpc.Dial("127.0.0.1:10104", grpcOpts...)
+	transitConn, err := grpc.Dial(viper.GetString(envVarTransitdEndpoint), grpcOpts...)
 	if err != nil {
 		logger.Warn("unable to dial transit server",
+			zap.String("endpoint", viper.GetString(envVarTransitdEndpoint)),
 			zap.Error(err),
 		)
 	}
@@ -149,7 +173,7 @@ func main() {
 	transitClient := transit.NewTransitServiceClient(transitConn)
 
 	getStopArrivalsResp, err := transitClient.GetStopArrivals(context.Background(), &transit.GetStopArrivalsRequest{
-		StopCode:              "3629",
+		StopCode:              viper.GetString(envVarTransitdStopID),
 		ExcludeArrivalsBefore: ptypes.TimestampNow(),
 	})
 	if err != nil {

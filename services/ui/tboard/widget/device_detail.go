@@ -154,6 +154,8 @@ func (dd *DeviceDetail) Refresh(client domotics.DeviceServiceClient, device *dom
 		// TODO: do not allow/show values for fields that aren't supported.
 		if dd.device.State.Range != nil {
 			dd.levelInput.SetText(fmt.Sprintf("%2d", dd.device.State.Range.Value))
+		} else if dd.device.State.Audio != nil {
+			dd.levelInput.SetText(fmt.Sprintf("%2d", dd.device.State.Audio.Volume))
 		}
 		if dd.device.State.ColorRgb != nil {
 			dd.redInput.SetText(fmt.Sprintf("%3d", dd.device.State.ColorRgb.Red))
@@ -167,9 +169,14 @@ func (dd *DeviceDetail) Refresh(client domotics.DeviceServiceClient, device *dom
 func (dd *DeviceDetail) saveFields() {
 	// TODO: do not persist fields that aren't supported
 	dd.device.State.Binary.IsOn = dd.isOnCheckbox.IsChecked()
+	dd.device.State.Audio.IsMuted = !dd.isOnCheckbox.IsChecked()
+
 	if dd.device.State.Range != nil {
 		dd.device.State.Range.Value = int32FromInputField(dd.levelInput)
+	} else if dd.device.State.Audio != nil {
+		dd.device.State.Audio.Volume = int32FromInputField(dd.levelInput)
 	}
+
 	if dd.device.State.ColorRgb != nil {
 		dd.device.State.ColorRgb.Red = int32FromInputField(dd.redInput)
 		dd.device.State.ColorRgb.Green = int32FromInputField(dd.greenInput)
