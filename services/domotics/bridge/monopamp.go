@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -214,6 +215,10 @@ func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error
 			return nil, err
 		}
 	}
+
+	sort.Slice(devices, func(i, j int) bool {
+		return devices[i].Address < devices[j].Address
+	})
 	return devices, nil
 }
 

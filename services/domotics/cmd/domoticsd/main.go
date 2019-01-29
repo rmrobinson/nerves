@@ -66,7 +66,7 @@ func main() {
 			)
 		}
 		toClose = append(toClose, monop)
-		if err = hub.AddBridge(monop.bridge, time.Second); err != nil {
+		if err = hub.AddBridge(monop.bridge, time.Second * 30); err != nil {
 			logger.Warn("error adding module to bridge",
 				zap.String("module_name", monopConfig.Name),
 				zap.Error(err),

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -183,6 +184,9 @@ func (b *HueBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
 		devices = append(devices, d)
 	}
 
+	sort.Slice(devices, func(i, j int) bool {
+		return devices[i].Address < devices[j].Address
+	})
 	return devices, nil
 }
 
