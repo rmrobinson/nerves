@@ -10,10 +10,10 @@ import (
 type arrivalDetails struct {
 	*gtfs.StopTime
 
-	arrivalTime time.Time
+	arrivalTime   time.Time
 	departureTime time.Time
 
-	estimatedArrivalTime *time.Time
+	estimatedArrivalTime   *time.Time
 	estimatedDepartureTime *time.Time
 
 	trip *tripDetails
@@ -38,8 +38,8 @@ func gtfsTimeToCalendarTime(in gtfs.CSVTime, loc *time.Location) time.Time {
 
 func newArrivalDetails(st *gtfs.StopTime, loc *time.Location) *arrivalDetails {
 	return &arrivalDetails{
-		StopTime: st,
-		arrivalTime: gtfsTimeToCalendarTime(st.ArrivalTime, loc),
+		StopTime:      st,
+		arrivalTime:   gtfsTimeToCalendarTime(st.ArrivalTime, loc),
 		departureTime: gtfsTimeToCalendarTime(st.DepartureTime, loc),
 	}
 }

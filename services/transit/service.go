@@ -18,10 +18,6 @@ var (
 	ErrStopCutoffInvalid = status.New(codes.InvalidArgument, "stop cutoff not a valid time")
 )
 
-const (
-	arrivalTimeFormat = "15:04:05"
-)
-
 // Service is a really simple service that retrieves a transit feed
 type Service struct {
 	logger *zap.Logger
@@ -95,13 +91,13 @@ func (s *Service) GetStopArrivals(ctx context.Context, req *GetStopArrivalsReque
 
 	for _, arrival := range arrivals {
 		a := &Arrival{
-			ScheduledArrivalTime:   arrival.arrivalTime.Format(arrivalTimeFormat),
-			ScheduledDepartureTime: arrival.departureTime.Format(arrivalTimeFormat),
-			RouteId:                arrival.RouteID(),
-			Headsign:               arrival.VehicleHeadsign(),
+			RouteId:  arrival.RouteID(),
+			Headsign: arrival.VehicleHeadsign(),
 		}
+		a.ScheduledArrivalTime, _ = ptypes.TimestampProto(arrival.arrivalTime)
+		a.ScheduledDepartureTime, _ = ptypes.TimestampProto(arrival.departureTime)
 		if arrival.estimatedArrivalTime != nil {
-			a.EstimatedArrivalTime = arrival.estimatedArrivalTime.Format(arrivalTimeFormat)
+			a.EstimatedArrivalTime, _ = ptypes.TimestampProto(*arrival.estimatedArrivalTime)
 
 		}
 

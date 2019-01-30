@@ -1,6 +1,10 @@
 package widget
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
 	"github.com/rivo/tview"
 	"github.com/rmrobinson/nerves/services/transit"
 )
@@ -10,7 +14,7 @@ type transitRecord struct {
 
 	routeText            *tview.TextView
 	scheduledArrivalTime *tview.TextView
-	estimatedArrivalTime *tview.TextView
+	arrivalTime          *tview.TextView
 }
 
 func newTransitRecord() *transitRecord {
@@ -18,18 +22,18 @@ func newTransitRecord() *transitRecord {
 		Flex:                 tview.NewFlex(),
 		routeText:            tview.NewTextView(),
 		scheduledArrivalTime: tview.NewTextView(),
-		estimatedArrivalTime: tview.NewTextView(),
+		arrivalTime:          tview.NewTextView(),
 	}
 
 	tr.routeText.SetTextAlign(tview.AlignLeft)
 	tr.scheduledArrivalTime.SetTextAlign(tview.AlignLeft)
-	tr.estimatedArrivalTime.SetTextAlign(tview.AlignRight)
+	tr.arrivalTime.SetTextAlign(tview.AlignRight)
 
 	tr.SetDirection(tview.FlexRow).
 		AddItem(tr.routeText, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 			AddItem(tr.scheduledArrivalTime, 0, 1, false).
-			AddItem(tr.estimatedArrivalTime, 0, 1, false), 0, 1, false)
+			AddItem(tr.arrivalTime, 0, 2, false), 0, 1, false)
 
 	return tr
 }
@@ -72,24 +76,59 @@ func (wf *Transit) Refresh(stop *transit.Stop, records []*transit.Arrival) {
 		} else {
 			wf.SetTitle("Arrivals")
 		}
-		
+
 		for i := 0; i < len(wf.records); i++ {
 			if i >= len(records) {
 				wf.records[i].routeText.Clear()
-				wf.records[i].scheduledArrivalTime.Clear()
-				wf.records[i].estimatedArrivalTime.Clear()
+				wf.records[i].arrivalTime.Clear()
 				continue
 			}
 
 			record := records[i]
 
 			wf.records[i].routeText.SetText(record.RouteId + " " + record.Headsign)
-			wf.records[i].scheduledArrivalTime.SetText("S: " + record.ScheduledArrivalTime)
-			if len(record.EstimatedArrivalTime) > 0 {
-				wf.records[i].estimatedArrivalTime.SetText("E: " + record.EstimatedArrivalTime)
+
+			msg := "(Sched) "
+			var err error
+			var scheduledArrivalTime time.Time
+			var arrivalTime time.Time
+
+			scheduledArrivalTime, err = ptypes.Timestamp(record.ScheduledArrivalTime)
+
+			if record.EstimatedArrivalTime != nil {
+				msg = "(Est) "
+				arrivalTime, err = ptypes.Timestamp(record.EstimatedArrivalTime)
 			} else {
-				wf.records[i].estimatedArrivalTime.SetText("E: ??:??:??")
+				arrivalTime = scheduledArrivalTime
 			}
+
+			if err != nil {
+				wf.records[i].arrivalTime.SetText("Err: " + err.Error())
+				continue
+			}
+
+			scheduledArrivalTime = scheduledArrivalTime.In(time.Now().Location())
+			arrivalTime = arrivalTime.In(time.Now().Location())
+
+			msg += getTextForTimeDiff(time.Now(), arrivalTime)
+
+			wf.records[i].scheduledArrivalTime.SetText("@" + scheduledArrivalTime.Format("15:04:05"))
+			wf.records[i].arrivalTime.SetText(msg)
 		}
 	})
+}
+
+func getTextForTimeDiff(t1 time.Time, t2 time.Time) string {
+	if t1.After(t2) {
+		duration := t1.Sub(t2)
+		return fmt.Sprintf("%d mins ago", int64(duration.Minutes()))
+	}
+
+	duration := t2.Sub(t1)
+
+	if duration < 1 {
+		return "due"
+	}
+
+	return fmt.Sprintf("in %d mins", int64(duration.Minutes()))
 }

@@ -6,12 +6,9 @@ import "google/protobuf/timestamp.proto";
 
 // Arrival is a modified version of the GTFS spec to include some real-time data.
 message Arrival {
-//    google.protobuf.Timestamp scheduled_arrival_time = 1;
-//    google.protobuf.Timestamp scheduled_departure_time = 2;
-//    google.protobuf.Timestamp estimated_arrival_time = 3;
-    string scheduled_arrival_time = 1;
-    string scheduled_departure_time = 2;
-    string estimated_arrival_time = 3;
+    google.protobuf.Timestamp scheduled_arrival_time = 1;
+    google.protobuf.Timestamp scheduled_departure_time = 2;
+    google.protobuf.Timestamp estimated_arrival_time = 3;
     string route_id = 4;
     string headsign = 5;
 }

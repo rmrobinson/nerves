@@ -19,6 +19,6 @@ func newAgencyDetails(a *gtfs.Agency) *agencyDetails {
 	}
 	return &agencyDetails{
 		Agency: a,
-		loc: loc,
+		loc:    loc,
 	}
 }
