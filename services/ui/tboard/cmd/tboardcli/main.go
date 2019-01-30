@@ -18,13 +18,13 @@ import (
 )
 
 const (
-	envVarWeatherdEndpoint = "WEATHERD_ENDPOINT"
+	envVarWeatherdEndpoint  = "WEATHERD_ENDPOINT"
 	envVarDomoticsdEndpoint = "DOMOTICSD_ENDPOINT"
-	envVarNewsdEndpoint = "NEWSD_ENDPOINT"
-	envVarTransitdEndpoint = "TRANSITD_ENDPOINT"
-	envVarLatitude = "LATITUDE"
-	envVarLongitude = "LONGITUDE"
-	envVarTransitdStopID = "TRANSIT_STOP_ID"
+	envVarNewsdEndpoint     = "NEWSD_ENDPOINT"
+	envVarTransitdEndpoint  = "TRANSITD_ENDPOINT"
+	envVarLatitude          = "LATITUDE"
+	envVarLongitude         = "LONGITUDE"
+	envVarTransitdStopID    = "TRANSIT_STOP_ID"
 )
 
 func main() {
