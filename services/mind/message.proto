@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package faltung.nerves.mind;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// User corresponds to a single user that interacts with this service.
+message User {
+    string name = 1;
+
+    string display_name = 2;
+    string first_name = 3;
+    string last_name = 4;
+    // TODO: many more fields
+
+    repeated UserProxy user_proxies = 100;
+}
+
+// UserMapping exists in a 1:many relationship with a user.
+// Each service that the user can have requests proxied via will have one of these entries.
+// Examples of a proxy can include Facebook Messenger, Slack, etc.
+message UserProxy {
+    string service_id = 1;
+    string user_id = 2;
+}
+
+// Statement is a statement made by one side or the other.
+message Statement {
+    google.protobuf.Timestamp create_at = 1;
+    string language_code = 2;
+    string mime_type = 3;
+
+    bytes content = 10;
+}
+
+// RegisterUserRequest is used to take an existing user and register a new proxy mapping.
+message RegisterUserRequest {
+    string name = 1;
+    string request_id = 2;
+
+    UserProxy user_proxy = 3;
+}
+
+// SendStatementRequest is used to transmit a statement from a specific proxy and user.
+message SendStatementRequest {
+    // /messages/<source service>/<user ID in the referenced service>
+    string name = 1;
+    string request_id = 2;
+    Statement statement = 3;
+}
+
+// ReceiveStatementsRequest is used to receive a stream of response messages to a specific user and proxy.
+message ReceiveStatementsRequest {
+    // /messages/<source service>/<user ID in the referenced service>
+    string name = 1;
+}
+
+// MessageService contains a series of operations that are used to manage messaging between users and this service.
+service MessageService {
+    rpc RegisterUser(RegisterUserRequest) returns (User) {}
+
+    rpc SendStatement(SendStatementRequest) returns (google.protobuf.Empty) {}
+    rpc ReceiveStatements(ReceiveStatementsRequest) returns (stream Statement) {}
+}
