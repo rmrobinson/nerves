@@ -19,6 +19,7 @@ const (
 func main() {
 	viper.SetEnvPrefix("NVS")
 	viper.BindEnv(envVarSlackKey)
+	viper.BindEnv(envVarSlackChannelID)
 
 	logger, _ := zap.NewDevelopment()
 

@@ -12,12 +12,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// SlackBot is a message service implementation.
 type SlackBot struct {
 	logger *zap.Logger
 	s *Service
 	api *slack.Client
 }
 
+// NewSlackBot creates a new slackbot using the supplied slack implementatino.
 func NewSlackBot(logger *zap.Logger, s *Service, api *slack.Client) *SlackBot {
 	return &SlackBot{
 		logger: logger,
@@ -26,6 +28,7 @@ func NewSlackBot(logger *zap.Logger, s *Service, api *slack.Client) *SlackBot {
 	}
 }
 
+// Run begins the event loop and posts messages to the specified channel.
 func (sb *SlackBot) Run(channelID string) {
 	rtm := sb.api.NewRTM()
 	go rtm.ManageConnection()
@@ -34,6 +37,10 @@ func (sb *SlackBot) Run(channelID string) {
 
 	for msg := range rtm.IncomingEvents {
 		switch ev := msg.Data.(type) {
+		case *slack.InvalidAuthEvent:
+			sb.logger.Warn("credentials invalid")
+			return
+
 		case *slack.ConnectedEvent:
 			sb.logger.Debug("connected to slack",
 				zap.String("team_id", ev.Info.Team.ID),
@@ -42,6 +49,21 @@ func (sb *SlackBot) Run(channelID string) {
 			)
 
 			teamID = ev.Info.Team.ID
+
+			channels, err := sb.api.GetChannels(false)
+			if err != nil {
+				sb.logger.Warn("error getting channels",
+					zap.Error(err),
+				)
+				continue
+			}
+
+			for _, channel := range channels {
+				sb.logger.Debug("channel",
+					zap.String("channel_name", channel.Name),
+					zap.String("channel_id", channel.ID),
+				)
+			}
 
 			rtm.SendMessage(rtm.NewOutgoingMessage("I'm alive!", channelID))
 
@@ -81,6 +103,8 @@ func (sb *SlackBot) Run(channelID string) {
 				)
 			}
 
+			sb.replyMessage(ev.User, req.Statement)
+
 		case *slack.PresenceChangeEvent:
 			sb.logger.Debug("presence changed",
 				zap.String("username", ev.User),
@@ -95,12 +119,26 @@ func (sb *SlackBot) Run(channelID string) {
 			sb.logger.Info("rtm error",
 				zap.Error(ev),
 			)
-
-		case *slack.InvalidAuthEvent:
-			sb.logger.Warn("credentials invalid")
-			return
 		}
 	}
+}
+
+func (s *SlackBot) replyMessage(userID string, statement *Statement) error {
+	if len(userID) < 1 {
+		return nil
+	}
+
+	_, _, channelID, err := s.api.OpenIMChannel(userID)
+	if err != nil {
+		s.logger.Debug("error creating IM channel",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	_, _, err = s.api.PostMessage(channelID, slack.MsgOptionText(string(statement.Content), false))
+	return err
 }
 
 func parseUnixTime(ts string) (time.Time, error) {
