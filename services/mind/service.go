@@ -7,13 +7,17 @@ import (
 	"go.uber.org/zap"
 )
 
+// Service is a messaging service.
 type Service struct {
 	logger *zap.Logger
+	users map[string]*User
 }
 
+// NewService creates a new messaging service.
 func NewService(logger *zap.Logger) *Service{
 	return &Service{
 		logger: logger,
+		users: map[string]*User{},
 	}
 }
 
@@ -26,6 +30,7 @@ func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) 
 		zap.String("name", req.Name),
 		zap.String("message", string(req.Statement.Content)),
 	)
+
 	return nil, nil
 }
 
