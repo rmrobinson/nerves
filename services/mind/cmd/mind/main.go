@@ -24,6 +24,7 @@ func main() {
 	logger, _ := zap.NewDevelopment()
 
 	svc := mind.NewService(logger)
+	svc.RegisterHandler(mind.NewEcho(logger))
 
 	slackClient := slack.New(viper.GetString(envVarSlackKey))
 	slackbot := mind.NewSlackBot(logger, svc, slackClient)

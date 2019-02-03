@@ -103,8 +103,6 @@ func (sb *SlackBot) Run(channelID string) {
 				)
 			}
 
-			sb.replyMessage(ev.User, req.Statement)
-
 		case *slack.PresenceChangeEvent:
 			sb.logger.Debug("presence changed",
 				zap.String("username", ev.User),
