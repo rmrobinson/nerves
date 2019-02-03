@@ -96,9 +96,16 @@ func (sb *SlackBot) Run(channelID string) {
 				},
 			}
 
-			_, err = sb.s.SendStatement(context.Background(), req)
+			reply, err := sb.s.SendStatement(context.Background(), req)
 			if err != nil {
 				sb.logger.Info("error sending statement",
+					zap.Error(err),
+				)
+			}
+
+			err = sb.replyMessage(ev.User, reply)
+			if err != nil {
+				sb.logger.Info("error replying to statement",
 					zap.Error(err),
 				)
 			}
@@ -121,21 +128,21 @@ func (sb *SlackBot) Run(channelID string) {
 	}
 }
 
-func (s *SlackBot) replyMessage(userID string, statement *Statement) error {
+func (sb *SlackBot) replyMessage(userID string, statement *Statement) error {
 	if len(userID) < 1 {
 		return nil
 	}
 
-	_, _, channelID, err := s.api.OpenIMChannel(userID)
+	_, _, channelID, err := sb.api.OpenIMChannel(userID)
 	if err != nil {
-		s.logger.Debug("error creating IM channel",
+		sb.logger.Debug("error creating IM channel",
 			zap.String("user_id", userID),
 			zap.Error(err),
 		)
 		return err
 	}
 
-	_, _, err = s.api.PostMessage(channelID, slack.MsgOptionText(string(statement.Content), false))
+	_, _, err = sb.api.PostMessage(channelID, slack.MsgOptionText(string(statement.Content), false))
 	return err
 }
 

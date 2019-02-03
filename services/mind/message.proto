@@ -60,6 +60,6 @@ message ReceiveStatementsRequest {
 service MessageService {
     rpc RegisterUser(RegisterUserRequest) returns (User) {}
 
-    rpc SendStatement(SendStatementRequest) returns (google.protobuf.Empty) {}
+    rpc SendStatement(SendStatementRequest) returns (Statement) {}
     rpc ReceiveStatements(ReceiveStatementsRequest) returns (stream Statement) {}
 }
