@@ -3,17 +3,19 @@ package mind
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 var (
+	// ErrStatementNotHandled is returned if a particular handler fails to process the statement
 	ErrStatementNotHandled = status.New(codes.FailedPrecondition, "statement not handled")
+	// ErrStatementIgnored is returned if no registered handlers chose to process the statement
 	ErrStatementIgnored = status.New(codes.InvalidArgument, "statement not handled")
 )
 
+// Handler describes an implementation to process statements and potentially take actions on th
 type Handler interface {
 	ProcessStatement(context.Context, *Statement) (*Statement, error)
 }
@@ -45,17 +47,17 @@ func (s *Service) RegisterUser(context.Context, *RegisterUserRequest) (*User, er
 }
 
 // SendStatement takes a supplied statement and passes it into the handler chain.
-func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) (*empty.Empty, error) {
+func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
 	for _, handler := range s.handlers {
-		_, err := handler.ProcessStatement(ctx, req.Statement)
+		resp, err := handler.ProcessStatement(ctx, req.Statement)
 		if err == ErrStatementNotHandled.Err() {
 			continue
 		}
 
-		return nil, nil
+		return resp, nil
 	}
 
-	return nil, ErrStatementNotHandled.Err()
+	return nil, ErrStatementIgnored.Err()
 }
 
 // ReceiveStatements is used to broadcast info a receiver.

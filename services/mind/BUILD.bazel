@@ -22,17 +22,21 @@ go_proto_library(
 go_library(
     name = "go_default_library",
     srcs = [
+        "echo.go",
         "service.go",
         "slack.go",
+        "weather.go",
     ],
     embed = [":faltung_nerves_mind_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/mind",
     visibility = ["//visibility:public"],
     deps = [
+        "//services/weather:go_default_library",
         "//vendor/github.com/google/uuid:go_default_library",
         "//vendor/github.com/nlopes/slack:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
-        "@io_bazel_rules_go//proto/wkt:empty_go_proto",
     ],
 )
