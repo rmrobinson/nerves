@@ -46,6 +46,39 @@ func (w *Weather) ProcessStatement(ctx context.Context, stmt *Statement) (*State
 		return nil, ErrStatementNotHandled.Err()
 	}
 
+	var resp *Statement
+	if strings.Contains(content, "forecast") {
+		resp = w.getForecast()
+	} else if len(content) == len(weatherPrefix) {
+		resp = w.getConditions()
+	} else {
+		resp = statementFromText("Unsupported command")
+	}
+	
+	return resp, nil
+}
+
+func (w *Weather) getForecast() *Statement {
+	report, err := w.client.GetForecast(context.Background(), &weather.GetForecastRequest{
+		Latitude:  w.currLatitude,
+		Longitude: w.currLongitude,
+	})
+	if err != nil {
+		w.logger.Warn("unable to get weather forecast",
+			zap.Error(err),
+		)
+
+		return statementFromText("Can't get the weather right now :(")
+	} else if report == nil {
+		w.logger.Warn("unable to get weather (empty report)")
+
+		return statementFromText("Not sure what the weather is right now")
+	}
+
+	return statementFromForecast(report.ForecastRecords)
+}
+
+func (w *Weather) getConditions() *Statement {
 	report, err := w.client.GetCurrentReport(context.Background(), &weather.GetCurrentReportRequest{
 		Latitude:  w.currLatitude,
 		Longitude: w.currLongitude,
@@ -55,20 +88,31 @@ func (w *Weather) ProcessStatement(ctx context.Context, stmt *Statement) (*State
 			zap.Error(err),
 		)
 
-		return statementFromText("Can't get the weather right now :("), nil
+		return statementFromText("Can't get the weather right now :(")
 	} else if report == nil {
 		w.logger.Warn("unable to get weather (empty report)")
 
-		return statementFromText("Not sure what the weather is right now"), nil
+		return statementFromText("Not sure what the weather is right now")
 	}
 
-	w.logger.Debug("processed message",
-		zap.String("content", content),
-	)
+	return statementFromConditions(report.Report.Conditions)
+}
 
-	respStmt := statementFromConditions(report.Report.Conditions)
+func statementFromForecast(forecast []*weather.WeatherForecast) *Statement {
+	forecastText := "The current forecast is: ```"
+	for _, record := range forecast {
+		forecastedFor, _ := ptypes.Timestamp(record.ForecastedFor)
 
-	return respStmt, nil
+		// This gives us our 'low' temperature
+		if forecastedFor.Hour() == 23 {
+			forecastText += fmt.Sprintf("%s evening the low will be %2.f°C\n", forecastedFor.Format("Monday"), record.Conditions.Temperature)
+		} else {
+			forecastText += fmt.Sprintf("%s the high will be %2.f°C\n", forecastedFor.Format("Monday"), record.Conditions.Temperature)
+		}
+	}
+	forecastText += "```"
+
+	return statementFromText(forecastText)
 }
 
 func statementFromConditions(conditions *weather.WeatherCondition) *Statement {
