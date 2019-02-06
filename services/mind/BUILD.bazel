@@ -23,6 +23,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "echo.go",
+        "news.go",
         "service.go",
         "slack.go",
         "weather.go",
@@ -31,6 +32,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/mind",
     visibility = ["//visibility:public"],
     deps = [
+        "//services/news:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/google/uuid:go_default_library",
         "//vendor/github.com/nlopes/slack:go_default_library",

@@ -6,6 +6,7 @@ import (
 
 	"github.com/nlopes/slack"
 	"github.com/rmrobinson/nerves/services/mind"
+	"github.com/rmrobinson/nerves/services/news"
 	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -13,11 +14,12 @@ import (
 )
 
 const (
-	envVarSlackKey = "SLACK_KEY"
-	envVarSlackChannelID = "SLACK_CHANNEL_ID"
-	envVarLatitude          = "LATITUDE"
-	envVarLongitude         = "LONGITUDE"
-	envVarWeatherdEndpoint  = "WEATHERD_ENDPOINT"
+	envVarSlackKey         = "SLACK_KEY"
+	envVarSlackChannelID   = "SLACK_CHANNEL_ID"
+	envVarLatitude         = "LATITUDE"
+	envVarLongitude        = "LONGITUDE"
+	envVarWeatherdEndpoint = "WEATHERD_ENDPOINT"
+	envVarNewsdEndpoint    = "NEWSD_ENDPOINT"
 )
 
 func main() {
@@ -27,6 +29,7 @@ func main() {
 	viper.BindEnv(envVarLatitude)
 	viper.BindEnv(envVarLongitude)
 	viper.BindEnv(envVarWeatherdEndpoint)
+	viper.BindEnv(envVarNewsdEndpoint)
 
 	logger, _ := zap.NewDevelopment()
 
@@ -42,19 +45,30 @@ func main() {
 	}
 	defer weatherConn.Close()
 
+	newsConn, err := grpc.Dial(viper.GetString(envVarNewsdEndpoint), grpcOpts...)
+	if err != nil {
+		logger.Warn("unable to dial news server",
+			zap.String("endpoint", viper.GetString(envVarNewsdEndpoint)),
+			zap.Error(err),
+		)
+	}
+	defer newsConn.Close()
+
 	svc := mind.NewService(logger)
 	svc.RegisterHandler(mind.NewEcho(logger))
 	svc.RegisterHandler(mind.NewWeather(logger,
 		weather.NewWeatherServiceClient(weatherConn),
 		viper.GetFloat64(envVarLatitude),
 		viper.GetFloat64(envVarLongitude)))
+	svc.RegisterHandler(mind.NewNews(logger,
+		news.NewNewsServiceClient(newsConn)))
 
 	slackClient := slack.New(viper.GetString(envVarSlackKey))
 	slackbot := mind.NewSlackBot(logger, svc, slackClient)
 
 	go slackbot.Run(viper.GetString(envVarSlackChannelID))
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10103))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10108))
 	if err != nil {
 		logger.Fatal("failed to listen",
 			zap.Error(err),
