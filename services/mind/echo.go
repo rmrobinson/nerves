@@ -29,7 +29,7 @@ func (e *Echo) ProcessStatement(ctx context.Context, stmt *Statement) (*Statemen
 	if !strings.Contains(content, "echo") {
 		return nil, ErrStatementNotHandled.Err()
 	}
-	
+
 	e.logger.Debug("processed message",
 		zap.String("content", content),
 	)

@@ -15,16 +15,16 @@ import (
 // SlackBot is a message service implementation.
 type SlackBot struct {
 	logger *zap.Logger
-	s *Service
-	api *slack.Client
+	s      *Service
+	api    *slack.Client
 }
 
 // NewSlackBot creates a new slackbot using the supplied slack implementatino.
 func NewSlackBot(logger *zap.Logger, s *Service, api *slack.Client) *SlackBot {
 	return &SlackBot{
 		logger: logger,
-		s: s,
-		api: api,
+		s:      s,
+		api:    api,
 	}
 }
 
@@ -86,13 +86,13 @@ func (sb *SlackBot) Run(channelID string) {
 			}
 
 			req := &SendStatementRequest{
-				Name: "/messages/" + teamID + "/" + ev.User,
+				Name:      "/messages/" + teamID + "/" + ev.User,
 				RequestId: uuid.New().String(),
 				Statement: &Statement{
-					CreateAt: createAt,
+					CreateAt:     createAt,
 					LanguageCode: "en-US",
-					MimeType: "text/plain",
-					Content: []byte(ev.Text),
+					MimeType:     "text/plain",
+					Content:      []byte(ev.Text),
 				},
 			}
 

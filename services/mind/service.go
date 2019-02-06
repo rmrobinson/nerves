@@ -3,6 +3,7 @@ package mind
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,16 +24,16 @@ type Handler interface {
 // Service is a messaging service.
 type Service struct {
 	logger *zap.Logger
-	users map[string]*User
+	users  map[string]*User
 
 	handlers []Handler
 }
 
 // NewService creates a new messaging service.
-func NewService(logger *zap.Logger) *Service{
+func NewService(logger *zap.Logger) *Service {
 	return &Service{
 		logger: logger,
-		users: map[string]*User{},
+		users:  map[string]*User{},
 	}
 }
 
@@ -63,4 +64,12 @@ func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) 
 // ReceiveStatements is used to broadcast info a receiver.
 func (s *Service) ReceiveStatements(*ReceiveStatementsRequest, MessageService_ReceiveStatementsServer) error {
 	return nil
+}
+
+func statementFromText(content string) *Statement {
+	return &Statement{
+		MimeType: "text/plain",
+		Content:  []byte(content),
+		CreateAt: ptypes.TimestampNow(),
+	}
 }

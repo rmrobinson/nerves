@@ -20,16 +20,16 @@ type Weather struct {
 
 	client weather.WeatherServiceClient
 
-	currLatitude float64
+	currLatitude  float64
 	currLongitude float64
 }
 
 // NewWeather creates a new weather handler
 func NewWeather(logger *zap.Logger, client weather.WeatherServiceClient, lat float64, lon float64) *Weather {
 	return &Weather{
-		logger: logger,
-		client: client,
-		currLatitude: lat,
+		logger:        logger,
+		client:        client,
+		currLatitude:  lat,
 		currLongitude: lon,
 	}
 }
@@ -54,7 +54,7 @@ func (w *Weather) ProcessStatement(ctx context.Context, stmt *Statement) (*State
 	} else {
 		resp = statementFromText("Unsupported command")
 	}
-	
+
 	return resp, nil
 }
 
@@ -118,12 +118,4 @@ func statementFromForecast(forecast []*weather.WeatherForecast) *Statement {
 func statementFromConditions(conditions *weather.WeatherCondition) *Statement {
 	condText := fmt.Sprintf("It is currently %d °C and %s", int(conditions.Temperature), strings.ToLower(conditions.Summary))
 	return statementFromText(condText)
-}
-
-func statementFromText(content string) *Statement {
-	return &Statement{
-		MimeType: "text/plain",
-		Content: []byte(content),
-		CreateAt: ptypes.TimestampNow(),
-	}
 }
