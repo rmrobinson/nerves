@@ -20,7 +20,7 @@ type News struct {
 	client news.NewsServiceClient
 }
 
-// NewNews creates a new weather handler
+// NewNews creates a new news handler
 func NewNews(logger *zap.Logger, client news.NewsServiceClient) *News {
 	return &News{
 		logger: logger,
