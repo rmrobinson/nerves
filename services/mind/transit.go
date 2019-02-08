@@ -3,6 +3,7 @@ package mind
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 const (
-	transitPrefix = "whens the bus coming"
+	transitRegex = "when('s| is| can i expect)? the bus (coming to|arriving at|getting to|at) stop ([a-z0-9]+)"
 )
 
 // Transit is a transit-request handler
@@ -38,12 +39,12 @@ func (t *Transit) ProcessStatement(ctx context.Context, stmt *Statement) (*State
 
 	content := string(stmt.Content)
 	content = strings.ToLower(content)
-	if !strings.HasPrefix(content, transitPrefix) {
+	if ok, _ := regexp.MatchString(transitRegex, content); !ok {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
-	stopID := strings.TrimPrefix(content, transitPrefix)
-	stopID = strings.TrimPrefix(stopID, " to stop ")
+	content = strings.TrimSpace(content)
+	stopID := content[strings.LastIndex(content, " ")+1:]
 
 	return t.getTransitStop(stopID), nil
 }
@@ -70,7 +71,13 @@ func (t *Transit) getTransitStop(stopID string) *Statement {
 }
 
 func statementFromArrivals(stop *transit.Stop, records []*transit.Arrival) *Statement {
-	transitText := "Stop " + stop.Name + " is expecting the following arrivals: ```"
+	transitText := stop.Name
+	if len(transitText) < 1 {
+		transitText = "Stop " + stop.Code
+	} else {
+		transitText += " (" + stop.Code + ")"
+	}
+	transitText += " is expecting the following arrivals: ```"
 	for idx, record := range records {
 		if idx > 10 {
 			break
