@@ -3,6 +3,7 @@ package mind
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
@@ -11,7 +12,7 @@ import (
 )
 
 const (
-	weatherPrefix = "whats the weather"
+	weatherRegex = "what('| i)?s the weather( forecast)?"
 )
 
 // Weather is a weather-request handler
@@ -42,17 +43,15 @@ func (w *Weather) ProcessStatement(ctx context.Context, stmt *Statement) (*State
 
 	content := string(stmt.Content)
 	content = strings.ToLower(content)
-	if !strings.HasPrefix(content, weatherPrefix) {
+	if ok, _ := regexp.MatchString(weatherRegex, content); !ok {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
 	var resp *Statement
 	if strings.Contains(content, "forecast") {
 		resp = w.getForecast()
-	} else if len(content) == len(weatherPrefix) {
-		resp = w.getConditions()
 	} else {
-		resp = statementFromText("Unsupported command")
+		resp = w.getConditions()
 	}
 
 	return resp, nil

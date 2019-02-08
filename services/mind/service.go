@@ -58,7 +58,7 @@ func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) 
 		return resp, nil
 	}
 
-	return nil, ErrStatementIgnored.Err()
+	return statementFromText(ErrStatementIgnored.Message()), nil
 }
 
 // ReceiveStatements is used to broadcast info a receiver.

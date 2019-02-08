@@ -3,6 +3,7 @@ package mind
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/rmrobinson/nerves/services/news"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	newsPrefix = "whats the news"
+	newsRegex = "what('| i)?s (the news|happening|going on( in the world)?)"
 )
 
 // News is a news-request handler
@@ -36,7 +37,7 @@ func (n *News) ProcessStatement(ctx context.Context, stmt *Statement) (*Statemen
 
 	content := string(stmt.Content)
 	content = strings.ToLower(content)
-	if !strings.HasPrefix(content, newsPrefix) {
+	if ok, _ := regexp.MatchString(newsRegex, content); !ok {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
@@ -61,15 +62,16 @@ func (n *News) getNews() *Statement {
 }
 
 func statementFromArticles(articles []*news.Article) *Statement {
-	newsText := "The current news headlines are: ```"
+	newsText := "Here's the news!\n"
 	for idx, record := range articles {
-		newsText += fmt.Sprintf("%s\n", record.Description)
-
+		if idx > 0 {
+			newsText += "\n"
+		}
+		newsText += fmt.Sprintf("*%s*\n```%s\n```%s\n", record.Title, record.Description, record.Link)
 		if idx > 10 {
 			break
 		}
 	}
-	newsText += "```"
 
 	return statementFromText(newsText)
 }
