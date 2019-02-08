@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//services/mind:go_default_library",
         "//services/news:go_default_library",
+        "//services/transit:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/nlopes/slack:go_default_library",
         "//vendor/github.com/spf13/viper:go_default_library",

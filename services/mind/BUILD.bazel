@@ -26,6 +26,7 @@ go_library(
         "news.go",
         "service.go",
         "slack.go",
+        "transit.go",
         "weather.go",
     ],
     embed = [":faltung_nerves_mind_go_proto"],
@@ -33,6 +34,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//services/news:go_default_library",
+        "//services/transit:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/google/uuid:go_default_library",
         "//vendor/github.com/nlopes/slack:go_default_library",
