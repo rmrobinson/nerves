@@ -114,6 +114,10 @@ func (cbc *CBCFeed) parseFeed(feed *gofeed.Feed) ([]*Article, error) {
 	var articles []*Article
 
 	for _, item := range feed.Items {
+		if item.Title == "The National" {
+			continue
+		}
+
 		// This creates the article, fills in description and an image (if present)
 		article := cbc.parseDescription(item.Description)
 
