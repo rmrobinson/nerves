@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/nlopes/slack"
+	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/mind"
 	"github.com/rmrobinson/nerves/services/news"
 	"github.com/rmrobinson/nerves/services/transit"
@@ -15,13 +16,14 @@ import (
 )
 
 const (
-	envVarSlackKey         = "SLACK_KEY"
-	envVarSlackChannelID   = "SLACK_CHANNEL_ID"
-	envVarLatitude         = "LATITUDE"
-	envVarLongitude        = "LONGITUDE"
-	envVarWeatherdEndpoint = "WEATHERD_ENDPOINT"
-	envVarNewsdEndpoint    = "NEWSD_ENDPOINT"
-	envVarTransitdEndpoint = "TRANSITD_ENDPOINT"
+	envVarSlackKey          = "SLACK_KEY"
+	envVarSlackChannelID    = "SLACK_CHANNEL_ID"
+	envVarLatitude          = "LATITUDE"
+	envVarLongitude         = "LONGITUDE"
+	envVarWeatherdEndpoint  = "WEATHERD_ENDPOINT"
+	envVarNewsdEndpoint     = "NEWSD_ENDPOINT"
+	envVarTransitdEndpoint  = "TRANSITD_ENDPOINT"
+	envVarDomoticsdEndpoint = "DOMOTICSD_ENDPOINT"
 )
 
 func main() {
@@ -33,6 +35,7 @@ func main() {
 	viper.BindEnv(envVarWeatherdEndpoint)
 	viper.BindEnv(envVarNewsdEndpoint)
 	viper.BindEnv(envVarTransitdEndpoint)
+	viper.BindEnv(envVarDomoticsdEndpoint)
 
 	logger, _ := zap.NewDevelopment()
 
@@ -66,6 +69,15 @@ func main() {
 	}
 	defer transitConn.Close()
 
+	domoticsConn, err := grpc.Dial(viper.GetString(envVarDomoticsdEndpoint), grpcOpts...)
+	if err != nil {
+		logger.Warn("unable to dial domotics server",
+			zap.String("endpoint", viper.GetString(envVarDomoticsdEndpoint)),
+			zap.Error(err),
+		)
+	}
+	defer domoticsConn.Close()
+
 	svc := mind.NewService(logger)
 	svc.RegisterHandler(mind.NewEcho(logger))
 	svc.RegisterHandler(mind.NewWeather(logger,
@@ -76,6 +88,9 @@ func main() {
 		news.NewNewsServiceClient(newsConn)))
 	svc.RegisterHandler(mind.NewTransit(logger,
 		transit.NewTransitServiceClient(transitConn)))
+	svc.RegisterHandler(mind.NewDomotics(logger,
+		domotics.NewBridgeServiceClient(domoticsConn),
+		domotics.NewDeviceServiceClient(domoticsConn)))
 
 	slackClient := slack.New(viper.GetString(envVarSlackKey))
 	slackbot := mind.NewSlackBot(logger, svc, slackClient)

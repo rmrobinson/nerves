@@ -11,8 +11,15 @@ import (
 )
 
 const (
-	domoticsBridgeRegex = "what('| i)?s the bridge list"
-	domoticsDeviceRegex = "what('| i)?s the house status"
+	domoticsListBridgeRegex          = `what('| i)?s the bridge list`
+	domoticsListDeviceRegex          = `what('| i)?s the house status`
+	domoticsTurnDeviceIDOnOffRegex   = `turn (?P<deviceID>[[:graph:]]+) (?P<isOn>on|off)`
+	domoticsTurnDeviceNameOnOffRegex = `turn "(?P<deviceName>.*)" (?P<isOn>on|off)`
+)
+
+var (
+	turnDeviceIDOnOffRegex   = regexp.MustCompile(domoticsTurnDeviceIDOnOffRegex)
+	turnDeviceNameOnOffRegex = regexp.MustCompile(domoticsTurnDeviceNameOnOffRegex)
 )
 
 // Domotics is a device-request handler
@@ -26,7 +33,7 @@ type Domotics struct {
 // NewDomotics creates a new domotics handler
 func NewDomotics(logger *zap.Logger, bridgeClient domotics.BridgeServiceClient, deviceClient domotics.DeviceServiceClient) *Domotics {
 	return &Domotics{
-		logger: logger,
+		logger:       logger,
 		bridgeClient: bridgeClient,
 		deviceClient: deviceClient,
 	}
@@ -40,13 +47,118 @@ func (d *Domotics) ProcessStatement(ctx context.Context, stmt *Statement) (*Stat
 
 	content := string(stmt.Content)
 	content = strings.ToLower(content)
-	if ok, _ := regexp.MatchString(domoticsBridgeRegex, content); ok {
+	if ok, _ := regexp.MatchString(domoticsListBridgeRegex, content); ok {
 		return d.getBridges(), nil
-	} else if ok, _ := regexp.MatchString(domoticsDeviceRegex, content); ok {
+	} else if ok, _ := regexp.MatchString(domoticsListDeviceRegex, content); ok {
 		return d.getDevices(), nil
+	} else if matched := turnDeviceIDOnOffRegex.FindStringSubmatch(content); matched != nil {
+		params := map[string]string{}
+
+		for idx, name := range turnDeviceIDOnOffRegex.SubexpNames() {
+			if name != "" {
+				params[name] = matched[idx]
+			}
+		}
+
+		if params["isOn"] == "on" {
+			return d.setDeviceIDIsOn(params["deviceID"], true), nil
+		} else if params["isOn"] == "off" {
+			return d.setDeviceIDIsOn(params["deviceID"], false), nil
+		} else {
+			return nil, ErrStatementNotHandled.Err()
+		}
+	} else if matched := turnDeviceNameOnOffRegex.FindStringSubmatch(content); matched != nil {
+		params := map[string]string{}
+
+		for idx, name := range turnDeviceNameOnOffRegex.SubexpNames() {
+			if name != "" {
+				params[name] = matched[idx]
+			}
+		}
+
+		if params["isOn"] == "on" {
+			return d.setDeviceNameIsOn(params["deviceName"], true), nil
+		} else if params["isOn"] == "off" {
+			return d.setDeviceNameIsOn(params["deviceName"], false), nil
+		} else {
+			return nil, ErrStatementNotHandled.Err()
+		}
 	}
 
 	return nil, ErrStatementNotHandled.Err()
+}
+
+func (d *Domotics) setDeviceIDIsOn(deviceID string, isOn bool) *Statement {
+	_, err := d.deviceClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
+		Id: deviceID,
+		State: &domotics.DeviceState{
+			Binary: &domotics.DeviceState_BinaryState{
+				IsOn: isOn,
+			},
+		},
+	})
+	if err != nil {
+		d.logger.Warn("unable to set device state",
+			zap.Error(err),
+		)
+
+		return statementFromText("Can't set the device right now :(")
+	}
+
+	state := "on"
+	if !isOn {
+		state = "off"
+	}
+	return statementFromText(fmt.Sprintf("Turned %s %s", deviceID, state))
+}
+
+func (d *Domotics) setDeviceNameIsOn(deviceName string, isOn bool) *Statement {
+	resp, err := d.deviceClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+	if err != nil {
+		d.logger.Warn("unable to get devices",
+			zap.Error(err),
+		)
+
+		return statementFromText("Can't get the domotics devices right now :(")
+	} else if resp == nil {
+		d.logger.Warn("unable to get devices (empty response)")
+
+		return statementFromText("Not sure what the device states are right now")
+	}
+
+	deviceID := ""
+	for _, device := range resp.Devices {
+		if strings.ToLower(device.Config.Name) == deviceName {
+			deviceID = device.Id
+			break
+		}
+	}
+
+	if len(deviceID) < 1 {
+		return statementFromText(fmt.Sprintf("Unable to find device named %s", deviceName))
+	}
+
+	_, err = d.deviceClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
+		Id: deviceID,
+		State: &domotics.DeviceState{
+			Binary: &domotics.DeviceState_BinaryState{
+				IsOn: isOn,
+			},
+		},
+	})
+	if err != nil {
+		d.logger.Warn("unable to set device state",
+			zap.Error(err),
+		)
+
+		return statementFromText("Can't set the device right now :(")
+	}
+
+	state := "on"
+	if !isOn {
+		state = "off"
+	}
+	return statementFromText(fmt.Sprintf("Turned %s %s", deviceID, state))
 }
 
 func (d *Domotics) getBridges() *Statement {
