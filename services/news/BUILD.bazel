@@ -20,6 +20,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "api.go",
+        "bbc_feed.go",
         "cbc_feed.go",
     ],
     embed = [":faltung_nerves_news_go_proto"],

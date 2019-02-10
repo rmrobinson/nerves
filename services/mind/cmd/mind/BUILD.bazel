@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/mind/cmd/mind",
     visibility = ["//visibility:private"],
     deps = [
+        "//services/domotics:go_default_library",
         "//services/mind:go_default_library",
         "//services/news:go_default_library",
         "//services/transit:go_default_library",
