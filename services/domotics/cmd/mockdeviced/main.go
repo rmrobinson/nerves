@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/domotics/bridge/mock"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -29,7 +30,7 @@ func main() {
 	// If we have a persistent bridge, use it.
 	// Otherwise use some randomly generated data.
 	if len(*dbPath) > 0 {
-		db := &domotics.BridgeDB{}
+		db := &bridge.DB{}
 		err := db.Open(*dbPath)
 		if err != nil {
 			logger.Fatal("error opening db path",

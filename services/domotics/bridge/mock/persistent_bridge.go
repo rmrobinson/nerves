@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 )
 
 var (
@@ -28,11 +29,11 @@ var (
 // PersistentBridge is an implementation of the SyncBridge backed by a database to demonstrate how to achieve persistence when the underlying bridge does not support it.
 type PersistentBridge struct {
 	bridgeID  string
-	persister domotics.BridgePersister
+	persister bridge.Persister
 }
 
 // NewPersistentBridge creates a new persistent bridge backed by the supplied persister.
-func NewPersistentBridge(persister domotics.BridgePersister) *PersistentBridge {
+func NewPersistentBridge(persister bridge.Persister) *PersistentBridge {
 	ret := &PersistentBridge{
 		persister: persister,
 	}
@@ -71,7 +72,7 @@ func (b *PersistentBridge) setup() {
 // Run creates the bridge and sets it up if not already configured. No random state changes are made.
 func (b *PersistentBridge) Run() {
 	_, err := b.persister.Bridge(context.Background())
-	if err == domotics.ErrDatabaseNotSetup {
+	if err == bridge.ErrDatabaseNotSetup {
 		b.setup()
 	}
 }
