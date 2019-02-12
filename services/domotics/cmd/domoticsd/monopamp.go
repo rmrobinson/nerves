@@ -19,7 +19,7 @@ type monopampImpl struct {
 	logger *zap.Logger
 
 	bridge domotics.SyncBridge
-	db     *domotics.BridgeDB
+	db     *bridge.DB
 
 	port *serial.Port
 }
@@ -34,7 +34,7 @@ func (b *monopampImpl) setup(config *domotics.BridgeConfig) error {
 		setupNeeded = true
 	}
 
-	b.db = &domotics.BridgeDB{}
+	b.db = &bridge.DB{}
 	err := b.db.Open(config.CachePath)
 	if err != nil {
 		return err

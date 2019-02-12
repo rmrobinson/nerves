@@ -91,11 +91,11 @@ func noteToProto(original int) int32 {
 type MonopAmpBridge struct {
 	amp *monopamp.SerialAmplifier
 
-	persister domotics.BridgePersister
+	persister Persister
 }
 
 // NewMonopAmpBridge takes a previously set up MonopAmp handle and exposes it as a MonopAmp bridge.
-func NewMonopAmpBridge(amp *monopamp.SerialAmplifier, persister domotics.BridgePersister) *MonopAmpBridge {
+func NewMonopAmpBridge(amp *monopamp.SerialAmplifier, persister Persister) *MonopAmpBridge {
 	return &MonopAmpBridge{
 		amp:       amp,
 		persister: persister,
