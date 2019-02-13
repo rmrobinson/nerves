@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bottlerocket.go",
+        "br_cmd.c",
+        "br_cmd.h",
+        "br_cmd_engine.c",
+        "br_cmd_engine.h",
+        "br_translate.h",
+        "config.h",
+    ],
+    cgo = True,
+    importmap = "github.com/rmrobinson/nerves/vendor/github.com/rmrobinson/bottlerocket-go",
+    importpath = "github.com/rmrobinson/bottlerocket-go",
+    visibility = ["//visibility:public"],
+)

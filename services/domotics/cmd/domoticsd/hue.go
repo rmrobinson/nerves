@@ -77,7 +77,7 @@ func (b *hueImpl) Run() {
 				br.Username = username
 			}
 
-			b.hub.AddBridge(bridge.NewHueBridge(&br), time.Second)
+			b.hub.AddBridge(bridge.NewHue(&br), time.Second)
 		case <-b.quit:
 			return
 		}

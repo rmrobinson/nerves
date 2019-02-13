@@ -40,25 +40,25 @@ func addrToSensor(addr string) int {
 	return int(id)
 }
 
-// HueBridge is an implementation of a bridge for the Friends of Hue system.
-type HueBridge struct {
+// Hue is an implementation of a bridge for the Friends of Hue system.
+type Hue struct {
 	bridge *hue.Bridge
 }
 
-// NewHueBridge takes a previously set up Hue handle and exposes it as a Hue bridge.
-func NewHueBridge(bridge *hue.Bridge) *HueBridge {
-	return &HueBridge{
+// NewHue takes a previously set up Hue handle and exposes it as a Hue bridge.
+func NewHue(bridge *hue.Bridge) *Hue {
+	return &Hue{
 		bridge: bridge,
 	}
 }
 
 // Setup seeds the persistent store with the proper data
-func (b *HueBridge) Setup(ctx context.Context) error {
+func (b *Hue) Setup(ctx context.Context) error {
 	return nil
 }
 
 // Bridge retrieves the persisted state of the bridge from the backing store.
-func (b *HueBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
+func (b *Hue) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 	desc, err := b.bridge.Description()
 	if err != nil {
 		return nil, err
@@ -106,19 +106,19 @@ func (b *HueBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 // SetBridgeConfig persists the new bridge config on the Hue bridge.
 // Only the name can currently be changed.
 // TODO: support setting the static IP of the bridge.
-func (b *HueBridge) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
+func (b *Hue) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
 	updatedConfig := &hue.ConfigArg{}
 	updatedConfig.SetName(config.Name)
 	return b.bridge.SetConfig(updatedConfig)
 }
 
 // SetBridgeState persists the new bridge state on the Hue bridge.
-func (b *HueBridge) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
+func (b *Hue) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return domotics.ErrOperationNotSupported
 }
 
 // SearchForAvailableDevices is a noop that returns immediately (nothing to search for).
-func (b *HueBridge) SearchForAvailableDevices(context.Context) error {
+func (b *Hue) SearchForAvailableDevices(context.Context) error {
 	if err := b.bridge.SearchForNewLights(); err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (b *HueBridge) SearchForAvailableDevices(context.Context) error {
 }
 
 // AvailableDevices returns an empty result as all devices are always available; never 'to be added'.
-func (b *HueBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
+func (b *Hue) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
 	lights, err := b.bridge.NewLights()
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func (b *HueBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, e
 }
 
 // Devices retrieves the list of lights and sensors from the bridge along with their current states.
-func (b *HueBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
+func (b *Hue) Devices(ctx context.Context) ([]*domotics.Device, error) {
 	lights, err := b.bridge.Lights()
 	if err != nil {
 		return nil, err
@@ -191,7 +191,7 @@ func (b *HueBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
 }
 
 // Device retrieves the specified device ID.
-func (b *HueBridge) Device(ctx context.Context, id string) (*domotics.Device, error) {
+func (b *Hue) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	devices, err := b.Devices(ctx)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (b *HueBridge) Device(ctx context.Context, id string) (*domotics.Device, er
 }
 
 // SetDeviceConfig updates the bridge with the new config options for the light or sensor.
-func (b *HueBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
+func (b *Hue) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
 	if strings.Contains(dev.Address, lightAddrPrefix) {
 		id := addrToLight(dev.Address)
 		args := convertLightDiffToArgs(dev, config)
@@ -236,7 +236,7 @@ func (b *HueBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device, c
 }
 
 // SetDeviceState updates the bridge with the new state options for the light (sensors aren't supported).
-func (b *HueBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
+func (b *Hue) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
 	if strings.Contains(dev.Address, lightAddrPrefix) {
 		id := addrToLight(dev.Address)
 		args, err := convertLightStateDiffToArgs(dev, state)
@@ -257,12 +257,12 @@ func (b *HueBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, st
 }
 
 // AddDevice is not implemented yet.
-func (b *HueBridge) AddDevice(ctx context.Context, id string) error {
+func (b *Hue) AddDevice(ctx context.Context, id string) error {
 	return domotics.ErrNotImplemented.Err()
 }
 
 // DeleteDevice is not implemented yet.
-func (b *HueBridge) DeleteDevice(ctx context.Context, id string) error {
+func (b *Hue) DeleteDevice(ctx context.Context, id string) error {
 	return domotics.ErrNotImplemented.Err()
 }
 
