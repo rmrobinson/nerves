@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "bottlerocket.go",
         "hue.go",
         "main.go",
         "monopamp.go",
@@ -13,6 +14,7 @@ go_library(
     deps = [
         "//services/domotics:go_default_library",
         "//services/domotics/bridge:go_default_library",
+        "//vendor/github.com/rmrobinson/bottlerocket-go:go_default_library",
         "//vendor/github.com/rmrobinson/hue-go:go_default_library",
         "//vendor/github.com/rmrobinson/monoprice-amp-go:go_default_library",
         "//vendor/github.com/spf13/viper:go_default_library",

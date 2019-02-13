@@ -66,7 +66,7 @@ func (b *monopampImpl) setup(config *domotics.BridgeConfig) error {
 		return err
 	}
 
-	monopBridge := bridge.NewMonopAmpBridge(amp, b.db)
+	monopBridge := bridge.NewMonopAmp(amp, b.db)
 	b.bridge = monopBridge
 
 	if setupNeeded {

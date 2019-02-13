@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "bottlerocket.go",
         "db.go",
         "hue.go",
         "hue_db.go",
@@ -15,6 +16,7 @@ go_library(
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/google/uuid:go_default_library",
         "//vendor/github.com/mattn/go-sqlite3:go_default_library",
+        "//vendor/github.com/rmrobinson/bottlerocket-go:go_default_library",
         "//vendor/github.com/rmrobinson/hue-go:go_default_library",
         "//vendor/github.com/rmrobinson/monoprice-amp-go:go_default_library",
     ],

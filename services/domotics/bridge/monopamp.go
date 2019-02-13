@@ -87,23 +87,23 @@ func noteToProto(original int) int32 {
 	return int32((original * 100) / 14)
 }
 
-// MonopAmpBridge is an implementation of a bridge for the Monoprice amp/stereo output device.
-type MonopAmpBridge struct {
+// MonopAmp is an implementation of a bridge for the Monoprice amp/stereo output device.
+type MonopAmp struct {
 	amp *monopamp.SerialAmplifier
 
 	persister Persister
 }
 
-// NewMonopAmpBridge takes a previously set up MonopAmp handle and exposes it as a MonopAmp bridge.
-func NewMonopAmpBridge(amp *monopamp.SerialAmplifier, persister Persister) *MonopAmpBridge {
-	return &MonopAmpBridge{
+// NewMonopAmp takes a previously set up MonopAmp handle and exposes it as a MonopAmp bridge.
+func NewMonopAmp(amp *monopamp.SerialAmplifier, persister Persister) *MonopAmp {
+	return &MonopAmp{
 		amp:       amp,
 		persister: persister,
 	}
 }
 
 // Setup seeds the persistent store with the proper data
-func (b *MonopAmpBridge) Setup(ctx context.Context) error {
+func (b *MonopAmp) Setup(ctx context.Context) error {
 	// Create the bridge
 	_, err := b.persister.CreateBridge(context.Background(), &domotics.BridgeConfig{
 		Name: "Monoprice Amplifier",
@@ -133,7 +133,7 @@ func (b *MonopAmpBridge) Setup(ctx context.Context) error {
 }
 
 // Bridge retrieves the persisted state of the bridge from the backing store.
-func (b *MonopAmpBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
+func (b *MonopAmp) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 	bridge, err := b.persister.Bridge(ctx)
 	if err != nil {
 		return nil, err
@@ -155,26 +155,26 @@ func (b *MonopAmpBridge) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 }
 
 // SetBridgeConfig persists the new bridge config in the backing store.
-func (b *MonopAmpBridge) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
+func (b *MonopAmp) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
 	return b.persister.SetBridgeConfig(ctx, config)
 }
 
 // SetBridgeState persists the new bridge state in the backing store.
-func (b *MonopAmpBridge) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
+func (b *MonopAmp) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return b.persister.SetBridgeState(ctx, state)
 }
 
 // SearchForAvailableDevices is a noop that returns immediately (nothing to search for).
-func (b *MonopAmpBridge) SearchForAvailableDevices(context.Context) error {
+func (b *MonopAmp) SearchForAvailableDevices(context.Context) error {
 	return nil
 }
 
 // AvailableDevices returns an empty result as all devices are always available; never 'to be added'.
-func (b *MonopAmpBridge) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
+func (b *MonopAmp) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
 	return nil, nil
 }
 
-func (b *MonopAmpBridge) deviceFromAmp(device *domotics.Device) error {
+func (b *MonopAmp) deviceFromAmp(device *domotics.Device) error {
 	zone := b.amp.Zone(addrToZone(device.Address))
 	if zone == nil {
 		return ErrZoneInvalid
@@ -205,7 +205,7 @@ func (b *MonopAmpBridge) deviceFromAmp(device *domotics.Device) error {
 }
 
 // Devices retrieves the list of zones and the current state of each device from the serial port.
-func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error) {
+func (b *MonopAmp) Devices(ctx context.Context) ([]*domotics.Device, error) {
 	devices, err := b.persister.Devices(ctx)
 	if err != nil {
 		return nil, err
@@ -223,7 +223,7 @@ func (b *MonopAmpBridge) Devices(ctx context.Context) ([]*domotics.Device, error
 }
 
 // Device retrieves the specified device ID.
-func (b *MonopAmpBridge) Device(ctx context.Context, id string) (*domotics.Device, error) {
+func (b *MonopAmp) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	device, err := b.persister.Device(ctx, id)
 	if err != nil {
 		return nil, err
@@ -238,12 +238,12 @@ func (b *MonopAmpBridge) Device(ctx context.Context, id string) (*domotics.Devic
 }
 
 // SetDeviceConfig updates the persister with the new config options for the zone.
-func (b *MonopAmpBridge) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
+func (b *MonopAmp) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
 	return b.persister.SetDeviceConfig(ctx, dev, config)
 }
 
 // SetDeviceState uses the serial port to update the modified settings on the zone.
-func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
+func (b *MonopAmp) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
 	zoneID := addrToZone(dev.Address)
 	if zoneID < 1 || zoneID > maxZoneID {
 		return ErrZoneInvalid
@@ -324,11 +324,11 @@ func (b *MonopAmpBridge) SetDeviceState(ctx context.Context, dev *domotics.Devic
 }
 
 // AddDevice is not supported on this bridge as there is a fixed number of zones, always ready for use.
-func (b *MonopAmpBridge) AddDevice(ctx context.Context, id string) error {
+func (b *MonopAmp) AddDevice(ctx context.Context, id string) error {
 	return domotics.ErrOperationNotSupported
 }
 
 // DeleteDevice is not supported on this bridge as there is a fixed number of zones, always ready for use.
-func (b *MonopAmpBridge) DeleteDevice(ctx context.Context, id string) error {
+func (b *MonopAmp) DeleteDevice(ctx context.Context, id string) error {
 	return domotics.ErrOperationNotSupported
 }

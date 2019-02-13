@@ -228,6 +228,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c459c93f55051ab7587a3d6353a16d7dbb9a976937f41d76aa53d8f2609a5d97"
+  name = "github.com/rmrobinson/bottlerocket-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "488efd5f08877bd11f829b3255fdd9530fb2517b"
+
+[[projects]]
+  branch = "master"
   digest = "1:9c977a70c55382d2b2f473ffe2a46085ce42b087d288c869d8a1f591d89b738a"
   name = "github.com/rmrobinson/hue-go"
   packages = ["."]
@@ -467,6 +475,7 @@
     "github.com/mmcdole/gofeed",
     "github.com/nlopes/slack",
     "github.com/rivo/tview",
+    "github.com/rmrobinson/bottlerocket-go",
     "github.com/rmrobinson/hue-go",
     "github.com/rmrobinson/monoprice-amp-go",
     "github.com/spf13/viper",
