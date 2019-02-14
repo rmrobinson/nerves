@@ -13,7 +13,11 @@ import (
 )
 
 const (
-	transitRegex = "when('s| is| can i expect)? the bus (coming to|arriving at|getting to|at) stop ([a-z0-9]+)"
+	transitRegex = `when('s| is| can i expect)? the bus (coming to|arriving at|getting to|at) stop (?P<stopID>[[:alnum:]]+)`
+)
+
+var (
+	stopArrivalRegex = regexp.MustCompile(transitRegex)
 )
 
 // Transit is a transit-request handler
@@ -39,14 +43,19 @@ func (t *Transit) ProcessStatement(ctx context.Context, stmt *Statement) (*State
 
 	content := string(stmt.Content)
 	content = strings.ToLower(content)
-	if ok, _ := regexp.MatchString(transitRegex, content); !ok {
-		return nil, ErrStatementNotHandled.Err()
+	if matched := stopArrivalRegex.FindStringSubmatch(content); matched != nil {
+		params := map[string]string{}
+
+		for idx, name := range stopArrivalRegex.SubexpNames() {
+			if name != "" {
+				params[name] = matched[idx]
+			}
+		}
+
+		return t.getTransitStop(params["stopID"]), nil
 	}
 
-	content = strings.TrimSpace(content)
-	stopID := content[strings.LastIndex(content, " ")+1:]
-
-	return t.getTransitStop(stopID), nil
+	return nil, ErrStatementNotHandled.Err()
 }
 
 func (t *Transit) getTransitStop(stopID string) *Statement {
