@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/rmrobinson/nerves/services/domotics"
@@ -209,11 +210,21 @@ func statementFromBridges(bridges []*domotics.Bridge) *Statement {
 
 func statementFromDevices(devices []*domotics.Device) *Statement {
 	text := "Devices:\n"
+	sort.Slice(devices, func(i, j int) bool {
+		return devices[i].Address < devices[j].Address
+	})
+
 	for idx, device := range devices {
 		if idx > 0 {
 			text += "\n"
 		}
-		text += fmt.Sprintf("*%s*\n%s - %s - @%s\n", device.Config.Name, device.Id, device.Config.Description, device.Address)
+
+		desc := device.Config.Description
+		if len(desc) < 1 {
+			desc = device.Manufacturer + " " + device.ModelId
+		}
+
+		text += fmt.Sprintf("*%s*\n%s - %s - @%s\n", device.Config.Name, device.Id, desc, device.Address)
 		if device.State.Binary != nil {
 			text += fmt.Sprintf("IsOn: %t; ", device.State.Binary.IsOn)
 		}
@@ -231,7 +242,7 @@ func statementFromDevices(devices []*domotics.Device) *Statement {
 		}
 
 		// Slice off the last space and semicolon
-		if len(text) > 2 {
+		if strings.HasSuffix(text, "; ") {
 			text = text[:len(text)-2]
 		}
 	}
