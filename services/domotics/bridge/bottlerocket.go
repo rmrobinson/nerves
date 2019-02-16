@@ -113,6 +113,7 @@ func (b *Bottlerocket) Bridge(ctx context.Context) (*domotics.Bridge, error) {
 func (b *Bottlerocket) SetBridgeConfig(ctx context.Context, config *domotics.BridgeConfig) error {
 	return b.persister.SetBridgeConfig(ctx, config)
 }
+
 // SetBridgeState saves the supplied state into the persistent store.
 func (b *Bottlerocket) SetBridgeState(ctx context.Context, state *domotics.BridgeState) error {
 	return b.persister.SetBridgeState(ctx, state)
@@ -122,10 +123,12 @@ func (b *Bottlerocket) SetBridgeState(ctx context.Context, state *domotics.Bridg
 func (b *Bottlerocket) SearchForAvailableDevices(context.Context) error {
 	return nil
 }
+
 // AvailableDevices returns all X10 devices that have a valid address but is not yet in use.
 func (b *Bottlerocket) AvailableDevices(ctx context.Context) ([]*domotics.Device, error) {
 	return b.persister.AvailableDevices(ctx)
 }
+
 // Devices returns all X10 devices that are in use.
 func (b *Bottlerocket) Devices(ctx context.Context) ([]*domotics.Device, error) {
 	devices, err := b.persister.Devices(ctx)
@@ -137,6 +140,7 @@ func (b *Bottlerocket) Devices(ctx context.Context) ([]*domotics.Device, error) 
 	}
 	return devices, nil
 }
+
 // Device retrieves the specified device.
 func (b *Bottlerocket) Device(ctx context.Context, id string) (*domotics.Device, error) {
 	device, err := b.persister.Device(ctx, id)
@@ -151,6 +155,7 @@ func (b *Bottlerocket) Device(ctx context.Context, id string) (*domotics.Device,
 func (b *Bottlerocket) SetDeviceConfig(ctx context.Context, dev *domotics.Device, config *domotics.DeviceConfig) error {
 	return b.persister.SetDeviceConfig(ctx, dev, config)
 }
+
 // SetDeviceState saves the supplied state into the persistent store as well as triggering the requested change
 // to the supplied serial port.
 func (b *Bottlerocket) SetDeviceState(ctx context.Context, dev *domotics.Device, state *domotics.DeviceState) error {
@@ -169,14 +174,15 @@ func (b *Bottlerocket) SetDeviceState(ctx context.Context, dev *domotics.Device,
 
 	return b.persister.SetDeviceState(ctx, dev, state)
 }
+
 // AddDevice takes an available X10 device and adds it to the set of in use devices.
 func (b *Bottlerocket) AddDevice(ctx context.Context, id string) error {
 	// Move the device from available to in use
 	return b.persister.AddDevice(ctx, id)
 }
+
 // DeleteDevice takes an in-use X10 device and moves it to the set of available X10 devices.
 func (b *Bottlerocket) DeleteDevice(ctx context.Context, id string) error {
 	// Move the device from in use to available, and remove the saved values
 	return b.persister.DeleteDevice(ctx, id)
 }
-
