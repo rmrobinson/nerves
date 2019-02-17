@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/rmrobinson/nerves/services/domotics"
@@ -12,15 +13,19 @@ import (
 )
 
 const (
-	domoticsListBridgeRegex          = `what('| i)?s the bridge list`
-	domoticsListDeviceRegex          = `what('| i)?s the house status`
-	domoticsTurnDeviceIDOnOffRegex   = `turn (?P<deviceID>[[:graph:]]+) (?P<isOn>on|off)`
-	domoticsTurnDeviceNameOnOffRegex = `turn "(?P<deviceName>.*)" (?P<isOn>on|off)`
+	domoticsListBridgeRegex             = `what('| i)?s the bridge list`
+	domoticsListDeviceRegex             = `what('| i)?s the house status`
+	domoticsTurnDeviceIDOnOffRegex      = `turn (?P<deviceID>[[:graph:]]+) (?P<isOn>on|off)`
+	domoticsTurnDeviceNameOnOffRegex    = `turn "(?P<deviceName>.*)" (?P<isOn>on|off)`
+	domoticsChangeDeviceNameVolumeRegex = `turn "(?P<deviceName>.*)" (?P<volume>up|down)`
+	domoticsSetDeviceNameVolumeRegex    = `set the volume o(n|f) "(?P<deviceName>.*)" to (?P<volume>[0-9]+)`
 )
 
 var (
-	turnDeviceIDOnOffRegex   = regexp.MustCompile(domoticsTurnDeviceIDOnOffRegex)
-	turnDeviceNameOnOffRegex = regexp.MustCompile(domoticsTurnDeviceNameOnOffRegex)
+	turnDeviceIDOnOffRegex      = regexp.MustCompile(domoticsTurnDeviceIDOnOffRegex)
+	turnDeviceNameOnOffRegex    = regexp.MustCompile(domoticsTurnDeviceNameOnOffRegex)
+	changeDeviceNameVolumeRegex = regexp.MustCompile(domoticsChangeDeviceNameVolumeRegex)
+	setDeviceNameVolumeRegex    = regexp.MustCompile(domoticsSetDeviceNameVolumeRegex)
 )
 
 // Domotics is a device-request handler
@@ -84,6 +89,43 @@ func (d *Domotics) ProcessStatement(ctx context.Context, stmt *Statement) (*Stat
 		} else {
 			return nil, ErrStatementNotHandled.Err()
 		}
+	} else if matched := changeDeviceNameVolumeRegex.FindStringSubmatch(content); matched != nil {
+		params := map[string]string{}
+
+		for idx, name := range changeDeviceNameVolumeRegex.SubexpNames() {
+			if name != "" {
+				params[name] = matched[idx]
+			}
+		}
+
+		if params["volume"] == "up" {
+			return d.changeDeviceNameVolume(params["deviceName"], 5), nil
+		} else if params["volume"] == "down" {
+			return d.changeDeviceNameVolume(params["deviceName"], -5), nil
+		} else {
+			return nil, ErrStatementNotHandled.Err()
+		}
+	} else if matched := setDeviceNameVolumeRegex.FindStringSubmatch(content); matched != nil {
+		params := map[string]string{}
+
+		for idx, name := range setDeviceNameVolumeRegex.SubexpNames() {
+			if name != "" {
+				params[name] = matched[idx]
+			}
+		}
+
+		volume, err := strconv.ParseInt(params["volume"], 10, 64)
+		if err != nil {
+			d.logger.Warn("unable to set device volume",
+				zap.Error(err),
+			)
+
+			return statementFromText("Invalid volume supplied"), nil
+		} else if volume < 0 || volume > 100 {
+			return statementFromText(fmt.Sprintf("Invalid volume supplied (must be >0 and <100, which %d isn't)", volume)), nil
+		}
+
+		return d.setDeviceNameVolume(params["deviceName"], int32(volume)), nil
 	}
 
 	return nil, ErrStatementNotHandled.Err()
@@ -103,7 +145,7 @@ func (d *Domotics) setDeviceIDIsOn(deviceID string, isOn bool) *Statement {
 			zap.Error(err),
 		)
 
-		return statementFromText("Can't set the device right now :(")
+		return statementFromText("Can't set the device right now")
 	}
 
 	state := "on"
@@ -113,37 +155,12 @@ func (d *Domotics) setDeviceIDIsOn(deviceID string, isOn bool) *Statement {
 	return statementFromText(fmt.Sprintf("Turned %s %s", deviceID, state))
 }
 
-func (d *Domotics) setDeviceNameIsOn(deviceName string, isOn bool) *Statement {
-	resp, err := d.deviceClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
-	if err != nil {
-		d.logger.Warn("unable to get devices",
-			zap.Error(err),
-		)
-
-		return statementFromText("Can't get the domotics devices right now :(")
-	} else if resp == nil {
-		d.logger.Warn("unable to get devices (empty response)")
-
-		return statementFromText("Not sure what the device states are right now")
-	}
-
-	deviceID := ""
-	for _, device := range resp.Devices {
-		if strings.ToLower(device.Config.Name) == deviceName {
-			deviceID = device.Id
-			break
-		}
-	}
-
-	if len(deviceID) < 1 {
-		return statementFromText(fmt.Sprintf("Unable to find device named %s", deviceName))
-	}
-
-	_, err = d.deviceClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
+func (d *Domotics) setDeviceIDVolume(deviceID string, volume int32) *Statement {
+	_, err := d.deviceClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
 		Id: deviceID,
 		State: &domotics.DeviceState{
-			Binary: &domotics.DeviceState_BinaryState{
-				IsOn: isOn,
+			Audio: &domotics.DeviceState_AudioState{
+				Volume: volume,
 			},
 		},
 	})
@@ -152,14 +169,72 @@ func (d *Domotics) setDeviceNameIsOn(deviceName string, isOn bool) *Statement {
 			zap.Error(err),
 		)
 
-		return statementFromText("Can't set the device right now :(")
+		return statementFromText("Can't set the device right now")
 	}
 
-	state := "on"
-	if !isOn {
-		state = "off"
+	return statementFromText(fmt.Sprintf("Set volume to %d of %s", volume, deviceID))
+}
+
+func (d *Domotics) setDeviceNameIsOn(deviceName string, isOn bool) *Statement {
+	device, err := d.getDeviceByName(deviceName)
+	if err != nil {
+		return statementFromText("Can't get devices right now")
+	} else if device == nil {
+		return statementFromText(fmt.Sprintf("Unable to find device named %s", deviceName))
+	} else if device.State == nil || device.State.Binary == nil {
+		return statementFromText("Device doesn't have an 'is on' option")
 	}
-	return statementFromText(fmt.Sprintf("Turned %s %s", deviceID, state))
+
+	return d.setDeviceIDIsOn(device.Id, isOn)
+}
+
+func (d *Domotics) setDeviceNameVolume(deviceName string, volume int32) *Statement {
+	device, err := d.getDeviceByName(deviceName)
+	if err != nil {
+		return statementFromText("Can't get devices right now")
+	} else if device == nil {
+		return statementFromText(fmt.Sprintf("Unable to find device named %s", deviceName))
+	} else if device.State == nil || device.State.Audio == nil {
+		return statementFromText("Device doesn't have a volume option")
+	}
+
+	return d.setDeviceIDVolume(device.Id, volume)
+}
+
+func (d *Domotics) changeDeviceNameVolume(deviceName string, volumeChange int32) *Statement {
+	device, err := d.getDeviceByName(deviceName)
+	if err != nil {
+		return statementFromText("Can't get devices right now")
+	} else if device == nil {
+		return statementFromText(fmt.Sprintf("Unable to find device named %s", deviceName))
+	} else if device.State == nil || device.State.Audio == nil {
+		return statementFromText("Device doesn't have a volume option")
+	}
+
+	return d.setDeviceIDVolume(device.Id, device.State.Audio.Volume+volumeChange)
+}
+
+func (d *Domotics) getDeviceByName(name string) (*domotics.Device, error) {
+	resp, err := d.deviceClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+	if err != nil {
+		d.logger.Warn("unable to get devices",
+			zap.Error(err),
+		)
+
+		return nil, err
+	} else if resp == nil {
+		d.logger.Warn("unable to get devices (empty response)")
+
+		return nil, nil
+	}
+
+	for _, device := range resp.Devices {
+		if strings.ToLower(device.Config.Name) == name {
+			return device, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (d *Domotics) getBridges() *Statement {
@@ -169,7 +244,7 @@ func (d *Domotics) getBridges() *Statement {
 			zap.Error(err),
 		)
 
-		return statementFromText("Can't get the domotics bridges right now :(")
+		return statementFromText("Can't get the domotics bridges right now")
 	} else if resp == nil {
 		d.logger.Warn("unable to get bridges (empty response)")
 
@@ -186,7 +261,7 @@ func (d *Domotics) getDevices() *Statement {
 			zap.Error(err),
 		)
 
-		return statementFromText("Can't get the domotics devices right now :(")
+		return statementFromText("Can't get devices right now")
 	} else if resp == nil {
 		d.logger.Warn("unable to get devices (empty response)")
 
