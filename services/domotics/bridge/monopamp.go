@@ -175,13 +175,27 @@ func (b *MonopAmp) AvailableDevices(ctx context.Context) ([]*domotics.Device, er
 }
 
 func (b *MonopAmp) deviceFromAmp(device *domotics.Device) error {
-	zone := b.amp.Zone(addrToZone(device.Address))
+	zoneID := addrToZone(device.Address)
+	zone := b.amp.Zone(zoneID)
 	if zone == nil {
 		return ErrZoneInvalid
 	}
 
 	if err := zone.Refresh(); err != nil {
-		return err
+		// Attempt to reset the connection once before erroring out.
+		err = b.amp.Reset()
+		if err != nil {
+			return err
+		}
+		zone = b.amp.Zone(zoneID)
+		if zone == nil {
+			return ErrZoneInvalid
+		}
+
+		err = zone.Refresh()
+		if err != nil {
+			return err
+		}
 	}
 
 	device.State.Binary = &domotics.DeviceState_BinaryState{
@@ -257,66 +271,87 @@ func (b *MonopAmp) SetDeviceState(ctx context.Context, dev *domotics.Device, sta
 	// Ensure we are operating on the latest profile of the device before checking for actions to take.
 	err := zone.Refresh()
 	if err != nil {
-		return err
+		// Attempt to reset the connection once before erroring out.
+		err = b.amp.Reset()
+		if err != nil {
+			return err
+		}
+		zone = b.amp.Zone(zoneID)
+		if zone == nil {
+			return ErrZoneInvalid
+		}
+
+		err = zone.Refresh()
+		if err != nil {
+			return err
+		}
 	}
 
 	zState := zone.State()
 
-	if zState.IsOn != state.Binary.IsOn {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetPower(state.Binary.IsOn); err != nil {
-			return err
+	if state.Binary != nil {
+		if zState.IsOn != state.Binary.IsOn {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetPower(state.Binary.IsOn); err != nil {
+				return err
+			}
 		}
 	}
 
-	channelID := inputToChannel(state.Input.Input)
-	if channelID < 1 || channelID > maxChannelID {
-		return ErrChannelInvalid
-	}
+	if state.Input != nil {
+		channelID := inputToChannel(state.Input.Input)
+		if channelID < 1 || channelID > maxChannelID {
+			return ErrChannelInvalid
+		}
 
-	if zState.SourceChannelID != channelID {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetSourceChannel(channelID); err != nil {
-			return err
+		if zState.SourceChannelID != channelID {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetSourceChannel(channelID); err != nil {
+				return err
+			}
 		}
 	}
 
-	treble := noteFromProto(state.Audio.Treble)
-	if zState.Treble != treble {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetTreble(treble); err != nil {
-			return err
+	if state.Audio != nil {
+		treble := noteFromProto(state.Audio.Treble)
+		if zState.Treble != treble {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetTreble(treble); err != nil {
+				return err
+			}
+		}
+
+		bass := noteFromProto(state.Audio.Bass)
+		if zState.Bass != bass {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetBass(bass); err != nil {
+				return err
+			}
+		}
+
+		volume := volumeFromProto(state.Audio.Volume)
+		if zState.Volume != volume {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetVolume(volume); err != nil {
+				return err
+			}
+		}
+
+		if zState.IsMuteOn != state.Audio.IsMuted {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetMute(state.Audio.IsMuted); err != nil {
+				return err
+			}
 		}
 	}
 
-	bass := noteFromProto(state.Audio.Bass)
-	if zState.Bass != bass {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetBass(bass); err != nil {
-			return err
-		}
-	}
-
-	volume := volumeFromProto(state.Audio.Volume)
-	if zState.Volume != volume {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetVolume(volume); err != nil {
-			return err
-		}
-	}
-
-	if zState.IsMuteOn != state.Audio.IsMuted {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetMute(state.Audio.IsMuted); err != nil {
-			return err
-		}
-	}
-
-	balance := balanceFromProto(state.StereoAudio.Balance)
-	if zState.Balance != balance {
-		time.Sleep(commandSpaceInterval)
-		if err = zone.SetBalance(balance); err != nil {
-			return err
+	if state.StereoAudio != nil {
+		balance := balanceFromProto(state.StereoAudio.Balance)
+		if zState.Balance != balance {
+			time.Sleep(commandSpaceInterval)
+			if err = zone.SetBalance(balance); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/golang/protobuf/proto"
 )
 
 type bridgeInstance struct {
@@ -46,6 +48,7 @@ func (bi *bridgeInstance) refresh() {
 
 	if !reflect.DeepEqual(bi.bridge, bridge) {
 		bi.notifier.BridgeUpdated(bridge)
+		bi.bridge = proto.Clone(bridge).(*Bridge)
 	}
 
 	devices, err := bi.bridgeHandle.Devices(ctx)
@@ -57,7 +60,9 @@ func (bi *bridgeInstance) refresh() {
 
 	newDevices := map[string]*Device{}
 	for _, device := range devices {
-		newDevices[device.Id] = device
+		// We only want to hold a copy of the data, never the actual pointer
+		// This makes sure we can properly check between what we last knew to be the state and now.
+		newDevices[device.Id] = proto.Clone(device).(*Device)
 	}
 
 	// Determine what has changed between the 'current' and the 'new' versions of our device collection on the bridge.
@@ -65,6 +70,7 @@ func (bi *bridgeInstance) refresh() {
 	for id, newDevice := range newDevices {
 		if _, ok := bi.devices[id]; !ok {
 			bi.notifier.DeviceAdded(bi.bridgeID, newDevice)
+			bi.devices[id] = newDevice
 		}
 	}
 
@@ -74,9 +80,11 @@ func (bi *bridgeInstance) refresh() {
 		if newDevice, ok := newDevices[id]; ok {
 			if !reflect.DeepEqual(currDevice, newDevice) {
 				bi.notifier.DeviceUpdated(bi.bridgeID, newDevice)
+				bi.devices[id] = newDevice
 			}
 		} else {
 			bi.notifier.DeviceRemoved(bi.bridgeID, currDevice)
+			delete(bi.devices, id)
 		}
 	}
 

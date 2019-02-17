@@ -54,11 +54,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:85ca5bde4e2a5d61183ace07f602873843f36f8e5a99017eb291e460085d02e8"
+  digest = "1:25325f2f882e401741d5911d0cca1f59107840f7ca37169bf815a698fbb77436"
   name = "github.com/gocarina/gocsv"
   packages = ["."]
   pruneopts = "UT"
-  revision = "af1d9380204a6897e3a44ad3dc6397e16a21ee40"
+  revision = "2a8c07cdf70173b2727647678b9ed9ca36235165"
 
 [[projects]]
   digest = "1:5ac24c0ad5dc117fb2b6d90d205c876ec599c09cccb702a36586680e09cb20b5"
@@ -220,11 +220,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3049a7b92fb8dea3e93f52d527a4d2ca43af822f263f3332332bb22f5fceb026"
+  digest = "1:c4ce0ed64989de3fc6a4de21ced11397c03ba939179646b41c5db5de5cdc56dd"
   name = "github.com/rivo/tview"
   packages = ["."]
   pruneopts = "UT"
-  revision = "84fdb36408f35b8998d48d323f55f40b7f14a19b"
+  revision = "b373355e9db4bec1faba239e4b6dc069c356fe6f"
 
 [[projects]]
   branch = "master"
@@ -244,22 +244,22 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:70c7767e7f8baee114fd210208fec8374b0362fe4aeedf5bbe10ff242f7a14ed"
+  digest = "1:004238ce2ae4080b7952d312e9ffbbbe37474aecc9bc102b95d7f7c184d3cece"
   name = "github.com/rmrobinson/monoprice-amp-go"
   packages = ["."]
   pruneopts = "UT"
-  revision = "0a0cac9e5c757c096cffee485517ba5adf18c9b0"
+  revision = "ea909ba38552f6a113a7248bacabc3424cc6c33b"
 
 [[projects]]
-  digest = "1:d707dbc1330c0ed177d4642d6ae102d5e2c847ebd0eb84562d0dc4f024531cfc"
+  digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
   name = "github.com/spf13/afero"
   packages = [
     ".",
     "mem",
   ]
   pruneopts = "UT"
-  revision = "a5d6946387efe7d64d09dcba68cdd523dc1273a3"
-  version = "v1.2.0"
+  revision = "f4711e4db9e9a1d3887343acb72b2bbfc2f686f5"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:08d65904057412fc0270fc4812a1c90c594186819243160dc779a402d4b6d0bc"
@@ -344,7 +344,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e4cb09624f31f9e33fce26702314da5a1383962d7e0861bfe39dfdc00a848fa3"
+  digest = "1:13d98d4a123176d59926946c44709a930054a7034d466cbbdbb92dd149790bcf"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -359,15 +359,15 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "d26f9f9a57f3fab6a695bec0d84433c2c50f8bbf"
+  revision = "3a22650c66bd7f4fb6d1e8072ffd7b75c8a27898"
 
 [[projects]]
   branch = "master"
-  digest = "1:db12953ac7a80656b159265fe13146959beaada45938a532f484a3aeb289462e"
+  digest = "1:8207c052fb873f83c61a5aa16f6add5feb9881eda2112b56f69fd3b9e7f55c3f"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "b90733256f2e882e81d52f9126de08df5615afd9"
+  revision = "d0b11bdaac8adb652bff00e49bcacf992835621a"
 
 [[projects]]
   digest = "1:436b24586f8fee329e0dd65fd67c817681420cda1d7f934345c13fe78c212a73"
@@ -410,7 +410,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "8819c946db4494a2259bf100a377f51aa585d893"
+  revision = "bd968387e4aa590b3c6e4ba38ecac1ed314d43ad"
 
 [[projects]]
   digest = "1:9ab5a33d8cb5c120602a34d2e985ce17956a4e8c2edce7e6961568f95e40c09a"

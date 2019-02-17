@@ -1,6 +1,7 @@
 package bottlerocket_go
 
 /*
+#cgo LDFLAGS: -lbr
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
