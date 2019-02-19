@@ -2,7 +2,6 @@ package domotics
 
 import (
 	"context"
-	"reflect"
 	"sync"
 	"time"
 
@@ -46,7 +45,7 @@ func (bi *bridgeInstance) refresh() {
 		return
 	}
 
-	if !reflect.DeepEqual(bi.bridge, bridge) {
+	if !proto.Equal(bi.bridge, bridge) {
 		bi.notifier.BridgeUpdated(bridge)
 		bi.bridge = proto.Clone(bridge).(*Bridge)
 	}
@@ -78,7 +77,7 @@ func (bi *bridgeInstance) refresh() {
 	// since we already added them it'll end as a NOP.
 	for id, currDevice := range bi.devices {
 		if newDevice, ok := newDevices[id]; ok {
-			if !reflect.DeepEqual(currDevice, newDevice) {
+			if !proto.Equal(currDevice, newDevice) {
 				bi.notifier.DeviceUpdated(bi.bridgeID, newDevice)
 				bi.devices[id] = newDevice
 			}

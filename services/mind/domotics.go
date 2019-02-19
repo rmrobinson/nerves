@@ -32,16 +32,48 @@ var (
 type Domotics struct {
 	logger *zap.Logger
 
+	svc *Service
+
 	bridgeClient domotics.BridgeServiceClient
 	deviceClient domotics.DeviceServiceClient
 }
 
 // NewDomotics creates a new domotics handler
-func NewDomotics(logger *zap.Logger, bridgeClient domotics.BridgeServiceClient, deviceClient domotics.DeviceServiceClient) *Domotics {
+func NewDomotics(logger *zap.Logger, svc *Service, bridgeClient domotics.BridgeServiceClient, deviceClient domotics.DeviceServiceClient) *Domotics {
 	return &Domotics{
 		logger:       logger,
+		svc:          svc,
 		bridgeClient: bridgeClient,
 		deviceClient: deviceClient,
+	}
+}
+
+// Monitor is used to track changes to devices
+func (d *Domotics) Monitor(ctx context.Context) {
+	stream, err := d.deviceClient.StreamDeviceUpdates(ctx, &domotics.StreamDeviceUpdatesRequest{})
+	if err != nil {
+		d.logger.Info("error creating device update stream",
+			zap.Error(err),
+		)
+		return
+	}
+
+	for {
+		update, err := stream.Recv()
+		if err != nil {
+			d.logger.Info("error receiving update",
+				zap.Error(err),
+			)
+			return
+		}
+
+		stmt := statementFromDeviceUpdate(update)
+		err = d.svc.BroadcastUpdate(ctx, stmt)
+		if err != nil {
+			d.logger.Info("error broadcasting update",
+				zap.Error(err),
+			)
+		}
 	}
 }
 
@@ -323,4 +355,37 @@ func statementFromDevices(devices []*domotics.Device) *Statement {
 	}
 
 	return statementFromText(text)
+}
+
+func statementFromDeviceUpdate(update *domotics.DeviceUpdate) *Statement {
+	text := nameFromDevice(update.Device)
+
+	switch update.Action {
+	case domotics.DeviceUpdate_ADDED:
+		text += " was added"
+	case domotics.DeviceUpdate_CHANGED:
+		text += " was changed"
+
+		// TODO: find what changed
+		if update.Device.State != nil && update.Device.State.Binary != nil {
+			text += " and is now "
+			if update.Device.State.Binary.IsOn {
+				text += "on"
+			} else {
+				text += "off"
+			}
+		}
+	case domotics.DeviceUpdate_REMOVED:
+		text += " was removed"
+	}
+
+	return statementFromText(text)
+}
+
+func nameFromDevice(device *domotics.Device) string {
+	if device.Config != nil && len(device.Config.Name) > 0 {
+		return device.Config.Name
+	}
+
+	return "Device " + device.Id
 }
