@@ -17,19 +17,39 @@ type SlackBot struct {
 	logger *zap.Logger
 	s      *Service
 	api    *slack.Client
+
+	channelID string
 }
 
-// NewSlackBot creates a new slackbot using the supplied slack implementatino.
-func NewSlackBot(logger *zap.Logger, s *Service, api *slack.Client) *SlackBot {
+// NewSlackBot creates a new slackbot using the supplied slack implementation.
+func NewSlackBot(logger *zap.Logger, s *Service, api *slack.Client, mgmtChannel string) *SlackBot {
 	return &SlackBot{
-		logger: logger,
-		s:      s,
-		api:    api,
+		logger:    logger,
+		s:         s,
+		api:       api,
+		channelID: mgmtChannel,
 	}
 }
 
-// Run begins the event loop and posts messages to the specified channel.
-func (sb *SlackBot) Run(channelID string) {
+// SendStatement is used to send a notification to the management channel.
+func (sb *SlackBot) SendStatement(ctx context.Context, statement *Statement) error {
+	if statement.MimeType != mimeTypeText {
+		return ErrContentTypeNotSupported.Err()
+	}
+	_, _, err := sb.api.PostMessage(sb.channelID, slack.MsgOptionText(string(statement.Content), false))
+
+	if err != nil {
+		sb.logger.Info("error posting message",
+			zap.String("content", string(statement.Content)),
+			zap.Error(err),
+		)
+	}
+
+	return err
+}
+
+// Run begins the event loop and monitors messages sent to the management channel.
+func (sb *SlackBot) Run() {
 	rtm := sb.api.NewRTM()
 	go rtm.ManageConnection()
 
@@ -65,9 +85,16 @@ func (sb *SlackBot) Run(channelID string) {
 				)
 			}
 
-			rtm.SendMessage(rtm.NewOutgoingMessage("I'm alive!", channelID))
+			rtm.SendMessage(rtm.NewOutgoingMessage("I'm alive!", sb.channelID))
 
 		case *slack.MessageEvent:
+			if len(ev.SubType) > 0 {
+				sb.logger.Debug("skipping message",
+					zap.String("user_name", ev.User),
+					zap.String("message", ev.Text),
+					zap.String("subtype", ev.SubType),
+				)
+			}
 			ts, err := parseUnixTime(ev.Timestamp)
 			if err != nil {
 				sb.logger.Info("error parsing timestamp for message",
@@ -91,7 +118,7 @@ func (sb *SlackBot) Run(channelID string) {
 				Statement: &Statement{
 					CreateAt:     createAt,
 					LanguageCode: "en-US",
-					MimeType:     "text/plain",
+					MimeType:     mimeTypeText,
 					Content:      []byte(ev.Text),
 				},
 			}

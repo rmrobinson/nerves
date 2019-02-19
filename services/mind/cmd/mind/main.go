@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -88,14 +89,22 @@ func main() {
 		news.NewNewsServiceClient(newsConn)))
 	svc.RegisterHandler(mind.NewTransit(logger,
 		transit.NewTransitServiceClient(transitConn)))
-	svc.RegisterHandler(mind.NewDomotics(logger,
+
+	domoticsHandler := mind.NewDomotics(logger,
+		svc,
 		domotics.NewBridgeServiceClient(domoticsConn),
-		domotics.NewDeviceServiceClient(domoticsConn)))
+		domotics.NewDeviceServiceClient(domoticsConn))
+
+	go domoticsHandler.Monitor(context.Background())
+
+	svc.RegisterHandler(domoticsHandler)
 
 	slackClient := slack.New(viper.GetString(envVarSlackKey))
-	slackbot := mind.NewSlackBot(logger, svc, slackClient)
+	slackbot := mind.NewSlackBot(logger, svc, slackClient, viper.GetString(envVarSlackChannelID))
 
-	go slackbot.Run(viper.GetString(envVarSlackChannelID))
+	svc.RegisterChannel(slackbot)
+
+	go slackbot.Run()
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10108))
 	if err != nil {
