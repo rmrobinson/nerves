@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"go.uber.org/zap"
 )
@@ -79,7 +80,7 @@ func (d *Domotics) Monitor(ctx context.Context) {
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
 func (d *Domotics) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != "text/plain" {
+	if stmt.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
@@ -164,14 +165,32 @@ func (d *Domotics) ProcessStatement(ctx context.Context, stmt *Statement) (*Stat
 }
 
 func (d *Domotics) setDeviceIDIsOn(deviceID string, isOn bool) *Statement {
-	_, err := d.deviceClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
-		Id: deviceID,
-		State: &domotics.DeviceState{
-			Binary: &domotics.DeviceState_BinaryState{
-				IsOn: isOn,
-			},
-		},
-	})
+	device, err := d.getDevice(deviceID)
+	if err != nil {
+		d.logger.Info("error getting device",
+			zap.String("device_id", deviceID),
+			zap.Error(err),
+		)
+
+		return statementFromText("Can't set the device right now")
+	} else if device == nil {
+		return statementFromText("Can't find the device to set")
+	}
+
+	return d.setDeviceIsOn(device, isOn)
+}
+
+func (d *Domotics) setDeviceIsOn(device *domotics.Device, isOn bool) *Statement {
+	if device.State.Binary == nil {
+		return statementFromText("Device doesn't have an is-on option")
+	}
+
+	req := &domotics.SetDeviceStateRequest{
+		Id: device.Id,
+		State: proto.Clone(device.State).(*domotics.DeviceState),
+	}
+	req.State.Binary.IsOn = isOn
+	_, err := d.deviceClient.SetDeviceState(context.Background(), req)
 	if err != nil {
 		d.logger.Warn("unable to set device state",
 			zap.Error(err),
@@ -184,18 +203,20 @@ func (d *Domotics) setDeviceIDIsOn(deviceID string, isOn bool) *Statement {
 	if !isOn {
 		state = "off"
 	}
-	return statementFromText(fmt.Sprintf("Turned %s %s", deviceID, state))
+	return statementFromText(fmt.Sprintf("Turned %s %s", nameFromDevice(device), state))
 }
 
-func (d *Domotics) setDeviceIDVolume(deviceID string, volume int32) *Statement {
-	_, err := d.deviceClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
-		Id: deviceID,
-		State: &domotics.DeviceState{
-			Audio: &domotics.DeviceState_AudioState{
-				Volume: volume,
-			},
-		},
-	})
+func (d *Domotics) setDeviceVolume(device *domotics.Device, volume int32) *Statement {
+	if device.State.Audio == nil {
+		return statementFromText("Device doesn't have a volume option")
+	}
+
+	req := &domotics.SetDeviceStateRequest{
+		Id: device.Id,
+		State: proto.Clone(device.State).(*domotics.DeviceState),
+	}
+	req.State.Audio.Volume = volume
+	_, err := d.deviceClient.SetDeviceState(context.Background(), req)
 	if err != nil {
 		d.logger.Warn("unable to set device state",
 			zap.Error(err),
@@ -204,7 +225,7 @@ func (d *Domotics) setDeviceIDVolume(deviceID string, volume int32) *Statement {
 		return statementFromText("Can't set the device right now")
 	}
 
-	return statementFromText(fmt.Sprintf("Set volume to %d of %s", volume, deviceID))
+	return statementFromText(fmt.Sprintf("Set volume to %d of %s", volume, nameFromDevice(device)))
 }
 
 func (d *Domotics) setDeviceNameIsOn(deviceName string, isOn bool) *Statement {
@@ -217,7 +238,7 @@ func (d *Domotics) setDeviceNameIsOn(deviceName string, isOn bool) *Statement {
 		return statementFromText("Device doesn't have an 'is on' option")
 	}
 
-	return d.setDeviceIDIsOn(device.Id, isOn)
+	return d.setDeviceIsOn(device, isOn)
 }
 
 func (d *Domotics) setDeviceNameVolume(deviceName string, volume int32) *Statement {
@@ -230,7 +251,7 @@ func (d *Domotics) setDeviceNameVolume(deviceName string, volume int32) *Stateme
 		return statementFromText("Device doesn't have a volume option")
 	}
 
-	return d.setDeviceIDVolume(device.Id, volume)
+	return d.setDeviceVolume(device, volume)
 }
 
 func (d *Domotics) changeDeviceNameVolume(deviceName string, volumeChange int32) *Statement {
@@ -243,7 +264,7 @@ func (d *Domotics) changeDeviceNameVolume(deviceName string, volumeChange int32)
 		return statementFromText("Device doesn't have a volume option")
 	}
 
-	return d.setDeviceIDVolume(device.Id, device.State.Audio.Volume+volumeChange)
+	return d.setDeviceVolume(device, device.State.Audio.Volume+volumeChange)
 }
 
 func (d *Domotics) getDeviceByName(name string) (*domotics.Device, error) {
@@ -267,6 +288,25 @@ func (d *Domotics) getDeviceByName(name string) (*domotics.Device, error) {
 	}
 
 	return nil, nil
+}
+
+func (d *Domotics) getDevice(id string) (*domotics.Device, error) {
+	resp, err := d.deviceClient.GetDevice(context.Background(), &domotics.GetDeviceRequest{
+		Id: id,
+	})
+	if err != nil {
+		d.logger.Warn("unable to get device",
+			zap.Error(err),
+		)
+
+		return nil, err
+	} else if resp == nil {
+		d.logger.Warn("unable to get device (not found)")
+
+		return nil, nil
+	}
+
+	return resp.Device, nil
 }
 
 func (d *Domotics) getBridges() *Statement {

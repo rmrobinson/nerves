@@ -31,7 +31,7 @@ func NewNews(logger *zap.Logger, client news.NewsServiceClient) *News {
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
 func (n *News) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != "text/plain" {
+	if stmt.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
