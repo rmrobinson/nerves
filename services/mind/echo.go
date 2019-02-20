@@ -21,7 +21,7 @@ func NewEcho(logger *zap.Logger) *Echo {
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
 func (e *Echo) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != "text/plain" {
+	if stmt.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 

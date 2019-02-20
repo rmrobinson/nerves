@@ -38,6 +38,7 @@ go_library(
         "//services/news:go_default_library",
         "//services/transit:go_default_library",
         "//services/weather:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/google/uuid:go_default_library",
         "//vendor/github.com/nlopes/slack:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
