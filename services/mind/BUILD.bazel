@@ -6,7 +6,7 @@ proto_library(
     srcs = ["message.proto"],
     visibility = ["//visibility:public"],
     deps = [
-        "@com_google_protobuf//:empty_proto",
+        "//services/users:faltung_nerves_users_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
@@ -17,6 +17,7 @@ go_proto_library(
     importpath = "github.com/rmrobinson/nerves/services/mind",
     proto = ":faltung_nerves_mind_proto",
     visibility = ["//visibility:public"],
+    deps = ["//services/users:go_default_library"],
 )
 
 go_library(
@@ -37,6 +38,7 @@ go_library(
         "//services/domotics:go_default_library",
         "//services/news:go_default_library",
         "//services/transit:go_default_library",
+        "//services/users:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/google/uuid:go_default_library",

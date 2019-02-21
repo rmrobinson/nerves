@@ -2,27 +2,15 @@ syntax = "proto3";
 
 package faltung.nerves.mind;
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-
-// User corresponds to a single user that interacts with this service.
-message User {
-    string name = 1;
-
-    string display_name = 2;
-    string first_name = 3;
-    string last_name = 4;
-    // TODO: many more fields
-
-    repeated UserProxy user_proxies = 100;
-}
+import "services/users/user.proto";
 
 // UserMapping exists in a 1:many relationship with a user.
 // Each service that the user can have requests proxied via will have one of these entries.
 // Examples of a proxy can include Facebook Messenger, Slack, etc.
 message UserProxy {
     string service_id = 1;
-    string user_id = 2;
+    string user_name = 2;
 }
 
 // Statement is a statement made by one side or the other.
@@ -58,7 +46,7 @@ message ReceiveStatementsRequest {
 
 // MessageService contains a series of operations that are used to manage messaging between users and this service.
 service MessageService {
-    rpc RegisterUser(RegisterUserRequest) returns (User) {}
+    rpc RegisterUser(RegisterUserRequest) returns (faltung.nerves.users.User) {}
 
     rpc SendStatement(SendStatementRequest) returns (Statement) {}
     rpc ReceiveStatements(ReceiveStatementsRequest) returns (stream Statement) {}

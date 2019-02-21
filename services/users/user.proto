@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package faltung.nerves.users;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// User corresponds to a single user that interacts with this service.
+message User {
+    string name = 1;
+
+    string display_name = 2;
+    string first_name = 3;
+    string last_name = 4;
+    // TODO: many more fields
+}

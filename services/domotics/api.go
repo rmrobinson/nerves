@@ -151,7 +151,7 @@ func (a *API) GetDevice(ctx context.Context, req *GetDeviceRequest) (*GetDeviceR
 
 // SetDeviceConfig updates the specified device with the provided config.
 func (a *API) SetDeviceConfig(ctx context.Context, req *SetDeviceConfigRequest) (*SetDeviceConfigResponse, error) {
-	resp, err := a.hub.SetDeviceConfig(ctx, req.Id, req.Config)
+	resp, err := a.hub.SetDeviceConfig(ctx, req.Id, req.Config, req.User)
 
 	return &SetDeviceConfigResponse{
 		Device: resp,
@@ -160,7 +160,7 @@ func (a *API) SetDeviceConfig(ctx context.Context, req *SetDeviceConfigRequest) 
 
 // SetDeviceState updates the specified device with the provided state.
 func (a *API) SetDeviceState(ctx context.Context, req *SetDeviceStateRequest) (*SetDeviceStateResponse, error) {
-	resp, err := a.hub.SetDeviceState(ctx, req.Id, req.State)
+	resp, err := a.hub.SetDeviceState(ctx, req.Id, req.State, req.User)
 
 	return &SetDeviceStateResponse{
 		Device: resp,

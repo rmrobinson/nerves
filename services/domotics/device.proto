@@ -3,6 +3,7 @@ syntax = "proto3";
 package faltung.nerves.domotics;
 
 import "google/protobuf/timestamp.proto";
+import "services/users/user.proto";
 
 message DeviceConfig {
     string name = 1;
@@ -151,11 +152,13 @@ message DeviceUpdate {
         Action action = 1;
         Device device = 2;
         string bridge_id = 3;
+        faltung.nerves.users.User originating_user = 4;
 }
 
 message SetDeviceConfigRequest {
     string id = 1;
     string version = 2;
+    faltung.nerves.users.User user = 3;
     DeviceConfig config = 10;
 }
 message SetDeviceConfigResponse {
@@ -166,6 +169,7 @@ message SetDeviceConfigResponse {
 message SetDeviceStateRequest {
     string id = 1;
     string version = 2;
+    faltung.nerves.users.User user = 3;
     DeviceState state = 10;
 }
 message SetDeviceStateResponse {

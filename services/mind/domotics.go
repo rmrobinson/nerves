@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/users"
 	"go.uber.org/zap"
 )
 
@@ -186,8 +187,11 @@ func (d *Domotics) setDeviceIsOn(device *domotics.Device, isOn bool) *Statement 
 	}
 
 	req := &domotics.SetDeviceStateRequest{
-		Id: device.Id,
+		Id:    device.Id,
 		State: proto.Clone(device.State).(*domotics.DeviceState),
+		User: &users.User{
+			DisplayName: "test user",
+		},
 	}
 	req.State.Binary.IsOn = isOn
 	_, err := d.deviceClient.SetDeviceState(context.Background(), req)
@@ -212,7 +216,7 @@ func (d *Domotics) setDeviceVolume(device *domotics.Device, volume int32) *State
 	}
 
 	req := &domotics.SetDeviceStateRequest{
-		Id: device.Id,
+		Id:    device.Id,
 		State: proto.Clone(device.State).(*domotics.DeviceState),
 	}
 	req.State.Audio.Volume = volume
@@ -417,6 +421,10 @@ func statementFromDeviceUpdate(update *domotics.DeviceUpdate) *Statement {
 		}
 	case domotics.DeviceUpdate_REMOVED:
 		text += " was removed"
+	}
+
+	if update.OriginatingUser != nil {
+		text += " by " + update.OriginatingUser.DisplayName
 	}
 
 	return statementFromText(text)
