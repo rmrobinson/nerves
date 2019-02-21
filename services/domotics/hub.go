@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/lib/stream"
+	"github.com/rmrobinson/nerves/services/users"
 	"go.uber.org/zap"
 )
 
@@ -78,8 +79,8 @@ func NewHub(logger *zap.Logger) *Hub {
 	return &Hub{
 		logger:              logger,
 		bridges:             map[string]*bridgeInstance{},
-		bridgeUpdatesSource: stream.NewSource(zap.L()),
-		deviceUpdatesSource: stream.NewSource(zap.L()),
+		bridgeUpdatesSource: stream.NewSource(logger),
+		deviceUpdatesSource: stream.NewSource(logger),
 	}
 }
 
@@ -156,7 +157,7 @@ func (h *Hub) SetBridgeConfig(ctx context.Context, id string, config *BridgeConf
 
 // SetDeviceConfig updates the configuration of the specified device.
 // This should be treated as an all-or-nothing operation - partial application of device configs is not supported.
-func (h *Hub) SetDeviceConfig(ctx context.Context, id string, config *DeviceConfig) (*Device, error) {
+func (h *Hub) SetDeviceConfig(ctx context.Context, id string, config *DeviceConfig, originatingUser *users.User) (*Device, error) {
 	h.bridgesLock.RLock()
 	defer h.bridgesLock.RUnlock()
 
@@ -182,14 +183,16 @@ func (h *Hub) SetDeviceConfig(ctx context.Context, id string, config *DeviceConf
 	// Since we don't have the full device we need to clone our current and update the state.
 	d := proto.Clone(bi.devices[id]).(*Device)
 	d.Config = config
-	h.DeviceUpdated(bi.bridgeID, d)
+
+	h.sendDeviceUpdate(DeviceUpdate_CHANGED, id, d, originatingUser)
+	bi.devices[d.Id] = d
 
 	return d, nil
 }
 
 // SetDeviceState updates the state of the specified device.
 // This should be treated as an all-or-nothing operation - partial application of device state is not supported.
-func (h *Hub) SetDeviceState(ctx context.Context, id string, state *DeviceState) (*Device, error) {
+func (h *Hub) SetDeviceState(ctx context.Context, id string, state *DeviceState, originatingUser *users.User) (*Device, error) {
 	h.bridgesLock.RLock()
 	defer h.bridgesLock.RUnlock()
 
@@ -214,7 +217,9 @@ func (h *Hub) SetDeviceState(ctx context.Context, id string, state *DeviceState)
 	// Since we don't have the full device we need to clone our current and update the state.
 	d := proto.Clone(bi.devices[id]).(*Device)
 	d.State = state
-	h.DeviceUpdated(bi.bridgeID, d)
+
+	h.sendDeviceUpdate(DeviceUpdate_CHANGED, id, d, originatingUser)
+	bi.devices[d.Id] = d
 
 	return d, nil
 }
@@ -331,7 +336,7 @@ func (h *Hub) DeviceAdded(bridgeID string, device *Device) error {
 		}
 
 		nd := proto.Clone(device).(*Device)
-		h.sendDeviceUpdate(DeviceUpdate_ADDED, bridgeID, nd)
+		h.sendDeviceUpdate(DeviceUpdate_ADDED, bridgeID, nd, nil)
 		h.bridges[bridgeID].devices[device.Id] = nd
 	} else {
 		return ErrBridgeNotRegistered
@@ -356,7 +361,7 @@ func (h *Hub) DeviceUpdated(bridgeID string, device *Device) error {
 		if currDevice, ok := bridge.devices[device.Id]; ok {
 			if !reflect.DeepEqual(currDevice, device) {
 				nd := proto.Clone(device).(*Device)
-				h.sendDeviceUpdate(DeviceUpdate_CHANGED, bridgeID, nd)
+				h.sendDeviceUpdate(DeviceUpdate_CHANGED, bridgeID, nd, nil)
 				h.bridges[bridgeID].devices[device.Id] = nd
 			}
 		} else {
@@ -386,7 +391,7 @@ func (h *Hub) DeviceRemoved(bridgeID string, device *Device) error {
 			return ErrDeviceNotRegistered
 		}
 
-		h.sendDeviceUpdate(DeviceUpdate_REMOVED, bridgeID, device)
+		h.sendDeviceUpdate(DeviceUpdate_REMOVED, bridgeID, device, nil)
 		delete(h.bridges[bridgeID].devices, device.Id)
 	} else {
 		return ErrBridgeNotRegistered
@@ -396,16 +401,17 @@ func (h *Hub) DeviceRemoved(bridgeID string, device *Device) error {
 }
 
 // sendDeviceUpdate is the internal function that takes a notification and propagates it to all registered watchers.
-func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, device *Device) {
+func (h *Hub) sendDeviceUpdate(action DeviceUpdate_Action, bridgeID string, device *Device, originatingUser *users.User) {
 	h.logger.Debug("sending device update",
 		zap.String("action", action.String()),
 		zap.String("device_info", device.String()),
 	)
 
 	h.deviceUpdatesSource.SendMessage(&DeviceUpdate{
-		Action:   action,
-		Device:   device,
-		BridgeId: bridgeID,
+		Action:          action,
+		Device:          device,
+		BridgeId:        bridgeID,
+		OriginatingUser: originatingUser,
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/rmrobinson/nerves/services/users"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,7 +36,7 @@ type Channel interface {
 // Service is a messaging service.
 type Service struct {
 	logger *zap.Logger
-	users  map[string]*User
+	users  map[string]*users.User
 
 	handlers []Handler
 
@@ -46,7 +47,7 @@ type Service struct {
 func NewService(logger *zap.Logger) *Service {
 	return &Service{
 		logger: logger,
-		users:  map[string]*User{},
+		users:  map[string]*users.User{},
 	}
 }
 
@@ -77,7 +78,7 @@ func (s *Service) RegisterHandler(handler Handler) {
 }
 
 // RegisterUser adds another user/endpoint mapping.
-func (s *Service) RegisterUser(context.Context, *RegisterUserRequest) (*User, error) {
+func (s *Service) RegisterUser(context.Context, *RegisterUserRequest) (*users.User, error) {
 	return nil, nil
 }
 
