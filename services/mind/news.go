@@ -30,12 +30,12 @@ func NewNews(logger *zap.Logger, client news.NewsServiceClient) *News {
 }
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
-func (n *News) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != mimeTypeText {
+func (n *News) ProcessStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
+	if req.Statement.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
-	content := string(stmt.Content)
+	content := string(req.Statement.Content)
 	content = strings.ToLower(content)
 	if ok, _ := regexp.MatchString(newsRegex, content); !ok {
 		return nil, ErrStatementNotHandled.Err()
