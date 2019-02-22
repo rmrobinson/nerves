@@ -20,12 +20,12 @@ func NewEcho(logger *zap.Logger) *Echo {
 }
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
-func (e *Echo) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != mimeTypeText {
+func (e *Echo) ProcessStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
+	if req.Statement.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
-	content := string(stmt.Content)
+	content := string(req.Statement.Content)
 	if !strings.Contains(content, "echo") {
 		return nil, ErrStatementNotHandled.Err()
 	}
@@ -34,5 +34,5 @@ func (e *Echo) ProcessStatement(ctx context.Context, stmt *Statement) (*Statemen
 		zap.String("content", content),
 	)
 
-	return stmt, nil
+	return req.Statement, nil
 }

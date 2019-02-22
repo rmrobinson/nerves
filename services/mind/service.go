@@ -25,7 +25,7 @@ var (
 
 // Handler describes an implementation to process statements and potentially take actions on them
 type Handler interface {
-	ProcessStatement(context.Context, *Statement) (*Statement, error)
+	ProcessStatement(context.Context, *SendStatementRequest) (*Statement, error)
 }
 
 // Channel represents a public or private shared communication location.
@@ -85,7 +85,7 @@ func (s *Service) RegisterUser(context.Context, *RegisterUserRequest) (*users.Us
 // SendStatement takes a supplied statement and passes it into the handler chain.
 func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
 	for _, handler := range s.handlers {
-		resp, err := handler.ProcessStatement(ctx, req.Statement)
+		resp, err := handler.ProcessStatement(ctx, req)
 		if err == ErrStatementNotHandled.Err() {
 			continue
 		}

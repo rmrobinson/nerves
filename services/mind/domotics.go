@@ -80,12 +80,12 @@ func (d *Domotics) Monitor(ctx context.Context) {
 }
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
-func (d *Domotics) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != mimeTypeText {
+func (d *Domotics) ProcessStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
+	if req.Statement.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
-	content := string(stmt.Content)
+	content := string(req.Statement.Content)
 	content = strings.ToLower(content)
 	if ok, _ := regexp.MatchString(domoticsListBridgeRegex, content); ok {
 		return d.getBridges(), nil

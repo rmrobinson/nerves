@@ -36,12 +36,12 @@ func NewWeather(logger *zap.Logger, client weather.WeatherServiceClient, lat flo
 }
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
-func (w *Weather) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != mimeTypeText {
+func (w *Weather) ProcessStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
+	if req.Statement.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
-	content := string(stmt.Content)
+	content := string(req.Statement.Content)
 	content = strings.ToLower(content)
 	if ok, _ := regexp.MatchString(weatherRegex, content); !ok {
 		return nil, ErrStatementNotHandled.Err()

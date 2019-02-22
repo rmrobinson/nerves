@@ -36,12 +36,12 @@ func NewTransit(logger *zap.Logger, client transit.TransitServiceClient) *Transi
 }
 
 // ProcessStatement implements the handler interface. Logs and returns the statement.
-func (t *Transit) ProcessStatement(ctx context.Context, stmt *Statement) (*Statement, error) {
-	if stmt.MimeType != mimeTypeText {
+func (t *Transit) ProcessStatement(ctx context.Context, req *SendStatementRequest) (*Statement, error) {
+	if req.Statement.MimeType != mimeTypeText {
 		return nil, ErrStatementNotHandled.Err()
 	}
 
-	content := string(stmt.Content)
+	content := string(req.Statement.Content)
 	content = strings.ToLower(content)
 	if matched := stopArrivalRegex.FindStringSubmatch(content); matched != nil {
 		params := map[string]string{}
