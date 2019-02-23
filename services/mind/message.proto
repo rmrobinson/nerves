@@ -32,10 +32,11 @@ message RegisterUserRequest {
 
 // SendStatementRequest is used to transmit a statement from a specific proxy and user.
 message SendStatementRequest {
-    // /messages/<source service>/<user ID in the referenced service>
+    // /messages/<source service>/<message ID in the referenced service>
     string name = 1;
     string request_id = 2;
     Statement statement = 3;
+    string user_id = 4;
 }
 
 // ReceiveStatementsRequest is used to receive a stream of response messages to a specific user and proxy.
