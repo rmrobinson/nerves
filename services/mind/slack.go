@@ -113,8 +113,9 @@ func (sb *SlackBot) Run() {
 			}
 
 			req := &SendStatementRequest{
-				Name:      "/messages/" + teamID + "/" + ev.User,
+				Name:      "/slack/messages/" + ev.Channel + "/" + ev.Timestamp,
 				RequestId: uuid.New().String(),
+				UserId:    teamID + "/" + ev.User,
 				Statement: &Statement{
 					CreateAt:     createAt,
 					LanguageCode: "en-US",

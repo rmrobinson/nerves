@@ -21,6 +21,8 @@ var (
 	ErrStatementNotHandled = status.New(codes.FailedPrecondition, "statement not handled")
 	// ErrStatementIgnored is returned if no registered handlers chose to process the statement
 	ErrStatementIgnored = status.New(codes.InvalidArgument, "statement not handled")
+	// ErrStatementDisallowed is returned if the requesting user cannot make this statement
+	ErrStatementDisallowed = status.New(codes.PermissionDenied, "statement user cannot make this request")
 )
 
 // Handler describes an implementation to process statements and potentially take actions on them
@@ -44,10 +46,10 @@ type Service struct {
 }
 
 // NewService creates a new messaging service.
-func NewService(logger *zap.Logger) *Service {
+func NewService(logger *zap.Logger, users map[string]*users.User) *Service {
 	return &Service{
 		logger: logger,
-		users:  map[string]*users.User{},
+		users:  users,
 	}
 }
 
@@ -88,6 +90,8 @@ func (s *Service) SendStatement(ctx context.Context, req *SendStatementRequest) 
 		resp, err := handler.ProcessStatement(ctx, req)
 		if err == ErrStatementNotHandled.Err() {
 			continue
+		} else if err != nil {
+			return statementFromText(err.Error()), nil
 		}
 
 		return resp, nil

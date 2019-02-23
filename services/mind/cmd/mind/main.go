@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 
+	"github.com/gocarina/gocsv"
 	"github.com/nlopes/slack"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/mind"
 	"github.com/rmrobinson/nerves/services/news"
 	"github.com/rmrobinson/nerves/services/transit"
+	"github.com/rmrobinson/nerves/services/users"
 	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -25,7 +28,42 @@ const (
 	envVarNewsdEndpoint     = "NEWSD_ENDPOINT"
 	envVarTransitdEndpoint  = "TRANSITD_ENDPOINT"
 	envVarDomoticsdEndpoint = "DOMOTICSD_ENDPOINT"
+	envVarUsersDBPath       = "USERS_DB_PATH"
 )
+
+type csvUser struct {
+	Name        string `csv:"name"`
+	DisplayName string `csv:"display_name"`
+	FirstName   string `csv:"first_name"`
+	LastName    string `csv:"last_name"`
+}
+
+func getUsers() (map[string]*users.User, error) {
+	path := viper.GetString(envVarUsersDBPath)
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var csvUsers []*csvUser
+	err = gocsv.Unmarshal(f, &csvUsers)
+	if err != nil {
+		return nil, err
+	}
+
+	u := map[string]*users.User{}
+	for _, user := range csvUsers {
+		u[user.Name] = &users.User{
+			Name:        user.Name,
+			DisplayName: user.DisplayName,
+			FirstName:   user.FirstName,
+			LastName:    user.LastName,
+		}
+	}
+
+	return u, nil
+}
 
 func main() {
 	viper.SetEnvPrefix("NVS")
@@ -37,6 +75,7 @@ func main() {
 	viper.BindEnv(envVarNewsdEndpoint)
 	viper.BindEnv(envVarTransitdEndpoint)
 	viper.BindEnv(envVarDomoticsdEndpoint)
+	viper.BindEnv(envVarUsersDBPath)
 
 	logger, _ := zap.NewDevelopment()
 
@@ -79,7 +118,14 @@ func main() {
 	}
 	defer domoticsConn.Close()
 
-	svc := mind.NewService(logger)
+	users, err := getUsers()
+	if err != nil {
+		logger.Fatal("unable to load users map",
+			zap.Error(err),
+		)
+	}
+
+	svc := mind.NewService(logger, users)
 	svc.RegisterHandler(mind.NewEcho(logger))
 	svc.RegisterHandler(mind.NewWeather(logger,
 		weather.NewWeatherServiceClient(weatherConn),
