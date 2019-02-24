@@ -15,26 +15,33 @@ import (
 	"golang.org/x/net/html"
 )
 
+const (
+	cbcRefreshRate = time.Minute * 10
+)
+
 // CBCFeed is a news feed provided by CBC News
 type CBCFeed struct {
 	logger *zap.Logger
 	path   string
 
-	articles []*Article
+	api *API
 }
 
 // NewCBCFeed creates a new news feed from the CBC.
-func NewCBCFeed(logger *zap.Logger, path string) *CBCFeed {
+func NewCBCFeed(logger *zap.Logger, path string, api *API) *CBCFeed {
 	return &CBCFeed{
 		logger: logger,
 		path:   path,
+		api:    api,
 	}
 }
 
 // Run begins a loop that will poll CBC for changes.
 func (cbc *CBCFeed) Run(ctx context.Context) {
 	cbc.logger.Info("run started")
-	ticker := time.NewTicker(time.Second * 10)
+	cbc.refresh(ctx)
+
+	ticker := time.NewTicker(cbcRefreshRate)
 	for {
 		select {
 		case <-ctx.Done():
@@ -42,32 +49,30 @@ func (cbc *CBCFeed) Run(ctx context.Context) {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			cbc.logger.Debug("refreshing data")
-			feed, err := cbc.getFeed(ctx)
-			if err != nil {
-				continue
-			}
-
-			articles, err := cbc.parseFeed(feed)
-			if err != nil {
-				cbc.logger.Warn("error parsing feed",
-					zap.Error(err),
-				)
-				continue
-			}
-
-			cbc.articles = articles
-
-			var tmp []string
-			for _, article := range cbc.articles {
-				tmp = append(tmp, article.String())
-			}
-
-			cbc.logger.Debug("feed results",
-				zap.Strings("articles", tmp),
-			)
+			cbc.refresh(ctx)
 		}
 	}
+}
+
+func (cbc *CBCFeed) refresh(ctx context.Context) {
+	cbc.logger.Debug("refreshing data")
+	feed, err := cbc.getFeed(ctx)
+	if err != nil {
+		cbc.logger.Warn("error getting feed",
+			zap.Error(err),
+		)
+		return
+	}
+
+	articles, err := cbc.parseFeed(feed)
+	if err != nil {
+		cbc.logger.Warn("error parsing feed",
+			zap.Error(err),
+		)
+		return
+	}
+
+	cbc.api.refreshArticles(articles)
 }
 
 func (cbc *CBCFeed) getFeed(ctx context.Context) (*gofeed.Feed, error) {

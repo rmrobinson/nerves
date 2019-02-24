@@ -67,7 +67,7 @@ func statementFromArticles(articles []*news.Article) *Statement {
 		if idx > 0 {
 			newsText += "\n"
 		}
-		newsText += fmt.Sprintf("*%s*\n```%s\n```%s\n", record.Title, record.Description, record.Link)
+		newsText += fmt.Sprintf("*%s*\n```%s```\n%s\n", record.Title, record.Description, record.Link)
 		if idx > 10 {
 			break
 		}

@@ -12,26 +12,33 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	bbcRefreshRate = time.Minute * 10
+)
+
 // BBCFeed is a news feed provided by the British Broadcasting Corporation
 type BBCFeed struct {
 	logger *zap.Logger
 	path   string
 
-	articles []*Article
+	api *API
 }
 
 // NewBBCFeed creates a new news feed from the BBC.
-func NewBBCFeed(logger *zap.Logger, path string) *BBCFeed {
+func NewBBCFeed(logger *zap.Logger, path string, api *API) *BBCFeed {
 	return &BBCFeed{
 		logger: logger,
 		path:   path,
+		api:    api,
 	}
 }
 
 // Run begins a loop that will poll BBC for changes.
 func (bbc *BBCFeed) Run(ctx context.Context) {
 	bbc.logger.Info("run started")
-	ticker := time.NewTicker(time.Second * 10)
+	bbc.refresh(ctx)
+
+	ticker := time.NewTicker(bbcRefreshRate)
 	for {
 		select {
 		case <-ctx.Done():
@@ -39,32 +46,29 @@ func (bbc *BBCFeed) Run(ctx context.Context) {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			bbc.logger.Debug("refreshing data")
-			feed, err := bbc.getFeed(ctx)
-			if err != nil {
-				continue
-			}
-
-			articles, err := bbc.parseFeed(feed)
-			if err != nil {
-				bbc.logger.Warn("error parsing feed",
-					zap.Error(err),
-				)
-				continue
-			}
-
-			bbc.articles = articles
-
-			var tmp []string
-			for _, article := range bbc.articles {
-				tmp = append(tmp, article.String())
-			}
-
-			bbc.logger.Debug("feed results",
-				zap.Strings("articles", tmp),
-			)
+			bbc.refresh(ctx)
 		}
 	}
+}
+
+func (bbc *BBCFeed) refresh(ctx context.Context) {
+	bbc.logger.Debug("refreshing data")
+	feed, err := bbc.getFeed(ctx)
+	if err != nil {
+		bbc.logger.Info("error getting data",
+			zap.Error(err),
+		)
+		return
+	}
+
+	articles, err := bbc.parseFeed(feed)
+	if err != nil {
+		bbc.logger.Warn("error parsing feed",
+			zap.Error(err),
+		)
+	}
+
+	bbc.api.refreshArticles(articles)
 }
 
 func (bbc *BBCFeed) getFeed(ctx context.Context) (*gofeed.Feed, error) {

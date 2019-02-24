@@ -14,11 +14,17 @@ func main() {
 	cbcURL := "https://rss.cbc.ca/lineup/topstories.xml"
 	bbcURL := "http://feeds.bbci.co.uk/news/rss.xml"
 
-	logger, _ := zap.NewDevelopment()
-	cbcf := news.NewCBCFeed(logger, cbcURL)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	api := news.NewAPI(logger)
+
+	cbcf := news.NewCBCFeed(logger, cbcURL, api)
 	go cbcf.Run(context.Background())
 
-	bbcf := news.NewBBCFeed(logger, bbcURL)
+	bbcf := news.NewBBCFeed(logger, bbcURL, api)
 	go bbcf.Run(context.Background())
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 10103))
@@ -29,7 +35,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	news.RegisterNewsServiceServer(grpcServer, news.NewAPI(logger, cbcf, bbcf))
+	news.RegisterNewsServiceServer(grpcServer, api)
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		logger.Fatal("failed to serve",
