@@ -18,8 +18,6 @@ import (
 var (
 	// ErrUnableToSetupMonopAmp is returned if the supplied bridge configuration fails to properly initialize monop.
 	ErrUnableToSetupMonopAmp = errors.New("unable to set up monoprice amp")
-	// ErrUnableToSetupBottlerocket is returned if the supplied bridge configuration fails to properly initialize br.
-	ErrUnableToSetupBottlerocket = errors.New("unable to set up bottlerocket")
 	// ErrBridgeConfigInvalid is returned if the supplied bridge configuration is invalid.
 	ErrBridgeConfigInvalid = errors.New("bridge config invalid")
 	portEnvVar             = "PORT"
@@ -27,8 +25,6 @@ var (
 	monopCachePathEnvVar   = "MONOP_CACHE_PATH"
 	hueCachePathEnvVar     = "HUE_CACHE_PATH"
 	proxyToAddrEnvVar      = "PROXY_TO_ADDR"
-	brUSBPathEnvVar        = "BOTTLEROCKET_USB_PATH"
-	brCachePathEnvVar      = "BOTTLEROCKET_CACHE_PATH"
 )
 
 func main() {
@@ -43,8 +39,6 @@ func main() {
 	viper.BindEnv(monopCachePathEnvVar)
 	viper.BindEnv(hueCachePathEnvVar)
 	viper.BindEnv(proxyToAddrEnvVar)
-	viper.BindEnv(brUSBPathEnvVar)
-	viper.BindEnv(brCachePathEnvVar)
 
 	hub := domotics.NewHub(logger)
 
@@ -75,36 +69,6 @@ func main() {
 		if err = hub.AddBridge(monop.bridge, time.Second*30); err != nil {
 			logger.Warn("error adding module to bridge",
 				zap.String("module_name", monopConfig.Name),
-				zap.Error(err),
-			)
-		}
-	}
-
-	brUSBPath := viper.GetString(brUSBPathEnvVar)
-	if len(brUSBPath) > 0 {
-		brConfig := &domotics.BridgeConfig{
-			Name:      domotics.BridgeType_BOTTLEROCKET.String(),
-			CachePath: viper.GetString(brCachePathEnvVar),
-			Address: &domotics.Address{
-				Usb: &domotics.Address_Usb{
-					Path: brUSBPath,
-				},
-			},
-		}
-
-		br := &bottlerocketImpl{
-			logger: logger,
-		}
-		if err := br.setup(brConfig); err != nil {
-			logger.Fatal("error initializing module",
-				zap.String("module_name", brConfig.Name),
-				zap.Error(err),
-			)
-		}
-		toClose = append(toClose, br)
-		if err = hub.AddBridge(br.bridge, time.Second*30); err != nil {
-			logger.Warn("error adding module to bridge",
-				zap.String("module_name", brConfig.Name),
 				zap.Error(err),
 			)
 		}
