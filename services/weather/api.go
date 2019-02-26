@@ -42,5 +42,5 @@ func (api *API) GetForecast(ctx context.Context, req *GetForecastRequest) (*GetF
 	}
 	return &GetForecastResponse{
 		ForecastRecords: forecast,
-	}, nil
+}, nil
 }
