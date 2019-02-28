@@ -14,9 +14,11 @@ func main() {
 		panic(err)
 	}
 
-	svc := noaa.NewService(logger, "https://api.weather.gov/gridpoints/MTR/88,126")
+	station := noaa.NewStation(logger, "https://api.weather.gov/gridpoints/MTR/88,126", "San Francisco", 37.7749, -122.4194)
+	svc := noaa.NewService(logger)
+	svc.AddStation(station)
 
-	conditions, err := svc.GetCurrentReport(context.Background())
+	conditions, err := svc.GetReport(context.Background(), 37.808673, -122.4120097)
 	if err != nil {
 		logger.Info("error getting weather")
 	}
