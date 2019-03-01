@@ -2,12 +2,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["service.go"],
+    srcs = ["station.go"],
     importpath = "github.com/rmrobinson/nerves/services/weather/noaa",
     visibility = ["//visibility:public"],
     deps = [
         "//services/weather:go_default_library",
-        "//vendor/github.com/paulmach/go.geojson:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
     ],
 )

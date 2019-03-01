@@ -22,4 +22,10 @@ go_library(
     embed = [":faltung_nerves_weather_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/weather",
     visibility = ["//visibility:public"],
+    deps = [
+        "//lib/geoset:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
+    ],
 )
