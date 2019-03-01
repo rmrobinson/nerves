@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package faltung.nerves.policy;
+
+import "google/protobuf/timestamp.proto";
+
+// Comparison represents different ways to compare two things together.
+enum Comparison {
+    EQUAL = 0;
+    GREATER_THAN = 1;
+    GREATER_THAN_EQUAL_TO = 2;
+    LESS_THAN = 3;
+    LESS_THAN_EQUAL_TO = 4;
+}
+
+// DeviceCondition represents a condition driven by the state of the specified device.
+message DeviceCondition {
+    string device_id = 1;
+
+    message Binary {
+        bool is_on = 1;
+    }
+    Binary binary = 50;
+
+    message Range {
+        int32 value = 1;
+        Comparison comparison = 2;
+    }
+    Range range = 51;
+
+    message RGB {
+        int32 red = 1;
+        int32 green = 2;
+        int32 blue = 3;
+        Comparison red_check = 11;
+        Comparison green_check = 12;
+        Comparison blue_check = 113;
+    }
+    RGB rgb = 52;
+
+    message Speed {
+        int32 value = 1;
+        Comparison comparison = 2;
+    }
+    Speed speed = 53;
+
+    message Input {
+        string input = 1;
+        Comparison comparison = 2;
+    }
+    Input input = 54;
+
+    message Control {
+        bool is_open = 1;
+    }
+    Control control = 55;
+
+    message Temperature {
+        int32 temperature_celsius = 1;
+        Comparison temperature_comparison = 2;
+    }
+    Temperature temperature = 56;
+
+    message Button {
+        int32 id = 1;
+        bool is_on = 2;
+    }
+    Button button = 57;
+
+    message Presence {
+        bool is_present = 1;
+    }
+    Presence presence = 58;
+
+}
+
+// Condition represents a general condition.
+message Condition {
+    string name = 1;
+    bool negate = 2;
+
+    // --- Built-in conditionals ---
+
+    // A combination of conditions that will be evaluated together.
+    // This allows an arbitrarily complex statement to be generated.
+    message Set {
+        enum Operator {
+            AND = 0;
+            OR = 1;
+        }
+        Operator operator = 1;
+        repeated Condition conditions = 2;
+    }
+    Set set = 101;
+
+    // A scheduled condition that wil trigger on the supplied interval.
+    // This executes using the crontab syntax, in the specified timezone.
+    message Cron {
+        string entry = 1;
+        string tz = 11;
+    }
+    Cron cron = 102;
+
+    // A conditional that will evaluate to true when the tied
+    // timer action has expired. This depends on the id specified
+    // in the condition matching the timer; it also allows multiple
+    // conditions to trigger on the same timer.
+    message Timer {
+        string id = 1;
+    }
+    Timer timer = 103;
+
+    // --- Additional conditionals ---
+    DeviceCondition device = 151;
+}
+
+// Action represents an activity that can be taken.
+// They should be treated as edge-triggered and not level-triggered.
+message Action {
+    enum Type {
+        Log = 0;
+    }
+    string name = 1;
+    Type type = 2;
+}
+
+// Policy represents a collection of conditions that, when evaluated together to true, cause the action to be executed.
+message Policy {
+    string name = 1;
+    int32 weight = 2;
+
+    Condition condition = 11;
+    repeated Action actions = 12;
+}
+
+// PolicySet represents a collection of policies.
+message PolicySet {
+    repeated Policy policies = 1;
+}

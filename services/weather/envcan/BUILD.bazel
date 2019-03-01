@@ -9,7 +9,6 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/weather/envcan",
     visibility = ["//visibility:public"],
     deps = [
-        "//lib/geoset:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/mmcdole/gofeed:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",

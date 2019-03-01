@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "faltung_nerves_policy_proto",
+    srcs = ["policy.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["@com_google_protobuf//:timestamp_proto"],
+)
+
+go_proto_library(
+    name = "faltung_nerves_policy_go_proto",
+    importpath = "github.com/rmrobinson/nerves/services/policy",
+    proto = ":faltung_nerves_policy_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "go_default_library",
+    embed = [":faltung_nerves_policy_go_proto"],
+    importpath = "github.com/rmrobinson/nerves/services/policy",
+    visibility = ["//visibility:public"],
+)
