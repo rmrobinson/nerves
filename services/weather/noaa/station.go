@@ -10,6 +10,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	refreshFrequency = time.Minute * 30
+)
+
 // Station represents a NOAA station location
 type Station struct {
 	url   string
@@ -34,6 +38,35 @@ func NewStation(logger *zap.Logger, url string, title string, latitude float64, 
 		longitude: longitude,
 		logger:    logger,
 	}
+}
+
+// Name returns the printable name of this weather station
+func (s *Station) Name() string {
+	return s.title
+}
+
+// GetReport returns the current weather report for this station.
+func (s *Station) GetReport(ctx context.Context) (*weather.WeatherReport, error) {
+	if s.shouldRefresh() {
+		err := s.refresh(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s.currentReport, nil
+}
+
+// GetForecast returns the forecast for this station
+func (s *Station) GetForecast(ctx context.Context) ([]*weather.WeatherForecast, error) {
+	if s.shouldRefresh() {
+		err := s.refresh(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s.forecast, nil
 }
 
 func (s *Station) shouldRefresh() bool {

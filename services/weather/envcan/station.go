@@ -31,6 +31,35 @@ type Station struct {
 	lastRefreshed time.Time
 }
 
+// Name returns the printable name of this weather station
+func (s *Station) Name() string {
+	return s.Title
+}
+
+// GetReport returns the current weather report for this station.
+func (s *Station) GetReport(ctx context.Context) (*weather.WeatherReport, error) {
+	if s.shouldRefresh() {
+		err := s.refresh(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s.currentReport, nil
+}
+
+// GetForecast returns the forecast for this station
+func (s *Station) GetForecast(ctx context.Context) ([]*weather.WeatherForecast, error) {
+	if s.shouldRefresh() {
+		err := s.refresh(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s.forecast, nil
+}
+
 func (s *Station) shouldRefresh() bool {
 	return time.Now().Add(refreshFrequency * -1).After(s.lastRefreshed)
 }

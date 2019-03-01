@@ -2,44 +2,81 @@ package weather
 
 import (
 	"context"
+
+	"github.com/rmrobinson/nerves/lib/geoset"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// Service defines methods to be implemented by a weather service.
-type Service interface {
-	GetReport(context context.Context, latitude float64, longitude float64) (*WeatherReport, error)
-	GetForecast(context context.Context, latitude float64, longitude float64) ([]*WeatherForecast, error)
+var (
+	// ErrLocationNotFound is returned if the supplied lat/lon value can't be found.
+	ErrLocationNotFound = status.New(codes.NotFound, "location not found")
+)
+
+// Station represents a single weather station location.
+type Station interface {
+	Name() string
+	GetReport(ctx context.Context) (*WeatherReport, error)
+	GetForecast(ctx context.Context) ([]*WeatherForecast, error)
 }
 
 // API is an implementation of the WeatherService server.
 type API struct {
-	service Service
+	logger   *zap.Logger
+	stations *geoset.GeoSet
 }
 
 // NewAPI creates a new weather service server.
-func NewAPI(feed Service) *API {
+func NewAPI(logger *zap.Logger) *API {
 	return &API{
-		service: feed,
+		logger:   logger,
+		stations: geoset.NewGeoSet(),
 	}
+}
+
+// RegisterStation takes the supplied station and adds it to the queryable set.
+func (api *API) RegisterStation(s Station, latitude float64, longitude float64) {
+	api.stations.Add(latitude, longitude, s)
 }
 
 // GetCurrentReport gets a weather report
 func (api *API) GetCurrentReport(ctx context.Context, req *GetCurrentReportRequest) (*GetCurrentReportResponse, error) {
-	report, err := api.service.GetReport(ctx, req.Latitude, req.Longitude)
+	s := api.stations.Closest(req.Latitude, req.Longitude).(Station)
+	if s == nil {
+		return nil, ErrLocationNotFound.Err()
+	}
+
+	report, err := s.GetReport(ctx)
 	if err != nil {
-		return nil, err
+		api.logger.Info("error getting station report",
+			zap.String("name", s.Name()),
+			zap.Error(err),
+		)
 	}
 
 	return &GetCurrentReportResponse{
-		Report: report,
+		Report:      report,
+		StationName: s.Name(),
 	}, nil
 }
 
 // GetForecast gets a weather forecast.
 func (api *API) GetForecast(ctx context.Context, req *GetForecastRequest) (*GetForecastResponse, error) {
-	forecast, err := api.service.GetForecast(ctx, req.Latitude, req.Longitude)
+	s := api.stations.Closest(req.Latitude, req.Longitude).(Station)
+	if s == nil {
+		return nil, ErrLocationNotFound.Err()
+	}
+
+	forecast, err := s.GetForecast(ctx)
 	if err != nil {
+		api.logger.Info("error getting station forecast",
+			zap.String("name", s.Name()),
+			zap.Error(err),
+		)
 		return nil, err
 	}
+
 	return &GetForecastResponse{
 		ForecastRecords: forecast,
 	}, nil
