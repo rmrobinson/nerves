@@ -17,7 +17,15 @@ go_proto_library(
 
 go_library(
     name = "go_default_library",
+    srcs = [
+        "engine.go",
+        "state.go",
+    ],
     embed = [":faltung_nerves_policy_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/policy",
     visibility = ["//visibility:public"],
+    deps = [
+        "//services/domotics:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+    ],
 )
