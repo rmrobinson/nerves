@@ -6,6 +6,7 @@ import (
 
 	"github.com/rmrobinson/nerves/services/domotics"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 // State represents the current state of the system this policy engine is monitoring.
@@ -25,12 +26,14 @@ type State struct {
 }
 
 // NewState creates a new state entity to manage.
-func NewState(logger *zap.Logger, refresh chan<- bool) *State {
+func NewState(logger *zap.Logger, conn *grpc.ClientConn, refresh chan<- bool) *State {
 	return &State{
-		logger:      logger,
-		refresh:     refresh,
-		bridgeState: map[string]*domotics.Bridge{},
-		deviceState: map[string]*domotics.Device{},
+		logger:       logger,
+		refresh:      refresh,
+		bridgeClient: domotics.NewBridgeServiceClient(conn),
+		deviceClient: domotics.NewDeviceServiceClient(conn),
+		bridgeState:  map[string]*domotics.Bridge{},
+		deviceState:  map[string]*domotics.Device{},
 	}
 }
 
