@@ -84,6 +84,6 @@ func (e *Engine) Run(ctx context.Context) {
 
 func (e *Engine) execute(ctx context.Context) {
 	for _, policy := range e.policies {
-		policy.execute(e.state)
+		policy.execute(e.logger, e.state)
 	}
 }
