@@ -71,7 +71,16 @@ message DeviceCondition {
         bool is_present = 1;
     }
     Presence presence = 58;
+}
 
+message WeatherCondition {
+    string location = 1;
+
+    message Temperature {
+        Comparison comparison = 1;
+        int32 temperature_celsisus = 2;
+    }
+    Temperature temperature = 50;
 }
 
 // Condition represents a general condition.
@@ -112,6 +121,7 @@ message Condition {
 
     // --- Additional conditionals ---
     DeviceCondition device = 151;
+    WeatherCondition weather = 152;
 }
 
 // Action represents an activity that can be taken.
