@@ -31,25 +31,24 @@ func main() {
 	}
 	defer domoticsConn.Close()
 
-	stateRefresh := make(chan bool)
-	state := policy.NewState(logger, domoticsConn, stateRefresh)
-
-	go state.Monitor(context.Background())
+	state := policy.NewState(logger, domoticsConn)
 
 	engine := policy.NewEngine(logger, state)
 
+	go state.Monitor(context.Background())
+
 	p := &policy.Policy{
+		Name: "test policy 1",
 		Condition: &policy.Condition{
-			Device: &policy.DeviceCondition{
-				DeviceId: "Asdf",
-				Binary: &policy.DeviceCondition_Binary{
-					IsOn: true,
-				},
+			Name: "every minute",
+			Cron: &policy.Condition_Cron{
+				Tz:    "America/Los_Angeles",
+				Entry: "0 * * * * *",
 			},
 		},
 		Actions: []*policy.Action{
 			{
-				Name: "test policy",
+				Name: "test policy action",
 				Type: policy.Action_Log,
 			},
 		},

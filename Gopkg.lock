@@ -251,6 +251,14 @@
   revision = "ea909ba38552f6a113a7248bacabc3424cc6c33b"
 
 [[projects]]
+  digest = "1:ed615c5430ecabbb0fb7629a182da65ecee6523900ac1ac932520860878ffcad"
+  name = "github.com/robfig/cron"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b41be1df696709bb6395fe435af20370037c0b4c"
+  version = "v1.1"
+
+[[projects]]
   digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
   name = "github.com/spf13/afero"
   packages = [
@@ -479,6 +487,7 @@
     "github.com/rmrobinson/bottlerocket-go",
     "github.com/rmrobinson/hue-go",
     "github.com/rmrobinson/monoprice-amp-go",
+    "github.com/robfig/cron",
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",
     "github.com/tarm/serial",

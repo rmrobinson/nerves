@@ -21,21 +21,21 @@ type Engine struct {
 	policies   []*Policy
 	policyLock sync.Mutex
 
-	timers map[string]string
-
 	state *State
 }
 
 // NewEngine creates a new policy engine.
 func NewEngine(logger *zap.Logger, state *State) *Engine {
-	return &Engine{
+	engine := &Engine{
 		logger:   logger,
 		refresh:  make(chan bool, 8),
 		done:     make(chan bool),
 		policies: []*Policy{},
-		timers:   map[string]string{},
 		state:    state,
 	}
+
+	state.refresh = engine.refresh
+	return engine
 }
 
 // AddPolicy registers a new policy with the policy engine.
@@ -44,6 +44,13 @@ func NewEngine(logger *zap.Logger, state *State) *Engine {
 func (e *Engine) AddPolicy(policy *Policy) {
 	e.policyLock.Lock()
 	defer e.policyLock.Unlock()
+
+	if !e.setupPolicy(policy) {
+		e.logger.Info("error setting up policy, not adding",
+			zap.String("name", policy.Name),
+		)
+		return
+	}
 
 	e.policies = append(e.policies, policy)
 	sort.Slice(e.policies, func(i, j int) bool {
@@ -64,6 +71,8 @@ func (e *Engine) Done() <-chan bool {
 // Run begins the policy evaluation process.
 // The evaluation can be terminated by aborting the supplied context.
 func (e *Engine) Run(ctx context.Context) {
+	e.logger.Debug("starting event loop")
+
 	for {
 		select {
 		case _ = <-ctx.Done():
@@ -77,13 +86,46 @@ func (e *Engine) Run(ctx context.Context) {
 				continue
 			}
 
+			e.logger.Debug("refresh triggered")
 			e.execute(ctx)
 		}
 	}
+}
+
+func (e *Engine) setupPolicy(policy *Policy) bool {
+	cronConditions := findCronConditions(policy.Condition)
+
+	for _, cronCondition := range cronConditions {
+		err := e.state.addCronEntry(cronCondition)
+		if err != nil {
+			e.logger.Info("error adding cron condition",
+				zap.String("name", policy.Name),
+				zap.Error(err),
+			)
+			return false
+		}
+	}
+
+	return true
 }
 
 func (e *Engine) execute(ctx context.Context) {
 	for _, policy := range e.policies {
 		policy.execute(e.logger, e.state)
 	}
+}
+
+func findCronConditions(c *Condition) []*Condition {
+	if c.Cron != nil {
+		return []*Condition{c}
+	} else if c.Set == nil {
+		return nil
+	}
+
+	var ret []*Condition
+	for _, cond := range c.Set.Conditions {
+		ret = append(ret, findCronConditions(cond)...)
+	}
+
+	return ret
 }
