@@ -23,6 +23,14 @@ func (c *Condition) triggered(state *State) bool {
 		}
 
 		return false
+	} else if c.Cron != nil {
+		if cron, ok := state.cronsByCond[c]; ok {
+			if cron.active {
+				return true
+			}
+		}
+
+		return false
 	}
 
 	// TODO: add other conditions
