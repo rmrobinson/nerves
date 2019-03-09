@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rmrobinson/nerves/services/domotics"
 	crontab "github.com/robfig/cron"
 	"go.uber.org/zap"
@@ -25,9 +24,8 @@ var (
 )
 
 type cronEntry struct {
-	id        string
-	cron      *crontab.Cron
 	condition *Condition
+	cron      *crontab.Cron
 	active    bool
 }
 
@@ -108,9 +106,7 @@ func (s *State) addCronEntry(c *Condition) error {
 		loc = time.Local
 	}
 
-	id := uuid.New().String()
 	entry := &cronEntry{
-		id:        id,
 		cron:      crontab.NewWithLocation(loc),
 		condition: c,
 		active:    false,
