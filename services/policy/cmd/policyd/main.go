@@ -38,12 +38,30 @@ func main() {
 	go state.Monitor(context.Background())
 
 	p := &policy.Policy{
-		Name: "test policy 1",
+		Name: "test policy 1 (cron or weather)",
 		Condition: &policy.Condition{
-			Name: "every minute",
-			Cron: &policy.Condition_Cron{
-				Tz:    "America/Los_Angeles",
-				Entry: "0 * * * * *",
+			Name: "cron or weather condition",
+			Set: &policy.Condition_Set{
+				Operator: policy.Condition_Set_OR,
+				Conditions: []*policy.Condition{
+					{
+						Name: "every minute",
+						Cron: &policy.Condition_Cron{
+							Tz:    "America/Los_Angeles",
+							Entry: "0 0 * * * *",
+						},
+					},
+					{
+						Name: "kitchener temp > 10",
+						Weather: &policy.WeatherCondition{
+							Location: "YKF",
+							Temperature: &policy.WeatherCondition_Temperature{
+								Comparison:          policy.Comparison_GREATER_THAN,
+								TemperatureCelsisus: 10,
+							},
+						},
+					},
+				},
 			},
 		},
 		Actions: []*policy.Action{

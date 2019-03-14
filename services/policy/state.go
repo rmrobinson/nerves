@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/weather"
 	crontab "github.com/robfig/cron"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -37,6 +38,8 @@ type State struct {
 
 	refresh chan<- bool
 
+	weatherState map[string]*weather.WeatherReport
+
 	bridgeState map[string]*domotics.Bridge
 	deviceState map[string]*domotics.Device
 	deviceLock  sync.Mutex
@@ -56,6 +59,7 @@ func NewState(logger *zap.Logger, conn *grpc.ClientConn) *State {
 		bridgeState:  map[string]*domotics.Bridge{},
 		deviceState:  map[string]*domotics.Device{},
 		cronsByCond:  map[*Condition]*cronEntry{},
+		weatherState: map[string]*weather.WeatherReport{},
 	}
 }
 

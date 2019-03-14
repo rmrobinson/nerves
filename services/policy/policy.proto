@@ -94,8 +94,9 @@ message Condition {
     // This allows an arbitrarily complex statement to be generated.
     message Set {
         enum Operator {
-            AND = 0;
-            OR = 1;
+            NO_OPERATOR = 0;
+            AND = 1;
+            OR = 2;
         }
         Operator operator = 1;
         repeated Condition conditions = 2;

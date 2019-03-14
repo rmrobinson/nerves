@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
 proto_library(
@@ -29,8 +29,20 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//services/domotics:go_default_library",
+        "//services/weather:go_default_library",
         "//vendor/github.com/robfig/cron:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["condition_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//services/weather:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/go.uber.org/zap/zaptest:go_default_library",
     ],
 )
