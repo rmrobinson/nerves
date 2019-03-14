@@ -45,6 +45,13 @@ func (e *Engine) AddPolicy(policy *Policy) {
 	e.policyLock.Lock()
 	defer e.policyLock.Unlock()
 
+	if policy.Condition == nil || !policy.Condition.validate() {
+		e.logger.Info("error validating policy, not adding",
+			zap.String("name", policy.Name),
+		)
+		return
+	}
+
 	if !e.setupPolicy(policy) {
 		e.logger.Info("error setting up policy, not adding",
 			zap.String("name", policy.Name),
@@ -56,6 +63,11 @@ func (e *Engine) AddPolicy(policy *Policy) {
 	sort.Slice(e.policies, func(i, j int) bool {
 		return e.policies[i].Weight < e.policies[j].Weight
 	})
+
+	// Force a re-evaluation since we have a policy whose state may match.
+	go func() {
+		e.refresh <- true
+	}()
 }
 
 // Refresh returns a channel that can be written to to trigger a new policy execution.

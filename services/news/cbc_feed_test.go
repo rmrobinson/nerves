@@ -33,7 +33,7 @@ var cbcDescriptionToArticleTests = []cbcDescriptionToArticleTest{
 }
 
 func TestCBCParseDescription(t *testing.T) {
-	cbcf := NewCBCFeed(zaptest.NewLogger(t), "")
+	cbcf := NewCBCFeed(zaptest.NewLogger(t), "", nil)
 	for _, tt := range cbcDescriptionToArticleTests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := cbcf.parseDescription(tt.desc)
