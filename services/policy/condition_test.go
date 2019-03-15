@@ -3,6 +3,7 @@ package policy
 import (
 	"testing"
 
+	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
@@ -131,12 +132,46 @@ var conditionTests = []conditionTest{
 		validate: true,
 		trigger:  false,
 	},
+	{
+		name: "valid device rgb condition passes validation and executes",
+		cond: Condition{
+			Name: "Test",
+			Device: &DeviceCondition{
+				DeviceId: "test device",
+				Binary: &DeviceCondition_Binary{
+					IsOn: true,
+				},
+				Rgb: &DeviceCondition_RGB{
+					Red:        100,
+					RedCheck:   Comparison_GREATER_THAN,
+					Green:      100,
+					GreenCheck: Comparison_GREATER_THAN,
+					Blue:       100,
+					BlueCheck:  Comparison_GREATER_THAN,
+				},
+			},
+		},
+		validate: true,
+		trigger:  true,
+	},
 }
 
 func TestCondition(t *testing.T) {
 	s := NewState(zaptest.NewLogger(t), nil)
 	s.weatherState["test loc"] = &weather.WeatherReport{
 		Conditions: &weather.WeatherCondition{Temperature: 0},
+	}
+	s.deviceState["test device"] = &domotics.Device{
+		State: &domotics.DeviceState{
+			Binary: &domotics.DeviceState_BinaryState{
+				IsOn: true,
+			},
+			ColorRgb: &domotics.DeviceState_RGBState{
+				Red:   150,
+				Green: 110,
+				Blue:  120,
+			},
+		},
 	}
 
 	for _, tt := range conditionTests {
