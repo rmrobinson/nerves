@@ -17,6 +17,10 @@ func (c *Condition) validate() bool {
 		} else if c.Weather.Temperature == nil {
 			return false
 		}
+	} else if c.Device != nil {
+		if c.Device.Binary == nil {
+			return false
+		}
 	} else {
 		return false
 	}
@@ -55,17 +59,17 @@ func (c *Condition) triggered(state *State) bool {
 		}
 	} else if c.Weather != nil {
 		if report, ok := state.weatherState[c.Weather.Location]; ok {
-			switch c.Weather.Temperature.Comparison {
-			case Comparison_EQUAL:
-				triggered = c.Weather.Temperature.TemperatureCelsisus == int32(report.Conditions.Temperature)
-			case Comparison_GREATER_THAN:
-				triggered = int32(report.Conditions.Temperature) > c.Weather.Temperature.TemperatureCelsisus
-			case Comparison_GREATER_THAN_EQUAL_TO:
-				triggered = int32(report.Conditions.Temperature) >= c.Weather.Temperature.TemperatureCelsisus
-			case Comparison_LESS_THAN:
-				triggered = int32(report.Conditions.Temperature) < c.Weather.Temperature.TemperatureCelsisus
-			case Comparison_LESS_THAN_EQUAL_TO:
-				triggered = int32(report.Conditions.Temperature) <= c.Weather.Temperature.TemperatureCelsisus
+			triggered = intComparison(c.Weather.Temperature.Comparison, int32(report.Conditions.Temperature), c.Weather.Temperature.TemperatureCelsisus)
+		}
+	} else if c.Device != nil {
+		if device, ok := state.deviceState[c.Device.DeviceId]; ok {
+			if c.Device.Binary != nil && device.State.Binary != nil {
+				triggered = c.Device.Binary.IsOn == device.State.Binary.IsOn
+			}
+			if c.Device.Rgb != nil && device.State.ColorRgb != nil {
+				triggered = intComparison(c.Device.Rgb.RedCheck, device.State.ColorRgb.Red, c.Device.Rgb.Red) &&
+					intComparison(c.Device.Rgb.GreenCheck, device.State.ColorRgb.Green, c.Device.Rgb.Green) &&
+					intComparison(c.Device.Rgb.BlueCheck, device.State.ColorRgb.Blue, c.Device.Rgb.Blue)
 			}
 		}
 	}
@@ -77,4 +81,21 @@ func (c *Condition) triggered(state *State) bool {
 	}
 
 	return triggered
+}
+
+func intComparison(comparison Comparison, value int32, threshold int32) bool {
+	switch comparison {
+	case Comparison_EQUAL:
+		return value == threshold
+	case Comparison_GREATER_THAN:
+		return value > threshold
+	case Comparison_GREATER_THAN_EQUAL_TO:
+		return value >= threshold
+	case Comparison_LESS_THAN:
+		return value < threshold
+	case Comparison_LESS_THAN_EQUAL_TO:
+		return value <= threshold
+	}
+
+	return false
 }
