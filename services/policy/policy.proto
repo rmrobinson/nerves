@@ -78,7 +78,7 @@ message WeatherCondition {
 
     message Temperature {
         Comparison comparison = 1;
-        int32 temperature_celsisus = 2;
+        int32 temperature_celsius = 2;
     }
     Temperature temperature = 50;
 }
