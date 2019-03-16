@@ -59,7 +59,7 @@ func (c *Condition) triggered(state *State) bool {
 		}
 	} else if c.Weather != nil {
 		if report, ok := state.weatherState[c.Weather.Location]; ok {
-			triggered = intComparison(c.Weather.Temperature.Comparison, int32(report.Conditions.Temperature), c.Weather.Temperature.TemperatureCelsisus)
+			triggered = intComparison(c.Weather.Temperature.Comparison, int32(report.Conditions.Temperature), c.Weather.Temperature.TemperatureCelsius)
 		}
 	} else if c.Device != nil {
 		if device, ok := state.deviceState[c.Device.DeviceId]; ok {

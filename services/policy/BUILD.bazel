@@ -41,6 +41,7 @@ go_test(
     srcs = ["condition_test.go"],
     embed = [":go_default_library"],
     deps = [
+        "//services/domotics:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/go.uber.org/zap/zaptest:go_default_library",

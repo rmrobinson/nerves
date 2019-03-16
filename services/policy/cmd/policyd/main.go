@@ -56,8 +56,8 @@ func main() {
 						Weather: &policy.WeatherCondition{
 							Location: "YKF",
 							Temperature: &policy.WeatherCondition_Temperature{
-								Comparison:          policy.Comparison_GREATER_THAN,
-								TemperatureCelsisus: 10,
+								Comparison:         policy.Comparison_GREATER_THAN,
+								TemperatureCelsius: 10,
 							},
 						},
 					},

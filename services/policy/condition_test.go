@@ -33,8 +33,8 @@ var conditionTests = []conditionTest{
 			Weather: &WeatherCondition{
 				Location: "test loc",
 				Temperature: &WeatherCondition_Temperature{
-					Comparison:          Comparison_GREATER_THAN,
-					TemperatureCelsisus: 10,
+					Comparison:         Comparison_GREATER_THAN,
+					TemperatureCelsius: 10,
 				},
 			},
 		},
@@ -48,8 +48,8 @@ var conditionTests = []conditionTest{
 			Weather: &WeatherCondition{
 				Location: "test loc",
 				Temperature: &WeatherCondition_Temperature{
-					Comparison:          Comparison_GREATER_THAN,
-					TemperatureCelsisus: -1,
+					Comparison:         Comparison_GREATER_THAN,
+					TemperatureCelsius: -1,
 				},
 			},
 		},
@@ -63,8 +63,8 @@ var conditionTests = []conditionTest{
 			Weather: &WeatherCondition{
 				Location: "test loc",
 				Temperature: &WeatherCondition_Temperature{
-					Comparison:          Comparison_GREATER_THAN,
-					TemperatureCelsisus: 10,
+					Comparison:         Comparison_GREATER_THAN,
+					TemperatureCelsius: 10,
 				},
 			},
 			Negate: true,
@@ -91,8 +91,8 @@ var conditionTests = []conditionTest{
 						Weather: &WeatherCondition{
 							Location: "test loc",
 							Temperature: &WeatherCondition_Temperature{
-								Comparison:          Comparison_LESS_THAN,
-								TemperatureCelsisus: 10,
+								Comparison:         Comparison_LESS_THAN,
+								TemperatureCelsius: 10,
 							},
 						},
 					},
@@ -121,8 +121,8 @@ var conditionTests = []conditionTest{
 						Weather: &WeatherCondition{
 							Location: "test loc",
 							Temperature: &WeatherCondition_Temperature{
-								Comparison:          Comparison_GREATER_THAN,
-								TemperatureCelsisus: 10,
+								Comparison:         Comparison_GREATER_THAN,
+								TemperatureCelsius: 10,
 							},
 						},
 					},
