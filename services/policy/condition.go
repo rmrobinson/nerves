@@ -71,6 +71,9 @@ func (c *Condition) triggered(state *State) bool {
 					intComparison(c.Device.Rgb.GreenCheck, device.State.ColorRgb.Green, c.Device.Rgb.Green) &&
 					intComparison(c.Device.Rgb.BlueCheck, device.State.ColorRgb.Blue, c.Device.Rgb.Blue)
 			}
+			if c.Device.Presence != nil && device.State.Presence != nil {
+				triggered = c.Device.Presence.IsPresent == device.State.Presence.IsPresent
+			}
 		}
 	}
 
