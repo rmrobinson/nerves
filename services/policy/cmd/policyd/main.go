@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/policy"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -37,6 +39,19 @@ func main() {
 
 	go state.Monitor(context.Background())
 
+	device := &policy.DeviceAction{
+		Id: "test-device-id",
+		State: &domotics.DeviceState{
+			Binary: &domotics.DeviceState_BinaryState{
+				IsOn: true,
+			},
+		},
+	}
+	deviceAction, err := ptypes.MarshalAny(device)
+	if err != nil {
+		panic(err)
+	}
+
 	p := &policy.Policy{
 		Name: "test policy 1 (cron or weather)",
 		Condition: &policy.Condition{
@@ -48,7 +63,7 @@ func main() {
 						Name: "every minute",
 						Cron: &policy.Condition_Cron{
 							Tz:    "America/Los_Angeles",
-							Entry: "0 0 * * * *",
+							Entry: "0 * * * * *",
 						},
 					},
 					{
@@ -66,8 +81,13 @@ func main() {
 		},
 		Actions: []*policy.Action{
 			{
-				Name: "test policy action",
-				Type: policy.Action_Log,
+				Name: "test log action",
+				Type: policy.Action_LOG,
+			},
+			{
+				Name: "test device action",
+				Type: policy.Action_DEVICE,
+				Details: deviceAction,
 			},
 		},
 	}

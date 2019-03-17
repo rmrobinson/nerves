@@ -6,9 +6,11 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/policy/cmd/policyd",
     visibility = ["//visibility:private"],
     deps = [
+        "//services/domotics:go_default_library",
         "//services/policy:go_default_library",
         "//vendor/github.com/spf13/viper:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )
