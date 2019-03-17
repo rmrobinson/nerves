@@ -5,7 +5,11 @@ proto_library(
     name = "faltung_nerves_policy_proto",
     srcs = ["policy.proto"],
     visibility = ["//visibility:public"],
-    deps = ["@com_google_protobuf//:timestamp_proto"],
+    deps = [
+        "//services/domotics:faltung_nerves_domotics_proto",
+        "@com_google_protobuf//:any_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
 )
 
 go_proto_library(
@@ -13,6 +17,7 @@ go_proto_library(
     importpath = "github.com/rmrobinson/nerves/services/policy",
     proto = ":faltung_nerves_policy_proto",
     visibility = ["//visibility:public"],
+    deps = ["//services/domotics:go_default_library"],
 )
 
 go_library(
@@ -30,8 +35,10 @@ go_library(
     deps = [
         "//services/domotics:go_default_library",
         "//services/weather:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/robfig/cron:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

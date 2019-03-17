@@ -1,10 +1,12 @@
 package policy
 
 import (
+	"context"
+
 	"go.uber.org/zap"
 )
 
-func (p *Policy) execute(logger *zap.Logger, state *State) {
+func (p *Policy) execute(ctx context.Context, logger *zap.Logger, state *State) {
 	if !p.Condition.triggered(state) {
 		logger.Debug("policy conditions not met",
 			zap.String("name", p.Name),
@@ -14,6 +16,6 @@ func (p *Policy) execute(logger *zap.Logger, state *State) {
 
 	logger.Debug("policy conditions met, executing actions")
 	for _, action := range p.Actions {
-		action.execute(logger, state)
+		action.execute(ctx, logger, state)
 	}
 }

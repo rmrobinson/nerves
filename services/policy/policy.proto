@@ -2,7 +2,10 @@ syntax = "proto3";
 
 package faltung.nerves.policy;
 
+import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
+
+import "services/domotics/device.proto";
 
 // Comparison represents different ways to compare two things together.
 enum Comparison {
@@ -125,14 +128,22 @@ message Condition {
     WeatherCondition weather = 152;
 }
 
+message DeviceAction {
+    string id = 1;
+
+    faltung.nerves.domotics.DeviceState state = 2;
+}
+
 // Action represents an activity that can be taken.
 // They should be treated as edge-triggered and not level-triggered.
 message Action {
     enum Type {
-        Log = 0;
+        LOG = 0;
+        DEVICE = 1;
     }
     string name = 1;
     Type type = 2;
+    google.protobuf.Any details = 3;
 }
 
 // Policy represents a collection of conditions that, when evaluated together to true, cause the action to be executed.

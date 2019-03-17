@@ -123,7 +123,7 @@ func (e *Engine) setupPolicy(policy *Policy) bool {
 
 func (e *Engine) execute(ctx context.Context) {
 	for _, policy := range e.policies {
-		policy.execute(e.logger, e.state)
+		policy.execute(ctx, e.logger, e.state)
 	}
 }
 
