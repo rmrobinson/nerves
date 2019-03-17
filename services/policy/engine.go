@@ -5,6 +5,9 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/rmrobinson/nerves/services/domotics"
 	"go.uber.org/zap"
 )
 
@@ -123,7 +126,7 @@ func (e *Engine) setupPolicy(policy *Policy) bool {
 
 func (e *Engine) execute(ctx context.Context) {
 	for _, policy := range e.policies {
-		policy.execute(ctx, e.logger, e.state)
+		e.executePolicy(ctx, policy)
 	}
 }
 
@@ -140,4 +143,62 @@ func findCronConditions(c *Condition) []*Condition {
 	}
 
 	return ret
+}
+
+func (e *Engine) executePolicy(ctx context.Context, p *Policy) {
+	if !p.Condition.triggered(e.state) {
+		e.logger.Debug("policy conditions not met",
+			zap.String("name", p.Name),
+		)
+		return
+	}
+
+	e.logger.Debug("policy conditions met, executing actions")
+	for _, action := range p.Actions {
+		e.executeAction(ctx, action)
+	}
+}
+
+func (e *Engine) executeAction(ctx context.Context, a *Action) {
+	switch a.Type {
+	case Action_LOG:
+		e.logger.Info("executing action",
+			zap.String("name", a.Name),
+		)
+	case Action_DEVICE:
+		e.logger.Debug("received device action",
+			zap.String("name", a.Name),
+		)
+
+		deviceAction := &DeviceAction{}
+		err := ptypes.UnmarshalAny(a.Details, deviceAction)
+		if err != nil {
+			e.logger.Info("error unmarshaling details",
+				zap.String("name", a.Name),
+				zap.Error(err),
+			)
+			return
+		}
+
+		if device, ok := e.state.deviceState[deviceAction.Id]; ok {
+			proto.Merge(device.State, deviceAction.State)
+
+			// We don't save the result as the monitor channel will pick up the update when it is broadcast.
+			_, err := e.state.deviceClient.SetDeviceState(ctx, &domotics.SetDeviceStateRequest{
+				Id:    deviceAction.Id,
+				State: device.State,
+			})
+			if err != nil {
+				e.logger.Info("error setting device state",
+					zap.String("name", a.Name),
+					zap.Error(err),
+				)
+			}
+		} else {
+			e.logger.Info("action with missing device id",
+				zap.String("name", a.Name),
+				zap.String("device_id", deviceAction.Id),
+			)
+		}
+	}
 }

@@ -85,8 +85,8 @@ func main() {
 				Type: policy.Action_LOG,
 			},
 			{
-				Name: "test device action",
-				Type: policy.Action_DEVICE,
+				Name:    "test device action",
+				Type:    policy.Action_DEVICE,
 				Details: deviceAction,
 			},
 		},
