@@ -23,10 +23,8 @@ go_proto_library(
 go_library(
     name = "go_default_library",
     srcs = [
-        "action.go",
         "condition.go",
         "engine.go",
-        "policy.go",
         "state.go",
     ],
     embed = [":faltung_nerves_policy_go_proto"],

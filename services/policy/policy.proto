@@ -128,10 +128,31 @@ message Condition {
     WeatherCondition weather = 152;
 }
 
+// DeviceAction represents a device change that will occur.
 message DeviceAction {
     string id = 1;
 
     faltung.nerves.domotics.DeviceState state = 2;
+}
+
+// TimerAction represents an event that will trigger after the specified period of time.
+// If ticker is set this action will trigger at the interval for the specified number of times.
+// If timer is set this action will trigger once after the supplied interval.
+// Both cannot be set at the same time.
+message TimerAction {
+    string id = 1;
+
+    message Ticker {
+        int32 interval_ms = 1;
+        int32 count = 2;
+    }
+
+    message Timer {
+        int32 interval_ms = 1;
+    }
+
+    Ticker ticker = 10;
+    Timer timer = 11;
 }
 
 // Action represents an activity that can be taken.
@@ -140,6 +161,7 @@ message Action {
     enum Type {
         LOG = 0;
         DEVICE = 1;
+        TIMER = 2;
     }
     string name = 1;
     Type type = 2;

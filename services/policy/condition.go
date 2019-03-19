@@ -21,6 +21,10 @@ func (c *Condition) validate() bool {
 		if c.Device.Binary == nil {
 			return false
 		}
+	} else if c.Timer != nil {
+		if len(c.Timer.Id) < 1 {
+			return false
+		}
 	} else {
 		return false
 	}
@@ -53,7 +57,7 @@ func (c *Condition) triggered(state *State) bool {
 		}
 	} else if c.Cron != nil {
 		if cron, ok := state.cronsByCond[c]; ok {
-			if cron.active {
+			if cron.triggered {
 				triggered = true
 			}
 		}
@@ -73,6 +77,12 @@ func (c *Condition) triggered(state *State) bool {
 			}
 			if c.Device.Presence != nil && device.State.Presence != nil {
 				triggered = c.Device.Presence.IsPresent == device.State.Presence.IsPresent
+			}
+		}
+	} else if c.Timer != nil {
+		if timer, ok := state.timersByID[c.Timer.Id]; ok {
+			if timer.triggered {
+				triggered = true
 			}
 		}
 	}

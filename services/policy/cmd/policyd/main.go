@@ -52,6 +52,18 @@ func main() {
 		panic(err)
 	}
 
+	timer := &policy.TimerAction{
+		Id: "test-timer-id",
+		Timer: &policy.TimerAction_Timer{
+			IntervalMs: 5000,
+		},
+	}
+	timerAction, err := ptypes.MarshalAny(timer)
+	if err != nil {
+		panic(err)
+	}
+
+
 	p := &policy.Policy{
 		Name: "test policy 1 (cron or weather)",
 		Condition: &policy.Condition{
@@ -89,8 +101,30 @@ func main() {
 				Type:    policy.Action_DEVICE,
 				Details: deviceAction,
 			},
+			{
+				Name: "test timer action",
+				Type: policy.Action_TIMER,
+				Details: timerAction,
+			},
 		},
 	}
 	engine.AddPolicy(p)
+
+	p2 := &policy.Policy{
+		Name: "test policy 2 (timer)",
+		Condition: &policy.Condition{
+			Name: "timer condition",
+			Timer: &policy.Condition_Timer{
+				Id: "test-timer-id",
+			},
+		},
+		Actions: []*policy.Action{
+			{
+				Name: "timer action triggered",
+				Type: policy.Action_LOG,
+			},
+		},
+	}
+	engine.AddPolicy(p2)
 	engine.Run(context.Background())
 }
