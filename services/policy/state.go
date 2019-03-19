@@ -16,18 +16,30 @@ import (
 const (
 	// the amount of time a cron entry will remain active after triggering
 	cronEntryActiveDuration = time.Second * 5
+	// the amount of time a timer entry will remain active after triggering
+	timerEntryActiveDuration = time.Second * 5
 )
 
 var (
 	// ErrInvalidCondition is returned if a condition is supplied that doesn't meet the requirements of the method.
 	// For example, providing a condition without a cron field to the addCronEntry rule would yield this error.
 	ErrInvalidCondition = errors.New("invalid condition supplied")
+	// ErrInvalidAction is returned if an action is supplied that doesn't meet the requirements of the method.
+	// For example, providing a timer action with an empty body would yield this error.
+	ErrInvalidAction = errors.New("invalid action supplied")
 )
 
 type cronEntry struct {
 	condition *Condition
 	cron      *crontab.Cron
+	triggered bool
+}
+
+type timerEntry struct {
+	id        string
+	timer     *time.Timer
 	active    bool
+	triggered bool
 }
 
 // State represents the current state of the system this policy engine is monitoring.
@@ -46,6 +58,9 @@ type State struct {
 
 	cronsByCond map[*Condition]*cronEntry
 
+	timersByID map[string]*timerEntry
+	timerLock  sync.Mutex
+
 	bridgeClient domotics.BridgeServiceClient
 	deviceClient domotics.DeviceServiceClient
 }
@@ -58,8 +73,9 @@ func NewState(logger *zap.Logger, conn *grpc.ClientConn) *State {
 		deviceClient: domotics.NewDeviceServiceClient(conn),
 		bridgeState:  map[string]*domotics.Bridge{},
 		deviceState:  map[string]*domotics.Device{},
-		cronsByCond:  map[*Condition]*cronEntry{},
 		weatherState: map[string]*weather.WeatherReport{},
+		cronsByCond:  map[*Condition]*cronEntry{},
+		timersByID:   map[string]*timerEntry{},
 	}
 }
 
@@ -113,7 +129,7 @@ func (s *State) addCronEntry(c *Condition) error {
 	entry := &cronEntry{
 		cron:      crontab.NewWithLocation(loc),
 		condition: c,
-		active:    false,
+		triggered: false,
 	}
 	err = entry.cron.AddFunc(c.Cron.Entry, func() {
 		entry := s.cronsByCond[c]
@@ -123,7 +139,7 @@ func (s *State) addCronEntry(c *Condition) error {
 			zap.String("rule", entry.condition.Cron.Entry),
 		)
 
-		entry.active = true
+		entry.triggered = true
 		s.refresh <- true
 
 		go func(entry *cronEntry) {
@@ -131,7 +147,7 @@ func (s *State) addCronEntry(c *Condition) error {
 			// We don't know when the execution triggered by the refresh action will be true
 			// so we use the entry active duration to control this.
 			time.Sleep(cronEntryActiveDuration)
-			entry.active = false
+			entry.triggered = false
 			s.refresh <- true
 		}(entry)
 	})
@@ -145,6 +161,56 @@ func (s *State) addCronEntry(c *Condition) error {
 	)
 	s.cronsByCond[c] = entry
 	entry.cron.Start()
+
+	return nil
+}
+
+func (s *State) activateTimer(ta *TimerAction) error {
+	s.timerLock.Lock()
+	defer s.timerLock.Unlock()
+
+	var te *timerEntry
+	var ok bool
+
+	if ta.Timer == nil {
+		return ErrInvalidAction
+	} else if te, ok = s.timersByID[ta.Id]; !ok {
+		te = &timerEntry{}
+	}
+
+	// We don't want to have >1 ticker running
+	// This just means the triggering action already started
+	if te.active {
+		return nil
+	}
+	te.timer = time.NewTimer(time.Duration(ta.Timer.IntervalMs) * time.Millisecond)
+	s.timersByID[ta.Id] = te
+
+	go func(id string) {
+		<- te.timer.C
+
+		s.timerLock.Lock()
+		defer s.timerLock.Unlock()
+
+		entry := s.timersByID[id]
+
+		s.logger.Debug("timer triggered",
+			zap.String("id", id),
+		)
+
+		entry.triggered = true
+		s.refresh <- true
+
+		go func(entry *timerEntry) {
+			// We need to 'turn off' the entry at some point in the future.
+			// We don't know when the execution triggered by the refresh action will be true
+			// so we use the entry active duration to control this.
+			time.Sleep(timerEntryActiveDuration)
+			entry.active = false
+			entry.triggered = false
+			s.refresh <- true
+		}(entry)
+	}(ta.Id)
 
 	return nil
 }

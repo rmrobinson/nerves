@@ -200,5 +200,21 @@ func (e *Engine) executeAction(ctx context.Context, a *Action) {
 				zap.String("device_id", deviceAction.Id),
 			)
 		}
+	case Action_TIMER:
+		e.logger.Debug("received timer action",
+			zap.String("name", a.Name),
+		)
+
+		timerAction := &TimerAction{}
+		err := ptypes.UnmarshalAny(a.Details, timerAction)
+		if err != nil {
+			e.logger.Info("error unmarshaling details",
+				zap.String("name", a.Name),
+				zap.Error(err),
+			)
+			return
+		}
+
+		e.state.activateTimer(timerAction)
 	}
 }
