@@ -136,22 +136,13 @@ message DeviceAction {
 }
 
 // TimerAction represents an event that will trigger after the specified period of time.
-// If ticker is set this action will trigger at the interval for the specified number of times.
-// If timer is set this action will trigger once after the supplied interval.
-// Both cannot be set at the same time.
 message TimerAction {
     string id = 1;
-
-    message Ticker {
-        int32 interval_ms = 1;
-        int32 count = 2;
-    }
 
     message Timer {
         int32 interval_ms = 1;
     }
 
-    Ticker ticker = 10;
     Timer timer = 11;
 }
 
