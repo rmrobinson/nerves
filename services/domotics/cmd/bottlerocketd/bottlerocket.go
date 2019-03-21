@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	br "github.com/rmrobinson/bottlerocket-go"
-	"github.com/rmrobinson/nerves/bazel-nerves/services/domotics/bridge"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"go.uber.org/zap"
 )
