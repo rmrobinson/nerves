@@ -9,7 +9,6 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/domotics/cmd/bottlerocketd",
     visibility = ["//visibility:private"],
     deps = [
-        "//bazel-nerves/services/domotics/bridge:go_default_library",
         "//services/domotics:go_default_library",
         "//services/domotics/bridge:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
