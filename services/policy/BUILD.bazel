@@ -7,6 +7,7 @@ proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//services/domotics:faltung_nerves_domotics_proto",
+        "//services/mind:faltung_nerves_mind_proto",
         "@com_google_protobuf//:any_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
@@ -17,7 +18,10 @@ go_proto_library(
     importpath = "github.com/rmrobinson/nerves/services/policy",
     proto = ":faltung_nerves_policy_proto",
     visibility = ["//visibility:public"],
-    deps = ["//services/domotics:go_default_library"],
+    deps = [
+        "//services/domotics:go_default_library",
+        "//services/mind:go_default_library",
+    ],
 )
 
 go_library(

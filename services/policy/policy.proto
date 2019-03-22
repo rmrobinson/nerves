@@ -6,6 +6,7 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 import "services/domotics/device.proto";
+import "services/mind/message.proto";
 
 // Comparison represents different ways to compare two things together.
 enum Comparison {
@@ -76,6 +77,7 @@ message DeviceCondition {
     Presence presence = 58;
 }
 
+// WeatherCondition represents a condition triggered on the specific weather condition.
 message WeatherCondition {
     string location = 1;
 
@@ -144,6 +146,13 @@ message TimerAction {
     }
 
     Timer timer = 11;
+}
+
+// MessageAction represents an event that will result in a message being sent to the specified destinatino.
+message MessageAction {
+    string id = 1;
+
+    faltung.nerves.mind.SendStatementRequest message = 2;
 }
 
 // Action represents an activity that can be taken.
