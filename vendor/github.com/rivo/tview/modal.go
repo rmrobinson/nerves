@@ -12,7 +12,7 @@ import (
 type Modal struct {
 	*Box
 
-	// The framed embedded in the modal.
+	// The frame embedded in the modal.
 	frame *Frame
 
 	// The form embedded in the modal's frame.
@@ -53,9 +53,28 @@ func NewModal() *Modal {
 	return m
 }
 
+// SetBackgroundColor sets the color of the modal frame background.
+func (m *Modal) SetBackgroundColor(color tcell.Color) *Modal {
+	m.form.SetBackgroundColor(color)
+	m.frame.SetBackgroundColor(color)
+	return m
+}
+
 // SetTextColor sets the color of the message text.
 func (m *Modal) SetTextColor(color tcell.Color) *Modal {
 	m.textColor = color
+	return m
+}
+
+// SetButtonBackgroundColor sets the background color of the buttons.
+func (m *Modal) SetButtonBackgroundColor(color tcell.Color) *Modal {
+	m.form.SetButtonBackgroundColor(color)
+	return m
+}
+
+// SetButtonTextColor sets the color of the button texts.
+func (m *Modal) SetButtonTextColor(color tcell.Color) *Modal {
+	m.form.SetButtonTextColor(color)
 	return m
 }
 
@@ -101,6 +120,18 @@ func (m *Modal) AddButtons(labels []string) *Modal {
 	return m
 }
 
+// ClearButtons removes all buttons from the window.
+func (m *Modal) ClearButtons() *Modal {
+	m.form.ClearButtons()
+	return m
+}
+
+// SetFocus shifts the focus to the button with the given index.
+func (m *Modal) SetFocus(index int) *Modal {
+	m.form.SetFocus(index)
+	return m
+}
+
 // Focus is called when this primitive receives focus.
 func (m *Modal) Focus(delegate func(p Primitive)) {
 	delegate(m.form)
@@ -116,7 +147,7 @@ func (m *Modal) Draw(screen tcell.Screen) {
 	// Calculate the width of this modal.
 	buttonsWidth := 0
 	for _, button := range m.form.buttons {
-		buttonsWidth += StringWidth(button.label) + 4 + 2
+		buttonsWidth += TaggedStringWidth(button.label) + 4 + 2
 	}
 	buttonsWidth -= 2
 	screenWidth, screenHeight := screen.Size()
@@ -143,4 +174,17 @@ func (m *Modal) Draw(screen tcell.Screen) {
 	// Draw the frame.
 	m.frame.SetRect(x, y, width, height)
 	m.frame.Draw(screen)
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (m *Modal) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return m.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		// Pass mouse events on to the form.
+		consumed, capture = m.form.MouseHandler()(action, event, setFocus)
+		if !consumed && action == MouseLeftClick && m.InRect(event.Position()) {
+			setFocus(m)
+			consumed = true
+		}
+		return
+	})
 }

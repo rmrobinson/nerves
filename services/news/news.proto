@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package faltung.nerves.news;
 
+option go_package = "github.com/rmrobinson/nerves/services/news";
+
 import "google/protobuf/timestamp.proto";
 
 message Image {

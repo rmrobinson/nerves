@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package faltung.nerves.domotics;
 
+option go_package = "github.com/rmrobinson/nerves/services/domotics";
+
 message Address {
     message Ip {
         string host = 1;

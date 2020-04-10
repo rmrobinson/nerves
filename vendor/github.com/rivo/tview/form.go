@@ -59,7 +59,8 @@ type Form struct {
 	itemPadding int
 
 	// The index of the item or button which has focus. (Items are counted first,
-	// buttons are counted last.)
+	// buttons are counted last.) This is only used when the form itself receives
+	// focus so that the last element that had focus keeps it.
 	focusedElement int
 
 	// The label color.
@@ -154,6 +155,20 @@ func (f *Form) SetButtonTextColor(color tcell.Color) *Form {
 	return f
 }
 
+// SetFocus shifts the focus to the form element with the given index, counting
+// non-button items first and buttons last. Note that this index is only used
+// when the form itself receives focus.
+func (f *Form) SetFocus(index int) *Form {
+	if index < 0 {
+		f.focusedElement = 0
+	} else if index >= len(f.items)+len(f.buttons) {
+		f.focusedElement = len(f.items) + len(f.buttons)
+	} else {
+		f.focusedElement = index
+	}
+	return f
+}
+
 // AddInputField adds an input field to the form. It has a label, an optional
 // initial value, a field width (a value of 0 extends it as far as possible),
 // an optional accept function to validate the item's value (set to nil to
@@ -195,8 +210,8 @@ func (f *Form) AddPasswordField(label, value string, fieldWidth int, mask rune, 
 func (f *Form) AddDropDown(label string, options []string, initialOption int, selected func(option string, optionIndex int)) *Form {
 	f.items = append(f.items, NewDropDown().
 		SetLabel(label).
-		SetCurrentOption(initialOption).
-		SetOptions(options, selected))
+		SetOptions(options, selected).
+		SetCurrentOption(initialOption))
 	return f
 }
 
@@ -254,9 +269,15 @@ func (f *Form) GetButtonIndex(label string) int {
 func (f *Form) Clear(includeButtons bool) *Form {
 	f.items = nil
 	if includeButtons {
-		f.buttons = nil
+		f.ClearButtons()
 	}
 	f.focusedElement = 0
+	return f
+}
+
+// ClearButtons removes all buttons from the form.
+func (f *Form) ClearButtons() *Form {
+	f.buttons = nil
 	return f
 }
 
@@ -275,9 +296,15 @@ func (f *Form) AddFormItem(item FormItem) *Form {
 	return f
 }
 
-// GetFormItem returns the form element at the given position, starting with
-// index 0. Elements are referenced in the order they were added. Buttons are
-// not included.
+// GetFormItemCount returns the number of items in the form (not including the
+// buttons).
+func (f *Form) GetFormItemCount() int {
+	return len(f.items)
+}
+
+// GetFormItem returns the form item at the given position, starting with index
+// 0. Elements are referenced in the order they were added. Buttons are not
+// included.
 func (f *Form) GetFormItem(index int) FormItem {
 	return f.items[index]
 }
@@ -314,6 +341,19 @@ func (f *Form) GetFormItemIndex(label string) int {
 	return -1
 }
 
+// GetFocusedItemIndex returns the indices of the form element or button which
+// currently has focus. If they don't, -1 is returned resepectively.
+func (f *Form) GetFocusedItemIndex() (formItem, button int) {
+	index := f.focusIndex()
+	if index < 0 {
+		return -1, -1
+	}
+	if index < len(f.items) {
+		return index, -1
+	}
+	return -1, index - len(f.items)
+}
+
 // SetCancelFunc sets a handler which is called when the user hits the Escape
 // key.
 func (f *Form) SetCancelFunc(callback func()) *Form {
@@ -325,6 +365,11 @@ func (f *Form) SetCancelFunc(callback func()) *Form {
 func (f *Form) Draw(screen tcell.Screen) {
 	f.Box.Draw(screen)
 
+	// Determine the actual item that has focus.
+	if index := f.focusIndex(); index >= 0 {
+		f.focusedElement = index
+	}
+
 	// Determine the dimensions.
 	x, y, width, height := f.GetInnerRect()
 	topLimit := y
@@ -335,7 +380,7 @@ func (f *Form) Draw(screen tcell.Screen) {
 	// Find the longest label.
 	var maxLabelWidth int
 	for _, item := range f.items {
-		labelWidth := StringWidth(item.GetLabel())
+		labelWidth := TaggedStringWidth(item.GetLabel())
 		if labelWidth > maxLabelWidth {
 			maxLabelWidth = labelWidth
 		}
@@ -347,7 +392,7 @@ func (f *Form) Draw(screen tcell.Screen) {
 	var focusedPosition struct{ x, y, width, height int }
 	for index, item := range f.items {
 		// Calculate the space needed.
-		labelWidth := StringWidth(item.GetLabel())
+		labelWidth := TaggedStringWidth(item.GetLabel())
 		var itemWidth int
 		if f.horizontal {
 			fieldWidth := item.GetFieldWidth()
@@ -401,7 +446,7 @@ func (f *Form) Draw(screen tcell.Screen) {
 	buttonWidths := make([]int, len(f.buttons))
 	buttonsWidth := 0
 	for index, button := range f.buttons {
-		w := StringWidth(button.GetLabel()) + 4
+		w := TaggedStringWidth(button.GetLabel()) + 4
 		buttonWidths[index] = w
 		buttonsWidth += w + 1
 	}
@@ -555,15 +600,58 @@ func (f *Form) HasFocus() bool {
 	if f.hasFocus {
 		return true
 	}
-	for _, item := range f.items {
+	return f.focusIndex() >= 0
+}
+
+// focusIndex returns the index of the currently focused item, counting form
+// items first, then buttons. A negative value indicates that no containeed item
+// has focus.
+func (f *Form) focusIndex() int {
+	for index, item := range f.items {
 		if item.GetFocusable().HasFocus() {
-			return true
+			return index
 		}
 	}
-	for _, button := range f.buttons {
+	for index, button := range f.buttons {
 		if button.focus.HasFocus() {
-			return true
+			return len(f.items) + index
 		}
 	}
-	return false
+	return -1
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (f *Form) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return f.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		if !f.InRect(event.Position()) {
+			return false, nil
+		}
+
+		// Determine items to pass mouse events to.
+		for _, item := range f.items {
+			consumed, capture = item.MouseHandler()(action, event, setFocus)
+			if consumed {
+				return
+			}
+		}
+		for _, button := range f.buttons {
+			consumed, capture = button.MouseHandler()(action, event, setFocus)
+			if consumed {
+				return
+			}
+		}
+
+		// A mouse click anywhere else will return the focus to the last selected
+		// element.
+		if action == MouseLeftClick {
+			if f.focusedElement < len(f.items) {
+				setFocus(f.items[f.focusedElement])
+			} else if f.focusedElement < len(f.items)+len(f.buttons) {
+				setFocus(f.buttons[f.focusedElement-len(f.items)])
+			}
+			consumed = true
+		}
+
+		return
+	})
 }

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "parser.go",
         "selector.go",
+        "specificity.go",
     ],
     importmap = "github.com/rmrobinson/nerves/vendor/github.com/andybalholm/cascadia",
     importpath = "github.com/andybalholm/cascadia",

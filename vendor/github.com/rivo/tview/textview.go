@@ -11,6 +11,7 @@ import (
 	"github.com/gdamore/tcell"
 	colorful "github.com/lucasb-eyer/go-colorful"
 	runewidth "github.com/mattn/go-runewidth"
+	"github.com/rivo/uniseg"
 )
 
 var (
@@ -33,6 +34,16 @@ type textViewIndex struct {
 	BackgroundColor string // The starting background color ("" = don't change, "-" = reset).
 	Attributes      string // The starting attributes ("" = don't change, "-" = reset).
 	Region          string // The starting region ID.
+}
+
+// textViewRegion contains information about a region.
+type textViewRegion struct {
+	// The region ID.
+	ID string
+
+	// The starting and end screen position of the region as determined the last
+	// time Draw() was called. A negative value indicates out-of-rect positions.
+	FromX, FromY, ToX, ToY int
 }
 
 // TextView is a box which displays text. It implements the io.Writer interface
@@ -105,6 +116,9 @@ type TextView struct {
 	// The text alignment, one of AlignLeft, AlignCenter, or AlignRight.
 	align int
 
+	// Information about visible regions as of the last call to Draw().
+	regionInfos []*textViewRegion
+
 	// Indices into the "index" slice which correspond to the first line of the
 	// first highlight and the last line of the last highlight. This is calculated
 	// during re-indexing. Set to -1 if there is no current highlight.
@@ -162,6 +176,10 @@ type TextView struct {
 	// highlight(s) into the visible screen.
 	scrollToHighlights bool
 
+	// If true, setting new highlights will be a XOR instead of an overwrite
+	// operation.
+	toggleHighlights bool
+
 	// An optional function which is called when the content of the text view has
 	// changed.
 	changed func()
@@ -169,6 +187,10 @@ type TextView struct {
 	// An optional function which is called when the user presses one of the
 	// following keys: Escape, Enter, Tab, Backtab.
 	done func(tcell.Key)
+
+	// An optional function which is called when one or more regions were
+	// highlighted.
+	highlighted func(added, removed, remaining []string)
 }
 
 // NewTextView returns a new text view.
@@ -187,7 +209,8 @@ func NewTextView() *TextView {
 }
 
 // SetScrollable sets the flag that decides whether or not the text view is
-// scrollable. If true, text is kept in a buffer and can be navigated.
+// scrollable. If true, text is kept in a buffer and can be navigated. If false,
+// the last line will always be visible.
 func (t *TextView) SetScrollable(scrollable bool) *TextView {
 	t.scrollable = scrollable
 	if !scrollable {
@@ -296,8 +319,9 @@ func (t *TextView) SetRegions(regions bool) *TextView {
 
 // SetChangedFunc sets a handler function which is called when the text of the
 // text view has changed. This is useful when text is written to this io.Writer
-// in a separate goroutine. This does not automatically cause the screen to be
-// refreshed so you may want to use the "changed" handler to redraw the screen.
+// in a separate goroutine. Doing so does not automatically cause the screen to
+// be refreshed so you may want to use the "changed" handler to redraw the
+// screen.
 //
 // Note that to avoid race conditions or deadlocks, there are a few rules you
 // should follow:
@@ -305,7 +329,7 @@ func (t *TextView) SetRegions(regions bool) *TextView {
 //   - You can call Application.Draw() from this handler.
 //   - You can call TextView.HasFocus() from this handler.
 //   - During the execution of this handler, access to any other variables from
-//     this primitive or any other primitive should be queued using
+//     this primitive or any other primitive must be queued using
 //     Application.QueueUpdate().
 //
 // See package description for details on dealing with concurrency.
@@ -322,6 +346,18 @@ func (t *TextView) SetDoneFunc(handler func(key tcell.Key)) *TextView {
 	return t
 }
 
+// SetHighlightedFunc sets a handler which is called when the list of currently
+// highlighted regions change. It receives a list of region IDs which were newly
+// highlighted, those that are not highlighted anymore, and those that remain
+// highlighted.
+//
+// Note that because regions are only determined during drawing, this function
+// can only fire for regions that have existed during the last call to Draw().
+func (t *TextView) SetHighlightedFunc(handler func(added, removed, remaining []string)) *TextView {
+	t.highlighted = handler
+	return t
+}
+
 // ScrollTo scrolls to the specified row and column (both starting with 0).
 func (t *TextView) ScrollTo(row, column int) *TextView {
 	if !t.scrollable {
@@ -329,6 +365,7 @@ func (t *TextView) ScrollTo(row, column int) *TextView {
 	}
 	t.lineOffset = row
 	t.columnOffset = column
+	t.trackEnd = false
 	return t
 }
 
@@ -370,15 +407,56 @@ func (t *TextView) Clear() *TextView {
 	return t
 }
 
-// Highlight specifies which regions should be highlighted. See class
-// description for details on regions. Empty region strings are ignored.
+// Highlight specifies which regions should be highlighted. If highlight
+// toggling is set to true (see SetToggleHighlights()), the highlight of the
+// provided regions is toggled (highlighted regions are un-highlighted and vice
+// versa). If toggling is set to false, the provided regions are highlighted and
+// all other regions will not be highlighted (you may also provide nil to turn
+// off all highlights).
+//
+// For more information on regions, see class description. Empty region strings
+// are ignored.
 //
 // Text in highlighted regions will be drawn inverted, i.e. with their
 // background and foreground colors swapped.
-//
-// Calling this function will remove any previous highlights. To remove all
-// highlights, call this function without any arguments.
 func (t *TextView) Highlight(regionIDs ...string) *TextView {
+	// Toggle highlights.
+	if t.toggleHighlights {
+		var newIDs []string
+	HighlightLoop:
+		for regionID := range t.highlights {
+			for _, id := range regionIDs {
+				if regionID == id {
+					continue HighlightLoop
+				}
+			}
+			newIDs = append(newIDs, regionID)
+		}
+		for _, regionID := range regionIDs {
+			if _, ok := t.highlights[regionID]; !ok {
+				newIDs = append(newIDs, regionID)
+			}
+		}
+		regionIDs = newIDs
+	} // Now we have a list of region IDs that end up being highlighted.
+
+	// Determine added and removed regions.
+	var added, removed, remaining []string
+	if t.highlighted != nil {
+		for _, regionID := range regionIDs {
+			if _, ok := t.highlights[regionID]; ok {
+				remaining = append(remaining, regionID)
+				delete(t.highlights, regionID)
+			} else {
+				added = append(added, regionID)
+			}
+		}
+		for regionID := range t.highlights {
+			removed = append(removed, regionID)
+		}
+	}
+
+	// Make new selection.
 	t.highlights = make(map[string]struct{})
 	for _, id := range regionIDs {
 		if id == "" {
@@ -387,6 +465,12 @@ func (t *TextView) Highlight(regionIDs ...string) *TextView {
 		t.highlights[id] = struct{}{}
 	}
 	t.index = nil
+
+	// Notify.
+	if t.highlighted != nil && len(added) > 0 || len(removed) > 0 {
+		t.highlighted(added, removed, remaining)
+	}
+
 	return t
 }
 
@@ -396,6 +480,15 @@ func (t *TextView) GetHighlights() (regionIDs []string) {
 		regionIDs = append(regionIDs, id)
 	}
 	return
+}
+
+// SetToggleHighlights sets a flag to determine how regions are highlighted.
+// When set to true, the Highlight() function (or a mouse click) will toggle the
+// provided/selected regions. When set to false, Highlight() (or a mouse click)
+// will simply highlight the provided regions.
+func (t *TextView) SetToggleHighlights(toggle bool) *TextView {
+	t.toggleHighlights = toggle
+	return t
 }
 
 // ScrollToHighlight will cause the visible area to be scrolled so that the
@@ -514,7 +607,11 @@ func (t *TextView) Write(p []byte) (n int, err error) {
 	changed := t.changed
 	t.Unlock()
 	if changed != nil {
-		defer changed() // Deadlocks may occur if we lock here.
+		defer func() {
+			// We always call the "changed" function in a separate goroutine to avoid
+			// deadlocks.
+			go changed()
+		}()
 	}
 
 	t.Lock()
@@ -598,6 +695,13 @@ func (t *TextView) reindexBuffer(width int) {
 		if t.wrap && len(str) > 0 {
 			for len(str) > 0 {
 				extract := runewidth.Truncate(str, width, "")
+				if len(extract) == 0 {
+					// We'll extract at least one grapheme cluster.
+					gr := uniseg.NewGraphemes(str)
+					gr.Next()
+					_, to := gr.Positions()
+					extract = str[:to]
+				}
 				if t.wordWrap && len(extract) < len(str) {
 					// Add any spaces from the next line.
 					if spaces := spacePattern.FindStringIndex(str[len(extract):]); spaces != nil && spaces[0] == 0 {
@@ -661,7 +765,7 @@ func (t *TextView) reindexBuffer(width int) {
 				}
 
 				// Is the next tag in range?
-				if tagIndex < 0 || minPos >= tagEnd+remainingLength {
+				if tagIndex < 0 || minPos > tagEnd+remainingLength {
 					break // No. We're done with this line.
 				}
 
@@ -691,7 +795,7 @@ func (t *TextView) reindexBuffer(width int) {
 						line := len(t.index)
 						if t.fromHighlight < 0 {
 							t.fromHighlight, t.toHighlight = line, line
-							t.posHighlight = runewidth.StringWidth(splitLine[:strippedTagStart])
+							t.posHighlight = stringWidth(splitLine[:strippedTagStart])
 						} else if line > t.toHighlight {
 							t.toHighlight = line
 						}
@@ -709,7 +813,7 @@ func (t *TextView) reindexBuffer(width int) {
 
 			// Append this line.
 			line.NextPos = originalPos
-			line.Width = runewidth.StringWidth(splitLine)
+			line.Width = stringWidth(splitLine)
 			t.index = append(t.index, line)
 		}
 
@@ -721,7 +825,7 @@ func (t *TextView) reindexBuffer(width int) {
 				if spaces != nil && spaces[len(spaces)-1][1] == len(str) {
 					oldNextPos := line.NextPos
 					line.NextPos -= spaces[len(spaces)-1][1] - spaces[len(spaces)-1][0]
-					line.Width -= runewidth.StringWidth(t.buffer[line.Line][line.NextPos:oldNextPos])
+					line.Width -= stringWidth(t.buffer[line.Line][line.NextPos:oldNextPos])
 				}
 			}
 		}
@@ -741,6 +845,7 @@ func (t *TextView) Draw(screen tcell.Screen) {
 	t.Lock()
 	defer t.Unlock()
 	t.Box.Draw(screen)
+	totalWidth, totalHeight := screen.Size()
 
 	// Get the available size.
 	x, y, width, height := t.GetInnerRect()
@@ -754,6 +859,9 @@ func (t *TextView) Draw(screen tcell.Screen) {
 
 	// Re-index.
 	t.reindexBuffer(width)
+	if t.regions {
+		t.regionInfos = nil
+	}
 
 	// If we don't have an index, there's nothing to draw.
 	if t.index == nil {
@@ -827,7 +935,7 @@ func (t *TextView) Draw(screen tcell.Screen) {
 	defaultStyle := tcell.StyleDefault.Foreground(t.textColor)
 	for line := t.lineOffset; line < len(t.index); line++ {
 		// Are we done?
-		if line-t.lineOffset >= height {
+		if line-t.lineOffset >= height || y+line-t.lineOffset >= totalHeight {
 			break
 		}
 
@@ -838,6 +946,15 @@ func (t *TextView) Draw(screen tcell.Screen) {
 		backgroundColor := index.BackgroundColor
 		attributes := index.Attributes
 		regionID := index.Region
+		if t.regions && regionID != "" && (len(t.regionInfos) == 0 || t.regionInfos[len(t.regionInfos)-1].ID != regionID) {
+			t.regionInfos = append(t.regionInfos, &textViewRegion{
+				ID:    regionID,
+				FromX: x,
+				FromY: y + line - t.lineOffset,
+				ToX:   -1,
+				ToY:   -1,
+			})
+		}
 
 		// Process tags.
 		colorTagIndices, colorTags, regionIndices, regions, escapeIndices, strippedText, _ := decomposeString(text, t.dynamicColors, t.regions)
@@ -857,89 +974,111 @@ func (t *TextView) Draw(screen tcell.Screen) {
 		}
 
 		// Print the line.
-		var colorPos, regionPos, escapePos, tagOffset, skipped int
-		iterateString(strippedText, func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
-			// Process tags.
-			for {
-				if colorPos < len(colorTags) && textPos+tagOffset >= colorTagIndices[colorPos][0] && textPos+tagOffset < colorTagIndices[colorPos][1] {
-					// Get the color.
-					foregroundColor, backgroundColor, attributes = styleFromTag(foregroundColor, backgroundColor, attributes, colorTags[colorPos])
-					tagOffset += colorTagIndices[colorPos][1] - colorTagIndices[colorPos][0]
-					colorPos++
-				} else if regionPos < len(regionIndices) && textPos+tagOffset >= regionIndices[regionPos][0] && textPos+tagOffset < regionIndices[regionPos][1] {
-					// Get the region.
-					regionID = regions[regionPos][1]
-					tagOffset += regionIndices[regionPos][1] - regionIndices[regionPos][0]
-					regionPos++
-				} else {
-					break
-				}
-			}
-
-			// Skip the second-to-last character of an escape tag.
-			if escapePos < len(escapeIndices) && textPos+tagOffset == escapeIndices[escapePos][1]-2 {
-				tagOffset++
-				escapePos++
-			}
-
-			// Mix the existing style with the new style.
-			_, _, existingStyle, _ := screen.GetContent(x+posX, y+line-t.lineOffset)
-			_, background, _ := existingStyle.Decompose()
-			style := overlayStyle(background, defaultStyle, foregroundColor, backgroundColor, attributes)
-
-			// Do we highlight this character?
-			var highlighted bool
-			if len(regionID) > 0 {
-				if _, ok := t.highlights[regionID]; ok {
-					highlighted = true
-				}
-			}
-			if highlighted {
-				fg, bg, _ := style.Decompose()
-				if bg == tcell.ColorDefault {
-					r, g, b := fg.RGB()
-					c := colorful.Color{R: float64(r) / 255, G: float64(g) / 255, B: float64(b) / 255}
-					_, _, li := c.Hcl()
-					if li < .5 {
-						bg = tcell.ColorWhite
+		if y+line-t.lineOffset >= 0 {
+			var colorPos, regionPos, escapePos, tagOffset, skipped int
+			iterateString(strippedText, func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
+				// Process tags.
+				for {
+					if colorPos < len(colorTags) && textPos+tagOffset >= colorTagIndices[colorPos][0] && textPos+tagOffset < colorTagIndices[colorPos][1] {
+						// Get the color.
+						foregroundColor, backgroundColor, attributes = styleFromTag(foregroundColor, backgroundColor, attributes, colorTags[colorPos])
+						tagOffset += colorTagIndices[colorPos][1] - colorTagIndices[colorPos][0]
+						colorPos++
+					} else if regionPos < len(regionIndices) && textPos+tagOffset >= regionIndices[regionPos][0] && textPos+tagOffset < regionIndices[regionPos][1] {
+						// Get the region.
+						if regionID != "" && len(t.regionInfos) > 0 && t.regionInfos[len(t.regionInfos)-1].ID == regionID {
+							// End last region.
+							t.regionInfos[len(t.regionInfos)-1].ToX = x + posX
+							t.regionInfos[len(t.regionInfos)-1].ToY = y + line - t.lineOffset
+						}
+						regionID = regions[regionPos][1]
+						if regionID != "" {
+							// Start new region.
+							t.regionInfos = append(t.regionInfos, &textViewRegion{
+								ID:    regionID,
+								FromX: x + posX,
+								FromY: y + line - t.lineOffset,
+								ToX:   -1,
+								ToY:   -1,
+							})
+						}
+						tagOffset += regionIndices[regionPos][1] - regionIndices[regionPos][0]
+						regionPos++
 					} else {
-						bg = tcell.ColorBlack
+						break
 					}
 				}
-				style = style.Background(fg).Foreground(bg)
-			}
 
-			// Skip to the right.
-			if !t.wrap && skipped < skip {
-				skipped += screenWidth
-				return false
-			}
-
-			// Stop at the right border.
-			if posX+screenWidth > width {
-				return true
-			}
-
-			// Draw the character.
-			for offset := screenWidth - 1; offset >= 0; offset-- {
-				if offset == 0 {
-					screen.SetContent(x+posX+offset, y+line-t.lineOffset, main, comb, style)
-				} else {
-					screen.SetContent(x+posX+offset, y+line-t.lineOffset, ' ', nil, style)
+				// Skip the second-to-last character of an escape tag.
+				if escapePos < len(escapeIndices) && textPos+tagOffset == escapeIndices[escapePos][1]-2 {
+					tagOffset++
+					escapePos++
 				}
-			}
 
-			// Advance.
-			posX += screenWidth
-			return false
-		})
+				// Mix the existing style with the new style.
+				_, _, existingStyle, _ := screen.GetContent(x+posX, y+line-t.lineOffset)
+				_, background, _ := existingStyle.Decompose()
+				style := overlayStyle(background, defaultStyle, foregroundColor, backgroundColor, attributes)
+
+				// Do we highlight this character?
+				var highlighted bool
+				if regionID != "" {
+					if _, ok := t.highlights[regionID]; ok {
+						highlighted = true
+					}
+				}
+				if highlighted {
+					fg, bg, _ := style.Decompose()
+					if bg == tcell.ColorDefault {
+						r, g, b := fg.RGB()
+						c := colorful.Color{R: float64(r) / 255, G: float64(g) / 255, B: float64(b) / 255}
+						_, _, li := c.Hcl()
+						if li < .5 {
+							bg = tcell.ColorWhite
+						} else {
+							bg = tcell.ColorBlack
+						}
+					}
+					style = style.Background(fg).Foreground(bg)
+				}
+
+				// Skip to the right.
+				if !t.wrap && skipped < skip {
+					skipped += screenWidth
+					return false
+				}
+
+				// Stop at the right border.
+				if posX+screenWidth > width || x+posX >= totalWidth {
+					return true
+				}
+
+				// Draw the character.
+				for offset := screenWidth - 1; offset >= 0; offset-- {
+					if offset == 0 {
+						screen.SetContent(x+posX+offset, y+line-t.lineOffset, main, comb, style)
+					} else {
+						screen.SetContent(x+posX+offset, y+line-t.lineOffset, ' ', nil, style)
+					}
+				}
+
+				// Advance.
+				posX += screenWidth
+				return false
+			})
+		}
 	}
 
 	// If this view is not scrollable, we'll purge the buffer of lines that have
 	// scrolled out of view.
 	if !t.scrollable && t.lineOffset > 0 {
-		t.buffer = t.buffer[t.index[t.lineOffset].Line:]
+		if t.lineOffset >= len(t.index) {
+			t.buffer = nil
+		} else {
+			t.buffer = t.buffer[t.index[t.lineOffset].Line:]
+		}
 		t.index = nil
+		t.lineOffset = 0
 	}
 }
 
@@ -1001,5 +1140,43 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 			t.trackEnd = false
 			t.lineOffset -= t.pageSize
 		}
+	})
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (t *TextView) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return t.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		x, y := event.Position()
+		if !t.InRect(x, y) {
+			return false, nil
+		}
+
+		switch action {
+		case MouseLeftClick:
+			if t.regions {
+				// Find a region to highlight.
+				for _, region := range t.regionInfos {
+					if y == region.FromY && x < region.FromX ||
+						y == region.ToY && x >= region.ToX ||
+						region.FromY >= 0 && y < region.FromY ||
+						region.ToY >= 0 && y > region.ToY {
+						continue
+					}
+					t.Highlight(region.ID)
+					break
+				}
+			}
+			consumed = true
+			setFocus(t)
+		case MouseScrollUp:
+			t.trackEnd = false
+			t.lineOffset--
+			consumed = true
+		case MouseScrollDown:
+			t.lineOffset++
+			consumed = true
+		}
+
+		return
 	})
 }

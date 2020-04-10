@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package faltung.nerves.users;
 
+option go_package = "github.com/rmrobinson/nerves/services/users";
+
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 

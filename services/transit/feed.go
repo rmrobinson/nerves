@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/services/transit/gtfs"
-	"github.com/rmrobinson/nerves/services/transit/gtfs_realtime"
+	gtfs_realtime "github.com/rmrobinson/nerves/services/transit/gtfs_realtime"
 	"go.uber.org/zap"
 )
 

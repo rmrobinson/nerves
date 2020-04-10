@@ -188,6 +188,11 @@ func (n *TreeNode) SetText(text string) *TreeNode {
 	return n
 }
 
+// GetColor returns the node's color.
+func (n *TreeNode) GetColor() tcell.Color {
+	return n.color
+}
+
 // SetColor sets the node's text color.
 func (n *TreeNode) SetColor(color tcell.Color) *TreeNode {
 	n.color = color
@@ -271,6 +276,10 @@ type TreeView struct {
 
 	// An optional function which is called when a tree item was selected.
 	selected func(node *TreeNode)
+
+	// An optional function which is called when the user moves away from this
+	// primitive.
+	done func(key tcell.Key)
 
 	// The visible nodes, top-down, as set by process().
 	nodes []*TreeNode
@@ -370,6 +379,28 @@ func (t *TreeView) SetSelectedFunc(handler func(node *TreeNode)) *TreeView {
 	return t
 }
 
+// SetDoneFunc sets a handler which is called whenever the user presses the
+// Escape, Tab, or Backtab key.
+func (t *TreeView) SetDoneFunc(handler func(key tcell.Key)) *TreeView {
+	t.done = handler
+	return t
+}
+
+// GetScrollOffset returns the number of node rows that were skipped at the top
+// of the tree view. Note that when the user navigates the tree view, this value
+// is only updated after the tree view has been redrawn.
+func (t *TreeView) GetScrollOffset() int {
+	return t.offsetY
+}
+
+// GetRowCount returns the number of "visible" nodes. This includes nodes which
+// fall outside the tree view's box but notably does not include the children
+// of collapsed nodes. Note that this value is only up to date after the tree
+// view has been drawn.
+func (t *TreeView) GetRowCount() int {
+	return len(t.nodes)
+}
+
 // process builds the visible tree, populates the "nodes" slice, and processes
 // pending selection actions.
 func (t *TreeView) process() {
@@ -378,6 +409,9 @@ func (t *TreeView) process() {
 	// Determine visible nodes and their placement.
 	var graphicsOffset, maxTextX int
 	t.nodes = nil
+	if t.root == nil {
+		return
+	}
 	selectedIndex := -1
 	topLevelGraphicsX := -1
 	if t.graphics {
@@ -404,22 +438,26 @@ func (t *TreeView) process() {
 			node.graphicsX = 0
 			node.textX = 0
 		}
-		if node.textX > maxTextX {
-			maxTextX = node.textX
-		}
-		if node == t.currentNode && node.selectable {
-			selectedIndex = len(t.nodes)
-		}
 
-		// Maybe we want to skip this level.
-		if t.topLevel == node.level && (topLevelGraphicsX < 0 || node.graphicsX < topLevelGraphicsX) {
-			topLevelGraphicsX = node.graphicsX
-		}
-
-		// Add and recurse (if desired).
+		// Add the node to the list.
 		if node.level >= t.topLevel {
+			// This node will be visible.
+			if node.textX > maxTextX {
+				maxTextX = node.textX
+			}
+			if node == t.currentNode && node.selectable {
+				selectedIndex = len(t.nodes)
+			}
+
+			// Maybe we want to skip this level.
+			if t.topLevel == node.level && (topLevelGraphicsX < 0 || node.graphicsX < topLevelGraphicsX) {
+				topLevelGraphicsX = node.graphicsX
+			}
+
 			t.nodes = append(t.nodes, node)
 		}
+
+		// Recurse if desired.
 		return node.expanded
 	})
 
@@ -473,7 +511,7 @@ func (t *TreeView) process() {
 				}
 			}
 			newSelectedIndex = selectedIndex
-		case treePageUp:
+		case treePageDown:
 			if newSelectedIndex+height < len(t.nodes) {
 				newSelectedIndex += height
 			} else {
@@ -485,7 +523,7 @@ func (t *TreeView) process() {
 				}
 			}
 			newSelectedIndex = selectedIndex
-		case treePageDown:
+		case treePageUp:
 			if newSelectedIndex >= height {
 				newSelectedIndex -= height
 			} else {
@@ -537,14 +575,9 @@ func (t *TreeView) Draw(screen tcell.Screen) {
 	if t.root == nil {
 		return
 	}
+	_, totalHeight := screen.Size()
 
-	// Build the tree if necessary.
-	if t.nodes == nil {
-		t.process()
-	}
-	defer func() {
-		t.nodes = nil // Rebuild during next call to Draw()
-	}()
+	t.process()
 
 	// Scroll the tree.
 	x, y, width, height := t.GetInnerRect()
@@ -577,7 +610,7 @@ func (t *TreeView) Draw(screen tcell.Screen) {
 	lineStyle := tcell.StyleDefault.Background(t.backgroundColor).Foreground(t.graphicsColor)
 	for index, node := range t.nodes {
 		// Skip invisible parts.
-		if posY >= y+height+1 {
+		if posY >= y+height+1 || posY >= totalHeight {
 			break
 		}
 		if index < t.offsetY {
@@ -647,12 +680,27 @@ func (t *TreeView) Draw(screen tcell.Screen) {
 // InputHandler returns the handler for this primitive.
 func (t *TreeView) InputHandler() func(event *tcell.EventKey, setFocus func(p Primitive)) {
 	return t.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p Primitive)) {
+		selectNode := func() {
+			if t.currentNode != nil {
+				if t.selected != nil {
+					t.selected(t.currentNode)
+				}
+				if t.currentNode.selected != nil {
+					t.currentNode.selected()
+				}
+			}
+		}
+
 		// Because the tree is flattened into a list only at drawing time, we also
 		// postpone the (selection) movement to drawing time.
 		switch key := event.Key(); key {
-		case tcell.KeyTab, tcell.KeyDown, tcell.KeyRight:
+		case tcell.KeyTab, tcell.KeyBacktab, tcell.KeyEscape:
+			if t.done != nil {
+				t.done(key)
+			}
+		case tcell.KeyDown, tcell.KeyRight:
 			t.movement = treeDown
-		case tcell.KeyBacktab, tcell.KeyUp, tcell.KeyLeft:
+		case tcell.KeyUp, tcell.KeyLeft:
 			t.movement = treeUp
 		case tcell.KeyHome:
 			t.movement = treeHome
@@ -672,18 +720,51 @@ func (t *TreeView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 				t.movement = treeDown
 			case 'k':
 				t.movement = treeUp
+			case ' ':
+				selectNode()
 			}
 		case tcell.KeyEnter:
-			if t.currentNode != nil {
-				if t.selected != nil {
-					t.selected(t.currentNode)
-				}
-				if t.currentNode.selected != nil {
-					t.currentNode.selected()
-				}
-			}
+			selectNode()
 		}
 
 		t.process()
+	})
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (t *TreeView) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return t.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		x, y := event.Position()
+		if !t.InRect(x, y) {
+			return false, nil
+		}
+
+		switch action {
+		case MouseLeftClick:
+			_, rectY, _, _ := t.GetInnerRect()
+			y -= rectY
+			if y >= 0 && y < len(t.nodes) {
+				node := t.nodes[y]
+				if node.selectable {
+					if t.currentNode != node && t.changed != nil {
+						t.changed(node)
+					}
+					if t.selected != nil {
+						t.selected(node)
+					}
+					t.currentNode = node
+				}
+			}
+			consumed = true
+			setFocus(t)
+		case MouseScrollUp:
+			t.movement = treeUp
+			consumed = true
+		case MouseScrollDown:
+			t.movement = treeDown
+			consumed = true
+		}
+
+		return
 	})
 }
