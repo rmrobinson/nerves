@@ -1,24 +1,25 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
 proto_library(
-    name = "faltung_nerves_domotics_proto",
+    name = "domotics_proto",
     srcs = [
         "bridge.proto",
         "device.proto",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//services/users:faltung_nerves_users_proto",
+        "//services/users:users_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
 
 go_proto_library(
-    name = "faltung_nerves_domotics_go_proto",
+    name = "domotics_go_proto",
     compilers = ["@io_bazel_rules_go//proto:go_grpc"],
     importpath = "github.com/rmrobinson/nerves/services/domotics",
-    proto = ":faltung_nerves_domotics_proto",
+    proto = ":domotics_proto",
     visibility = ["//visibility:public"],
     deps = ["//services/users:go_default_library"],
 )
@@ -32,17 +33,17 @@ go_library(
         "proxy.go",
         "proxy_instance.go",
     ],
-    embed = [":faltung_nerves_domotics_go_proto"],
+    embed = [":domotics_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/domotics",
     visibility = ["//visibility:public"],
     deps = [
         "//lib/stream:go_default_library",
         "//services/users:go_default_library",
-        "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "//vendor/google.golang.org/grpc/codes:go_default_library",
         "//vendor/google.golang.org/grpc/peer:go_default_library",
         "//vendor/google.golang.org/grpc/status:go_default_library",
+        "@com_github_golang_protobuf//proto:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

@@ -8,6 +8,7 @@ import (
 
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/rmrobinson/nerves/services/weather"
+	"github.com/robfig/cron"
 	crontab "github.com/robfig/cron"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -32,6 +33,7 @@ var (
 type cronEntry struct {
 	condition *Condition
 	cron      *crontab.Cron
+	entryID   crontab.EntryID
 	triggered bool
 }
 
@@ -127,11 +129,11 @@ func (s *State) addCronEntry(c *Condition) error {
 	}
 
 	entry := &cronEntry{
-		cron:      crontab.NewWithLocation(loc),
+		cron:      crontab.New(cron.WithLocation(loc)),
 		condition: c,
 		triggered: false,
 	}
-	err = entry.cron.AddFunc(c.Cron.Entry, func() {
+	entry.entryID, err = entry.cron.AddFunc(c.Cron.Entry, func() {
 		entry := s.cronsByCond[c]
 
 		s.logger.Debug("timer triggered",
@@ -187,7 +189,7 @@ func (s *State) activateTimer(ta *TimerAction) error {
 	s.timersByID[ta.Id] = te
 
 	go func(id string) {
-		<- te.timer.C
+		<-te.timer.C
 
 		s.timerLock.Lock()
 		defer s.timerLock.Unlock()

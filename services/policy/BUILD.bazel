@@ -1,22 +1,23 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
 proto_library(
-    name = "faltung_nerves_policy_proto",
+    name = "policy_proto",
     srcs = ["policy.proto"],
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics:faltung_nerves_domotics_proto",
-        "//services/mind:faltung_nerves_mind_proto",
+        "//services/domotics:domotics_proto",
+        "//services/mind:mind_proto",
         "@com_google_protobuf//:any_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
 
 go_proto_library(
-    name = "faltung_nerves_policy_go_proto",
+    name = "policy_go_proto",
     importpath = "github.com/rmrobinson/nerves/services/policy",
-    proto = ":faltung_nerves_policy_proto",
+    proto = ":policy_proto",
     visibility = ["//visibility:public"],
     deps = [
         "//services/domotics:go_default_library",
@@ -31,15 +32,15 @@ go_library(
         "engine.go",
         "state.go",
     ],
-    embed = [":faltung_nerves_policy_go_proto"],
+    embed = [":policy_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/policy",
     visibility = ["//visibility:public"],
     deps = [
         "//services/domotics:go_default_library",
         "//services/weather:go_default_library",
-        "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/robfig/cron:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
         "@org_golang_google_grpc//:go_default_library",
     ],

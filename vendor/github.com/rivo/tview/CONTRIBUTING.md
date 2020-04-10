@@ -15,7 +15,9 @@ Please note that this document is work in progress so I might add to it in the f
 
 ## Pull Requests
 
-If you have a feature request, open an issue first before sending me a pull request, and allow for some discussion. It may save you from writing code that will get rejected. If your case is strong, there is a good chance that I will add the feature for you.
+In my limited time I can spend on this project, I will always go through issues first before looking at pull requests. It takes a _lot_ of time to look at code that you submitted and I may not have that time. So be prepared to have your pull requests lying around for a long time.
+
+Therefore, if you have a feature request, open an issue first before sending me a pull request, and allow for some discussion. It may save you from writing code that will get rejected. If your case is strong, there is a good chance that I will add the feature for you.
 
 I'm very picky about the code that goes into this repo. So if you violate any of the following guidelines, there is a good chance I won't merge your pull request.
 
@@ -27,5 +29,7 @@ I'm very picky about the code that goes into this repo. So if you violate any of
 - If you're adding code that increases the work required to maintain the project, you must be willing to take responsibility for that extra work. I will ask you to maintain your part of the code in the long run.
 - Function/type/variable/constant names must be as descriptive as they are right now. Follow the conventions of the package.
 - All functions/types/variables/constants, even private ones, must have comments in good English. These comments must be elaborate enough so that new users of the package understand them and can follow them. Provide examples if you have to. Start all sentences upper-case, as is common in English, and end them with a period.
+- A new function should be located close to related functions in the file. For example, `GetColor()` should come after (or before) `SetColor()`.
 - Your changes must not decrease the project's [Go Report](https://goreportcard.com/report/github.com/rivo/tview) rating.
 - No breaking changes unless there is absolutely no other way.
+- If an issue accompanies your pull request, reference it in the PR's comments, e.g. "Fixes #123", so it is closed automatically when the PR is closed.

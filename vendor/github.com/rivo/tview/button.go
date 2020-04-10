@@ -33,7 +33,7 @@ type Button struct {
 // NewButton returns a new input field.
 func NewButton(label string) *Button {
 	box := NewBox().SetBackgroundColor(Styles.ContrastBackgroundColor)
-	box.SetRect(0, 0, StringWidth(label)+4, 1)
+	box.SetRect(0, 0, TaggedStringWidth(label)+4, 1)
 	return &Button{
 		Box:                      box,
 		label:                    label,
@@ -133,5 +133,25 @@ func (b *Button) InputHandler() func(event *tcell.EventKey, setFocus func(p Prim
 				b.blur(key)
 			}
 		}
+	})
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (b *Button) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return b.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		if !b.InRect(event.Position()) {
+			return false, nil
+		}
+
+		// Process mouse event.
+		if action == MouseLeftClick {
+			setFocus(b)
+			if b.selected != nil {
+				b.selected()
+			}
+			consumed = true
+		}
+
+		return
 	})
 }
