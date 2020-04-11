@@ -44,3 +44,12 @@
 [[constraint]]
   name = "github.com/nlopes/slack"
   version = "0.5.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mmcdole/gofeed"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gregjones/httpcache"
+

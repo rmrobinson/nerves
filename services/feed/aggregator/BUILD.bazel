@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "api.go",
+        "db.go",
+        "provider.go",
+        "state.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/feed/aggregator",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//services/feed:go_default_library",
+        "//services/feed/aggregator/translators:go_default_library",
+        "//vendor/github.com/google/uuid:go_default_library",
+        "//vendor/github.com/mmcdole/gofeed:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+    ],
+)

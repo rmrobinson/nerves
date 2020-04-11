@@ -139,6 +139,14 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:11e0f54fc0e545e47e6f866529879cb024b45b8988bf81d2a3d5707732357abe"
+  name = "github.com/gregjones/httpcache"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "901d90724c7919163f472a9812253fb26761123d"
+
+[[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -209,7 +217,8 @@
   version = "v1.2.2"
 
 [[projects]]
-  digest = "1:b0142f883994390cee3fc0efbee8644c91796eb17d6af1bf8268a0961e6c0f3b"
+  branch = "master"
+  digest = "1:1d227373cef81334ffeb1ecc55d44fc0806e65f084575390591741359a6fe59b"
   name = "github.com/mmcdole/gofeed"
   packages = [
     ".",
@@ -219,8 +228,7 @@
     "rss",
   ]
   pruneopts = "UT"
-  revision = "42010a154d249f5f753dfe03a6390b59671e403e"
-  version = "v1.0.0-beta2"
+  revision = "4298e4366be3f64365cf257806159ed24bf89a4f"
 
 [[projects]]
   branch = "master"
@@ -557,8 +565,10 @@
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
     "github.com/google/uuid",
+    "github.com/gregjones/httpcache",
     "github.com/mattn/go-sqlite3",
     "github.com/mmcdole/gofeed",
+    "github.com/mmcdole/gofeed/rss",
     "github.com/nlopes/slack",
     "github.com/rivo/tview",
     "github.com/rmrobinson/bottlerocket-go",

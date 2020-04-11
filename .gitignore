@@ -16,6 +16,8 @@ override.bazelrc
 
 # IntelliJ
 .idea/
+# VSCode
+.vscode/
 
 # Proto files are auto-generated
 *.pb.go

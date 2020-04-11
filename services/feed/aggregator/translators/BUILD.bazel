@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["cbc.go"],
+    importpath = "github.com/rmrobinson/nerves/services/feed/aggregator/translators",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/mmcdole/gofeed:go_default_library",
+        "//vendor/github.com/mmcdole/gofeed/rss:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/golang.org/x/net/html:go_default_library",
+    ],
+)

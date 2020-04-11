@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package faltung.nerves.feed;
+
+option go_package = "github.com/rmrobinson/nerves/services/feed";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+message Image {
+    string name = 1;
+    string link = 2;
+    string title = 3;
+}
+
+message Entry {
+    string name = 1;
+    google.protobuf.Timestamp create_time = 2;
+    google.protobuf.Timestamp update_time = 3;
+
+    string title = 4;
+    string description = 5;
+    string link = 6;
+    string language_code = 7;
+    repeated string categories = 8;
+    string author = 9;
+    Image image = 10;
+}
+
+message ListEntriesRequest {
+    string category = 1;
+
+    string page_token = 10;
+    int32 page_size = 11;
+    string order_by = 12;
+}
+message ListEntriesResponse{
+    repeated Entry entries = 1;
+
+    int32 total_size = 10;
+    string next_page_token = 11;
+}
+
+message StreamEntryChangesRequest {
+    string category = 1;
+}
+
+service FeedService {
+    rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse) {}
+    rpc StreamEntryChanges(StreamEntryChangesRequest) returns (stream Entry) {}
+}
+
+enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_BLOG = 1;
+    TYPE_NEWS = 2;
+}
+
+enum Category {
+    CATEGORY_UNSPECIFIED = 0;
+    CATEGORY_TECHNOLOGY = 1;
+    CATEGORY_WORLD_EVENTS = 2;
+    CATEGORY_TRAVEL = 3;
+    CATEGORY_ENTERTAINMENT = 4;
+    CATEGORY_FOOD = 5;
+}
+
+message Config {
+    bool require_author = 1;
+}
+
+message FeedInfo {
+    string name = 1;
+
+    string url = 2;
+    string display_name = 3;
+    string description = 4;
+    string language_code = 5;
+    google.protobuf.Timestamp create_time = 6;
+    google.protobuf.Timestamp update_time = 7;
+    google.protobuf.Timestamp last_check_time = 8;
+
+    Type type = 9;
+    repeated Category categories = 10;
+
+    Image logo = 11;
+
+    Config config = 12;
+}
+
+message CreateFeedRequest {
+    string url = 1;
+}
+
+message UpdateFeedInfoRequest {
+    FeedInfo feed_info = 1;
+
+    google.protobuf.FieldMask update_mask = 2;
+    string request_id = 3;
+    bool validate_only = 4;
+}
+
+message DeleteFeedRequest {
+    string name = 1;
+}
+
+message ListFeedsRequest {
+    string category = 1;
+
+    string page_token = 10;
+    int32 page_size = 11;
+    string order_by = 12;
+}
+message ListFeedsResponse{
+    repeated FeedInfo feeds = 1;
+
+    int32 total_size = 10;
+    string next_page_token = 11;
+}
+
+service FeedInfoService {
+    rpc CreateFeed(CreateFeedRequest) returns (FeedInfo) {}
+    rpc UpdateFeedInfo(UpdateFeedInfoRequest) returns (FeedInfo) {}
+    rpc DeleteFeed(DeleteFeedRequest) returns (google.protobuf.Empty) {}
+    rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse) {}
+}
