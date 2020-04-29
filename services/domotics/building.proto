@@ -112,6 +112,7 @@ service BuildingService {
 }
 
 message CreateBuildingRequest {
+    Building building = 1;
 }
 message UpdateBuildingRequest {
     string id = 1;
@@ -170,31 +171,31 @@ service BuildingAdminService {
 
     rpc UpdateBuilding(UpdateBuildingRequest) returns (Building) {}
 
-    rpc AddBuildingBridge(AddBridgeRequest) returns (Building) {}
-
-    rpc RemoveBuildingBridge(RemoveBridgeRequest) returns (Building) {}
-
     rpc DeleteBuilding(DeleteBuildingRequest) returns (google.protobuf.Empty) {}
+
+    //rpc AddBuildingBridge(AddBridgeRequest) returns (Building) {}
+
+    //rpc RemoveBuildingBridge(RemoveBridgeRequest) returns (Building) {}
 
 
     rpc CreateFloor(CreateFloorRequest) returns (Floor) {}
 
     rpc UpdateFloor(UpdateFloorRequest) returns (Floor) {}
 
-    rpc AddFloorDevice(AddDeviceRequest) returns (Floor) {}
-
-    rpc RemoveFloorDevice(RemoveDeviceRequest) returns (Floor) {}
-
     rpc DeleteFloor(DeleteFloorRequest) returns (google.protobuf.Empty) {}
+
+    //rpc AddFloorDevice(AddDeviceRequest) returns (Floor) {}
+
+    //rpc RemoveFloorDevice(RemoveDeviceRequest) returns (Floor) {}
 
 
     rpc CreateRoom(CreateRoomRequest) returns (Room) {}
 
     rpc UpdateRoom(UpdateRoomRequest) returns (Room) {}
 
-    rpc AddRoomDevice(AddDeviceRequest) returns (Room) {}
-
-    rpc RemoveRoomDevice(RemoveDeviceRequest) returns (Room) {}
-
     rpc DeleteRoom(DeleteRoomRequest) returns (google.protobuf.Empty) {}
+
+    //rpc AddRoomDevice(AddDeviceRequest) returns (Room) {}
+
+    //rpc RemoveRoomDevice(RemoveDeviceRequest) returns (Room) {}
 }
