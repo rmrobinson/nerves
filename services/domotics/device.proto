@@ -4,7 +4,6 @@ package faltung.nerves.domotics;
 
 option go_package = "github.com/rmrobinson/nerves/services/domotics";
 
-import "google/protobuf/timestamp.proto";
 import "services/users/user.proto";
 
 message DeviceConfig {

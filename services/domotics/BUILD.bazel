@@ -6,12 +6,13 @@ proto_library(
     name = "domotics_proto",
     srcs = [
         "bridge.proto",
+        "building.proto",
         "device.proto",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "//services/users:users_proto",
-        "@com_google_protobuf//:timestamp_proto",
+        "@com_google_protobuf//:empty_proto",
     ],
 )
 
