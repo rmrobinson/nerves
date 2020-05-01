@@ -45,6 +45,16 @@ message Building {
 }
 
 
+message ListBuildingsRequest {
+}
+message ListBuildingsResponse {
+    repeated Building buildings = 1;
+}
+
+message GetBuildingRequest {
+    string building_id = 1;
+}
+
 message ListFloorsRequest {
     string building_id = 1;
 }
@@ -103,12 +113,15 @@ message Update {
 }
 
 service BuildingService {
+    rpc ListBuildings(ListBuildingsRequest) returns (ListBuildingsResponse) {}
+
+    rpc GetBuilding(GetBuildingRequest) returns (Building) {}
+
     rpc ListFloors(ListFloorsRequest) returns (ListFloorsResponse) {}
 
     rpc GetFloor(GetFloorRequest) returns (Floor) {}
 
     rpc StreamUpdates(StreamUpdatesRequest) returns (stream Update) {}
-
 }
 
 message CreateBuildingRequest {

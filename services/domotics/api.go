@@ -312,3 +312,55 @@ func (a *API) UpdateRoom(ctx context.Context, req *UpdateRoomRequest) (*Room, er
 func (a *API) DeleteRoom(ctx context.Context, req *DeleteRoomRequest) (*empty.Empty, error) {
 	return &empty.Empty{}, ErrNotImplemented.Err()
 }
+
+// ListBuildings satisfies the BuildingService gRPC server API.
+func (a *API) ListBuildings(ctx context.Context, req *ListBuildingsRequest) (*ListBuildingsResponse, error) {
+	buildings, err := a.svc.GetBuildings(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListBuildingsResponse{
+		Buildings: buildings,
+	}, nil
+}
+
+// GetBuilding satisfies the BuildingService gRPC server API.
+func (a *API) GetBuilding(ctx context.Context, req *GetBuildingRequest) (*Building, error) {
+	building, err := a.svc.GetBuilding(ctx, req.BuildingId)
+	if err != nil {
+		// err is going to be a wrapped status already.
+		return nil, err
+	}
+
+	return building, nil
+}
+
+// ListFloors satisfies the BuildingService gRPC server API.
+func (a *API) ListFloors(ctx context.Context, req *ListFloorsRequest) (*ListFloorsResponse, error) {
+	floors, err := a.svc.GetFloors(ctx, req.BuildingId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListFloorsResponse{
+		Floors: floors,
+	}, nil
+
+}
+
+// GetFloor satisfies the BuildingService gRPC server API.
+func (a *API) GetFloor(ctx context.Context, req *GetFloorRequest) (*Floor, error) {
+	floor, err := a.svc.GetFloor(ctx, req.Id)
+	if err != nil {
+		// err is going to be a wrapped status already.
+		return nil, err
+	}
+
+	return floor, nil
+}
+
+// StreamUpdates satisfies the BuildingService gRPC server API.
+func (a *API) StreamUpdates(req *StreamUpdatesRequest, stream BuildingService_StreamUpdatesServer) error {
+	return ErrNotImplemented.Err()
+}

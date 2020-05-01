@@ -32,6 +32,27 @@ func createBuilding(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, 
 		zap.String("desc", resp.Description),
 	)
 }
+func listBuildings(logger *zap.Logger, bc domotics.BuildingServiceClient) {
+	req := &domotics.ListBuildingsRequest{}
+
+	resp, err := bc.ListBuildings(context.Background(), req)
+	if err != nil {
+		logger.Warn("unable to list building",
+			zap.Error(err),
+		)
+		return
+	}
+
+	logger.Info("retrieved buildings")
+
+	for _, b := range resp.Buildings {
+		logger.Info("building found",
+			zap.String("id", b.Id),
+			zap.String("name", b.Name),
+			zap.String("desc", b.Description),
+		)
+	}
+}
 func createFloor(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, name string, desc string, parentID string) {
 	req := &domotics.CreateFloorRequest{
 		BuildingId: parentID,
@@ -55,6 +76,32 @@ func createFloor(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, nam
 		zap.String("name", resp.Name),
 		zap.String("desc", resp.Description),
 	)
+}
+func listFloors(logger *zap.Logger, bc domotics.BuildingServiceClient, id string) {
+	req := &domotics.ListFloorsRequest{
+		BuildingId: id,
+	}
+
+	resp, err := bc.ListFloors(context.Background(), req)
+	if err != nil {
+		logger.Warn("unable to list floors",
+			zap.String("building_id", id),
+			zap.Error(err),
+		)
+		return
+	}
+
+	logger.Info("retrieved floors",
+		zap.String("building_id", id),
+	)
+
+	for _, f := range resp.Floors {
+		logger.Info("floor found",
+			zap.String("id", f.Id),
+			zap.String("name", f.Name),
+			zap.String("desc", f.Description),
+		)
+	}
 }
 func createRoom(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, name string, desc string, parentID string) {
 	req := &domotics.CreateRoomRequest{
@@ -109,15 +156,20 @@ func main() {
 		return
 	}
 
-	buildingClient := domotics.NewBuildingAdminServiceClient(conn)
+	buildingAdminClient := domotics.NewBuildingAdminServiceClient(conn)
+	buildingClient := domotics.NewBuildingServiceClient(conn)
 
 	switch *mode {
 	case "createBuilding":
-		createBuilding(logger, buildingClient, *name, *desc)
+		createBuilding(logger, buildingAdminClient, *name, *desc)
+	case "listBuildings":
+		listBuildings(logger, buildingClient)
 	case "createFloor":
-		createFloor(logger, buildingClient, *name, *desc, *p)
+		createFloor(logger, buildingAdminClient, *name, *desc, *p)
+	case "listFloors":
+		listFloors(logger, buildingClient, *p)
 	case "createRoom":
-		createRoom(logger, buildingClient, *name, *desc, *p)
+		createRoom(logger, buildingAdminClient, *name, *desc, *p)
 	default:
 		logger.Debug("unknown command specified")
 	}

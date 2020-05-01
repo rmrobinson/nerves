@@ -109,6 +109,24 @@ func (s *Service) AddBuilding(ctx context.Context, b *Building) error {
 	return nil
 }
 
+// GetBuilding retrieves a building from the state store.
+func (s *Service) GetBuilding(ctx context.Context, bid string) (*Building, error) {
+	if b, ok := s.state.buildings[bid]; ok {
+		return b, nil
+	}
+	return nil, ErrBuildingNotFound.Err()
+}
+
+// GetBuildings retrieves all buildings from the state store.
+func (s *Service) GetBuildings(ctx context.Context) ([]*Building, error) {
+	var ret []*Building
+	for _, b := range s.state.buildings {
+		ret = append(ret, b)
+	}
+
+	return ret, nil
+}
+
 // AddFloor creates a new floor and adds it to its building, then persists it.
 func (s *Service) AddFloor(ctx context.Context, f *Floor, bid string) error {
 	s.m.Lock()
@@ -135,6 +153,23 @@ func (s *Service) AddFloor(ctx context.Context, f *Floor, bid string) error {
 		s.watcher.updated(stateChangeUpdated, b)
 	}
 	return nil
+}
+
+// GetFloor retrieves a floor from the state store.
+func (s *Service) GetFloor(ctx context.Context, fid string) (*Floor, error) {
+	if f, ok := s.state.floors[fid]; ok {
+		return f, nil
+	}
+	return nil, ErrFloorNotFound.Err()
+}
+
+// GetFloors retrieves all floors in a building from the state store.
+func (s *Service) GetFloors(ctx context.Context, bid string) ([]*Floor, error) {
+	if b, ok := s.state.buildings[bid]; ok {
+		return b.Floors, nil
+	}
+
+	return nil, ErrBuildingNotFound.Err()
 }
 
 // AddRoom creates a new room and adds it to its floor, then persists it.

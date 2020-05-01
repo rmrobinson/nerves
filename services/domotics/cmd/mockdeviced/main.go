@@ -65,7 +65,7 @@ func main() {
 		zap.String("local_addr", connStr),
 	)
 
-	api := domotics.NewAPI(logger, bm)
+	api := domotics.NewAPI(logger, bm, nil)
 
 	grpcServer := grpc.NewServer()
 	domotics.RegisterBridgeServiceServer(grpcServer, api)

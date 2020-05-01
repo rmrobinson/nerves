@@ -42,5 +42,6 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	domotics.RegisterBuildingAdminServiceServer(grpcServer, api)
+	domotics.RegisterBuildingServiceServer(grpcServer, api)
 	grpcServer.Serve(lis)
 }
