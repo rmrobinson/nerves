@@ -101,6 +101,13 @@ func listFloors(logger *zap.Logger, bc domotics.BuildingServiceClient, id string
 			zap.String("name", f.Name),
 			zap.String("desc", f.Description),
 		)
+		for _, r := range f.Rooms {
+			logger.Info(" room found",
+				zap.String("id", r.Id),
+				zap.String("name", r.Name),
+				zap.String("description", r.Description),
+			)
+		}
 	}
 }
 func createRoom(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, name string, desc string, parentID string) {

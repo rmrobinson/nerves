@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"net"
 
+	_ "github.com/mattn/go-sqlite3" // Blank import for sql drivers is "standard"
 	"github.com/rmrobinson/nerves/services/domotics"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -11,7 +14,8 @@ import (
 )
 
 var (
-	portEnvVar = "PORT"
+	portEnvVar   = "PORT"
+	dbPathEnvVar = "DB_PATH"
 )
 
 func main() {
@@ -22,9 +26,23 @@ func main() {
 
 	viper.SetEnvPrefix("NVS")
 	viper.BindEnv(portEnvVar)
+	viper.BindEnv(dbPathEnvVar)
 
-	p := domotics.NewInMemoryPersister()
+	sqldb, err := sql.Open("sqlite3", viper.GetString(dbPathEnvVar))
+	if err != nil {
+		logger.Fatal("unable to open db",
+			zap.Error(err),
+		)
+	}
+
+	p := domotics.NewSQLPersister(logger, sqldb)
 	s := domotics.NewService(logger, p)
+
+	if err := s.Setup(context.Background()); err != nil {
+		logger.Fatal("unable to setup service",
+			zap.Error(err),
+		)
+	}
 
 	connStr := fmt.Sprintf("%s:%d", "", viper.GetInt(portEnvVar))
 	lis, err := net.Listen("tcp", connStr)
