@@ -236,9 +236,9 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 var (
 	// ErrBuildingCreateFailed is returned when creating the building failed
 	ErrBuildingCreateFailed = status.New(codes.Internal, "unable to create bridge")
-	// ErrBuildingCreateFailed is returned when creating the floor failed
+	// ErrFloorCreateFailed is returned when creating the floor failed
 	ErrFloorCreateFailed = status.New(codes.Internal, "unable to create floor")
-	// ErrBuildingCreateFailed is returned when creating the room failed
+	// ErrRoomCreateFailed is returned when creating the room failed
 	ErrRoomCreateFailed = status.New(codes.Internal, "unable to create room")
 )
 
