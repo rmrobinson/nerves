@@ -109,13 +109,14 @@
   revision = "46266ca37bd38a63bc2844e3aeb7ec72a2e998fa"
 
 [[projects]]
-  digest = "1:ecd73c8c5c5e48f9079e042ae733c3f3ab021218d6c4da3411d82727fd5a412a"
+  digest = "1:a8e9a209e7e698c7a60b2df94aff0d6667534a3ea1e318d7fe11df173063c34f"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/empty",
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
@@ -556,6 +557,7 @@
     "github.com/gocarina/gocsv",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes",
+    "github.com/golang/protobuf/ptypes/empty",
     "github.com/google/uuid",
     "github.com/mattn/go-sqlite3",
     "github.com/mmcdole/gofeed",

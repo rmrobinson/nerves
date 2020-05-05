@@ -47,6 +47,7 @@ message BridgeState {
 }
 
 message BridgeConfig {
+    // TODO: delete this field
     string id = 1;
     string name = 2;
 

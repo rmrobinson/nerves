@@ -3,6 +3,7 @@ package domotics
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
@@ -20,13 +21,16 @@ var (
 type API struct {
 	logger *zap.Logger
 	hub    *Hub
+
+	svc *Service
 }
 
 // NewAPI creates a new API backed by the supplied hub implementation.
-func NewAPI(logger *zap.Logger, hub *Hub) *API {
+func NewAPI(logger *zap.Logger, hub *Hub, svc *Service) *API {
 	return &API{
 		logger: logger,
 		hub:    hub,
+		svc:    svc,
 	}
 }
 
@@ -227,4 +231,146 @@ func (a *API) StreamDeviceUpdates(req *StreamDeviceUpdatesRequest, stream Device
 	}
 
 	return nil
+}
+
+var (
+	// ErrBuildingCreateFailed is returned when creating the building failed
+	ErrBuildingCreateFailed = status.New(codes.Internal, "unable to create bridge")
+	// ErrFloorCreateFailed is returned when creating the floor failed
+	ErrFloorCreateFailed = status.New(codes.Internal, "unable to create floor")
+	// ErrRoomCreateFailed is returned when creating the room failed
+	ErrRoomCreateFailed = status.New(codes.Internal, "unable to create room")
+)
+
+// CreateBuilding satisfies the BuildingAdminService gRPC server API.
+func (a *API) CreateBuilding(ctx context.Context, req *CreateBuildingRequest) (*Building, error) {
+	err := a.svc.AddBuilding(ctx, req.Building)
+	if err != nil {
+		a.logger.Info("error creating building",
+			zap.Error(err),
+		)
+		return nil, ErrBuildingCreateFailed.Err()
+	}
+
+	return req.Building, nil
+}
+
+// UpdateBuilding satisfies the BuildingAdminService gRPC server API.
+func (a *API) UpdateBuilding(ctx context.Context, req *UpdateBuildingRequest) (*Building, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
+// DeleteBuilding satisfies the BuildingAdminService gRPC server API.
+func (a *API) DeleteBuilding(ctx context.Context, req *DeleteBuildingRequest) (*empty.Empty, error) {
+	return &empty.Empty{}, ErrNotImplemented.Err()
+}
+
+// AddBuildingBridge satisfies the BuildingAdminService gRPC server API.
+func (a *API) AddBuildingBridge(ctx context.Context, req *AddBridgeRequest) (*Building, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
+// RemoveBuildingBridge satisfies the BuildingAdminService gRPC server API.
+func (a *API) RemoveBuildingBridge(ctx context.Context, req *RemoveBridgeRequest) (*Building, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
+// CreateFloor satisfies the BuildingAdminService gRPC server API.
+func (a *API) CreateFloor(ctx context.Context, req *CreateFloorRequest) (*Floor, error) {
+	err := a.svc.AddFloor(ctx, req.Floor, req.BuildingId)
+	if err != nil {
+		a.logger.Info("error creating floor",
+			zap.String("building_id", req.BuildingId),
+			zap.Error(err),
+		)
+		return nil, ErrFloorCreateFailed.Err()
+	}
+
+	return req.Floor, nil
+}
+
+// UpdateFloor satisfies the BuildingAdminService gRPC server API.
+func (a *API) UpdateFloor(ctx context.Context, req *UpdateFloorRequest) (*Floor, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
+// DeleteFloor satisfies the BuildingAdminService gRPC server API.
+func (a *API) DeleteFloor(ctx context.Context, req *DeleteFloorRequest) (*empty.Empty, error) {
+	return &empty.Empty{}, ErrNotImplemented.Err()
+}
+
+// CreateRoom satisfies the BuildingAdminService gRPC server API.
+func (a *API) CreateRoom(ctx context.Context, req *CreateRoomRequest) (*Room, error) {
+	err := a.svc.AddRoom(ctx, req.Room, req.FloorId)
+	if err != nil {
+		a.logger.Info("error creating room",
+			zap.String("floor_id", req.FloorId),
+			zap.Error(err),
+		)
+		return nil, ErrRoomCreateFailed.Err()
+	}
+
+	return req.Room, nil
+}
+
+// UpdateRoom satisfies the BuildingAdminService gRPC server API.
+func (a *API) UpdateRoom(ctx context.Context, req *UpdateRoomRequest) (*Room, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
+// DeleteRoom satisfies the BuildingAdminService gRPC server API.
+func (a *API) DeleteRoom(ctx context.Context, req *DeleteRoomRequest) (*empty.Empty, error) {
+	return &empty.Empty{}, ErrNotImplemented.Err()
+}
+
+// ListBuildings satisfies the BuildingService gRPC server API.
+func (a *API) ListBuildings(ctx context.Context, req *ListBuildingsRequest) (*ListBuildingsResponse, error) {
+	buildings, err := a.svc.GetBuildings(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListBuildingsResponse{
+		Buildings: buildings,
+	}, nil
+}
+
+// GetBuilding satisfies the BuildingService gRPC server API.
+func (a *API) GetBuilding(ctx context.Context, req *GetBuildingRequest) (*Building, error) {
+	building, err := a.svc.GetBuilding(ctx, req.BuildingId)
+	if err != nil {
+		// err is going to be a wrapped status already.
+		return nil, err
+	}
+
+	return building, nil
+}
+
+// ListFloors satisfies the BuildingService gRPC server API.
+func (a *API) ListFloors(ctx context.Context, req *ListFloorsRequest) (*ListFloorsResponse, error) {
+	floors, err := a.svc.GetFloors(ctx, req.BuildingId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListFloorsResponse{
+		Floors: floors,
+	}, nil
+
+}
+
+// GetFloor satisfies the BuildingService gRPC server API.
+func (a *API) GetFloor(ctx context.Context, req *GetFloorRequest) (*Floor, error) {
+	floor, err := a.svc.GetFloor(ctx, req.Id)
+	if err != nil {
+		// err is going to be a wrapped status already.
+		return nil, err
+	}
+
+	return floor, nil
+}
+
+// StreamUpdates satisfies the BuildingService gRPC server API.
+func (a *API) StreamUpdates(req *StreamUpdatesRequest, stream BuildingService_StreamUpdatesServer) error {
+	return ErrNotImplemented.Err()
 }
