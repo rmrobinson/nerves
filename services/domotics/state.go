@@ -11,6 +11,7 @@ type State struct {
 	buildings map[string]*Building
 	floors    map[string]*Floor
 	rooms     map[string]*Room
+	bridges   map[string]*Bridge
 }
 
 // Dup performs a deep copy on our state
@@ -19,12 +20,18 @@ func (s *State) Dup() *State {
 		buildings: map[string]*Building{},
 		floors:    map[string]*Floor{},
 		rooms:     map[string]*Room{},
+		bridges:   map[string]*Bridge{},
 	}
 
 	// Duplicate the rooms
 	for _, r := range s.rooms {
 		nr := proto.Clone(r).(*Room)
 		ns.rooms[r.Id] = nr
+	}
+	// Duplicate the bridges
+	for _, b := range s.bridges {
+		nb := proto.Clone(b).(*Bridge)
+		ns.bridges[b.Id] = nb
 	}
 
 	// Duplicate the floors.
@@ -47,6 +54,10 @@ func (s *State) Dup() *State {
 		nb.Floors = []*Floor{}
 		for _, f := range b.Floors {
 			nb.Floors = append(nb.Floors, ns.floors[f.Id])
+		}
+		nb.Bridges = []*Bridge{}
+		for _, br := range b.Bridges {
+			nb.Bridges = append(nb.Bridges, ns.bridges[br.Id])
 		}
 
 		ns.buildings[b.Id] = nb

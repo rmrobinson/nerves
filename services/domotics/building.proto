@@ -8,16 +8,45 @@ import "google/protobuf/empty.proto";
 import "services/domotics/bridge.proto";
 import "services/domotics/device.proto";
 
+message Climate {
+    float temperature_celcius = 1;
+    int32 humidity_percent = 2;
+    float barometric_pressure_kpa = 3;
+}
+
+// A zone is a collection of devices and state in a location.
+// A building, a floor or a room may have a zone, or more than one zone.
+message Zone {
+    message State {
+        Climate climate = 1;
+        bool occupied = 2;
+        bool audio_active = 3;
+        bool video_active = 4;
+    }
+    // The current state of this zone (these fields are all read-only).
+    State current_state = 4;
+
+    // The set of controllable and viewable devices located in this room.
+    // It is not strictly safe to assume certain types will only appear once in this collection.
+    repeated Device devices = 10;
+
+    // A subset of the above devices, containing the lights
+    repeated Device lights = 11;
+    // A subset of the above devices, containing the speakers.
+    // In most cases this will be 0 or 1.
+    repeated Device speakers = 12;
+}
+
+// A room is a single location in a building that is logically separate from others.
 message Room {
     string id = 1;
     string name = 2;
     string description = 3;
 
-    // The Update of controllable and viewable devices located in this room.
-    // It is not strictly safe to assume certain types will only appear once in this Update.
-    repeated Device devices = 10;
+    Zone zone = 10;
 }
 
+// A floor is a physically distinct collection of rooms in a building.
 message Floor {
     string id = 1;
     string name = 2;
@@ -25,11 +54,12 @@ message Floor {
     int32 level = 4;
 
     // Some floors may have sensors or other things (lights?) not isolated to a single room.
-    repeated Device devices = 10;
+    Zone zone = 10;
     // Update of rooms on this floor.
     repeated Room rooms = 11;
 }
 
+// A building is a physically distinct structure containing rooms and floors.
 message Building {
     string id = 1;
     string name = 2;
@@ -37,11 +67,11 @@ message Building {
     string address = 4;
 
     // A building may have some devices (sensors mostly) that are not tied to a given room.
-    repeated Device devices = 10;
-    // Bridges active in this building
-    repeated Bridge bridges = 11;
+    Zone zone = 10;
     // Collection of floors in this building.
-    repeated Floor floors = 12;
+    repeated Floor floors = 11;
+    // Bridges active in this building
+    repeated Bridge bridges = 12;
 }
 
 
@@ -180,17 +210,18 @@ message RemoveDeviceRequest {
 }
 
 service BuildingAdminService {
+    // The set of APIs operating on a building.
     rpc CreateBuilding(CreateBuildingRequest) returns (Building) {}
 
     rpc UpdateBuilding(UpdateBuildingRequest) returns (Building) {}
 
     rpc DeleteBuilding(DeleteBuildingRequest) returns (google.protobuf.Empty) {}
 
-    //rpc AddBuildingBridge(AddBridgeRequest) returns (Building) {}
+    rpc AddBuildingBridge(AddBridgeRequest) returns (Building) {}
 
-    //rpc RemoveBuildingBridge(RemoveBridgeRequest) returns (Building) {}
+    rpc RemoveBuildingBridge(RemoveBridgeRequest) returns (Building) {}
 
-
+    // The set of APIs operating on a floor.
     rpc CreateFloor(CreateFloorRequest) returns (Floor) {}
 
     rpc UpdateFloor(UpdateFloorRequest) returns (Floor) {}
@@ -202,6 +233,7 @@ service BuildingAdminService {
     //rpc RemoveFloorDevice(RemoveDeviceRequest) returns (Floor) {}
 
 
+    // The set of APIs operating on a room.
     rpc CreateRoom(CreateRoomRequest) returns (Room) {}
 
     rpc UpdateRoom(UpdateRoomRequest) returns (Room) {}

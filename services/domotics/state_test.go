@@ -7,6 +7,10 @@ import (
 )
 
 func TestState_Dup(t *testing.T) {
+	br := &Bridge{
+		Id:   "test bridge id",
+		Type: BridgeType_GENERIC,
+	}
 	r := &Room{
 		Id:          "test room id",
 		Name:        "test room",
@@ -28,20 +32,26 @@ func TestState_Dup(t *testing.T) {
 		Floors: []*Floor{
 			f,
 		},
+		Bridges: []*Bridge{
+			br,
+		},
 	}
 	orig := &State{
 		buildings: map[string]*Building{},
 		floors:    map[string]*Floor{},
 		rooms:     map[string]*Room{},
+		bridges:   map[string]*Bridge{},
 	}
 
 	orig.buildings[b.Id] = b
 	orig.floors[f.Id] = f
 	orig.rooms[r.Id] = r
+	orig.bridges[br.Id] = br
 
 	dup := orig.Dup()
 
 	assert.Equal(t, *orig.buildings[b.Id].Floors[0], *dup.buildings[b.Id].Floors[0])
 	assert.Equal(t, *orig.floors[f.Id].Rooms[0], *dup.floors[f.Id].Rooms[0])
 	assert.Equal(t, *orig.rooms[r.Id], *dup.rooms[r.Id])
+	assert.Equal(t, *orig.bridges[br.Id], *dup.bridges[br.Id])
 }

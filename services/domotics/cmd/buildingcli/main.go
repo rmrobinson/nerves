@@ -134,7 +134,26 @@ func createRoom(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, name
 		zap.String("desc", resp.Description),
 	)
 }
+func linkBridge(logger *zap.Logger, bc domotics.BuildingAdminServiceClient, bridgeID string, buildingID string) {
+	req := &domotics.AddBridgeRequest{
+		ParentId: buildingID,
+		BridgeId: bridgeID,
+	}
 
+	resp, err := bc.AddBuildingBridge(context.Background(), req)
+	if err != nil {
+		logger.Warn("unable to add bridge",
+			zap.String("bridge_id", bridgeID),
+			zap.Error(err),
+		)
+		return
+	}
+
+	logger.Info("added bridge to building",
+		zap.String("bridge_id", bridgeID),
+		zap.Int("bridge_count", len(resp.Bridges)),
+	)
+}
 func main() {
 	var (
 		addr = flag.String("addr", "", "The address to connect to")
@@ -177,6 +196,8 @@ func main() {
 		listFloors(logger, buildingClient, *p)
 	case "createRoom":
 		createRoom(logger, buildingAdminClient, *name, *desc, *p)
+	case "linkBridge":
+		linkBridge(logger, buildingAdminClient, *name, *p)
 	default:
 		logger.Debug("unknown command specified")
 	}

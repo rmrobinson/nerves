@@ -265,6 +265,16 @@ func (a *API) DeleteBuilding(ctx context.Context, req *DeleteBuildingRequest) (*
 	return &empty.Empty{}, ErrNotImplemented.Err()
 }
 
+// AddBuildingBridge satisfies the BuildingAdminService gRPC server API.
+func (a *API) AddBuildingBridge(ctx context.Context, req *AddBridgeRequest) (*Building, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
+// RemoveBuildingBridge satisfies the BuildingAdminService gRPC server API.
+func (a *API) RemoveBuildingBridge(ctx context.Context, req *RemoveBridgeRequest) (*Building, error) {
+	return nil, ErrNotImplemented.Err()
+}
+
 // CreateFloor satisfies the BuildingAdminService gRPC server API.
 func (a *API) CreateFloor(ctx context.Context, req *CreateFloorRequest) (*Floor, error) {
 	err := a.svc.AddFloor(ctx, req.Floor, req.BuildingId)
