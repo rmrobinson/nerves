@@ -14,8 +14,12 @@ build/
 bazel-*
 override.bazelrc
 
-# IntelliJ
+# IDEs
 .idea/
+.vscode/
 
 # Proto files are auto-generated
 *.pb.go
+
+# Database files contain state and are not tracked
+*.db
