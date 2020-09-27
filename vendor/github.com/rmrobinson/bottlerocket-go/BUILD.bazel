@@ -12,6 +12,7 @@ go_library(
         "config.h",
     ],
     cgo = True,
+    clinkopts = ["-lbr"],
     importmap = "github.com/rmrobinson/nerves/vendor/github.com/rmrobinson/bottlerocket-go",
     importpath = "github.com/rmrobinson/bottlerocket-go",
     visibility = ["//visibility:public"],

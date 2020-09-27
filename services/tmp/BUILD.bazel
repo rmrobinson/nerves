@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["hub.go"],
+    importpath = "github.com/rmrobinson/nerves/services/tmp",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//lib/stream:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_golang_protobuf//proto:go_default_library",
+    ],
+)

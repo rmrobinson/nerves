@@ -36,12 +36,12 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/policy",
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/robfig/cron:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@com_github_rmrobinson_nerves//services/domotics:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )
@@ -51,9 +51,9 @@ go_test(
     srcs = ["condition_test.go"],
     embed = [":go_default_library"],
     deps = [
-        "//services/domotics:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/go.uber.org/zap/zaptest:go_default_library",
+        "@com_github_rmrobinson_nerves//services/domotics:go_default_library",
     ],
 )

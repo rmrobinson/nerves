@@ -2,18 +2,20 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["main.go"],
-    importpath = "github.com/rmrobinson/nerves/services/mind/cmd/mind",
+    srcs = [
+        "hue.go",
+        "main.go",
+        "monopamp.go",
+        "proxy.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/tmp/cmd/domoticsd",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/mind:go_default_library",
-        "//services/news:go_default_library",
-        "//services/transit:go_default_library",
-        "//services/users:go_default_library",
-        "//services/weather:go_default_library",
-        "//vendor/github.com/gocarina/gocsv:go_default_library",
-        "//vendor/github.com/nlopes/slack:go_default_library",
+        "//services/domotics/bridge:go_default_library",
+        "//vendor/github.com/rmrobinson/hue-go:go_default_library",
+        "//vendor/github.com/rmrobinson/monoprice-amp-go:go_default_library",
         "//vendor/github.com/spf13/viper:go_default_library",
+        "//vendor/github.com/tarm/serial:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "@com_github_rmrobinson_nerves//services/domotics:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
@@ -21,7 +23,7 @@ go_library(
 )
 
 go_binary(
-    name = "mind",
+    name = "domoticsd",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
 )
