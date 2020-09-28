@@ -17,8 +17,15 @@ go_proto_library(
 
 go_library(
     name = "go_default_library",
-    srcs = ["bottlerocket.go"],
+    srcs = ["sync_bridge_service.go"],
     embed = [":bridge_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/domotics/bridge",
     visibility = ["//visibility:public"],
+    deps = [
+        "//lib/stream:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/peer:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
+    ],
 )

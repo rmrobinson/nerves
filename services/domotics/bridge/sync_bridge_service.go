@@ -1,10 +1,10 @@
-package remote
+package bridge
 
 import (
 	"context"
+	"sync"
 
 	"github.com/rmrobinson/nerves/lib/stream"
-	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
@@ -24,10 +24,10 @@ var (
 // This allows for rapid implementation of bridge capabilities by simplistic, synchronous
 // libraries which don't require advanced features.
 type SyncBridge interface {
-	SetDeviceState(context.Context, *bridge.UpdateDeviceStateRequest) error
+	SetDeviceState(context.Context, *Device, *DeviceState) error
 }
 
-// Service provides simplistic, synchronous bridges an easy way to integrate functionality
+// SyncBridgeService provides simplistic, synchronous bridges an easy way to integrate functionality
 // without requiring a complete gRPC server implementation of the domotics Bridge contract.
 // The bridge configured here is typically statically defined, with a pre-set number
 // of devices. This service guards against mis-addressed devices, out-of-range options, etc.
@@ -35,20 +35,21 @@ type SyncBridge interface {
 // This interface is built under the assumption that this service will be the only thing
 // allowing writes to the underlying bridge, providing guards for serialized calls. It caches
 // device profiles and does not actually query the underlying system.
-type Service struct {
+type SyncBridgeService struct {
 	logger  *zap.Logger
-	brInfo  *bridge.Bridge
-	devices map[string]*bridge.Device
+	brInfo  *Bridge
+	devices map[string]*Device
 	br      SyncBridge
+	brLock  sync.Mutex
 
 	updates *stream.Source
 }
 
-// NewService takes the supplied bridge and device profiles and takes on management of them.
+// NewSyncBridgeService takes the supplied bridge and device profiles and takes on management of them.
 // The supplied synchronous bridge interface will be used when the service detects an incoming
 // write which requires a state change in the underlying device.
-func NewService(logger *zap.Logger, brInfo *bridge.Bridge, devices map[string]*bridge.Device, br SyncBridge) *Service {
-	return &Service{
+func NewSyncBridgeService(logger *zap.Logger, brInfo *Bridge, devices map[string]*Device, br SyncBridge) *SyncBridgeService {
+	return &SyncBridgeService{
 		logger:  logger,
 		brInfo:  brInfo,
 		devices: devices,
@@ -59,13 +60,13 @@ func NewService(logger *zap.Logger, brInfo *bridge.Bridge, devices map[string]*b
 }
 
 // GetBridge retrieves the bridge info of this service.
-func (s *Service) GetBridge(ctx context.Context, req *bridge.GetBridgeRequest) (*bridge.Bridge, error) {
+func (s *SyncBridgeService) GetBridge(ctx context.Context, req *GetBridgeRequest) (*Bridge, error) {
 	return s.brInfo, nil
 }
 
 // ListDevices retrieves all registered devices.
-func (s *Service) ListDevices(ctx context.Context, req *bridge.ListDevicesRequest) (*bridge.ListDevicesResponse, error) {
-	resp := &bridge.ListDevicesResponse{}
+func (s *SyncBridgeService) ListDevices(ctx context.Context, req *ListDevicesRequest) (*ListDevicesResponse, error) {
+	resp := &ListDevicesResponse{}
 
 	for _, device := range s.devices {
 		resp.Devices = append(resp.Devices, device)
@@ -75,7 +76,7 @@ func (s *Service) ListDevices(ctx context.Context, req *bridge.ListDevicesReques
 }
 
 // GetDevice retrieves the specified device.
-func (s *Service) GetDevice(ctx context.Context, req *bridge.GetDeviceRequest) (*bridge.Device, error) {
+func (s *SyncBridgeService) GetDevice(ctx context.Context, req *GetDeviceRequest) (*Device, error) {
 	if device, found := s.devices[req.Id]; found {
 		return device, nil
 	}
@@ -83,20 +84,33 @@ func (s *Service) GetDevice(ctx context.Context, req *bridge.GetDeviceRequest) (
 	return nil, ErrDeviceNotFound.Err()
 }
 
-// SetDeviceConfig exists to satisfy the domotics Bridge contract, but is not actually supported.
-func (s *Service) SetDeviceConfig(ctx context.Context, req *bridge.UpdateDeviceConfigRequest) (*bridge.Device, error) {
+// UpdateDeviceConfig exists to satisfy the domotics Bridge contract, but is not actually supported.
+func (s *SyncBridgeService) UpdateDeviceConfig(ctx context.Context, req *UpdateDeviceConfigRequest) (*Device, error) {
 	return nil, ErrNotImplemented.Err()
 }
 
-// SetDeviceState updates the specified device with the provided state.
-func (s *Service) SetDeviceState(ctx context.Context, req *bridge.UpdateDeviceStateRequest) (*bridge.Device, error) {
-	// TODO: guard against noop writes
+// UpdateDeviceState updates the specified device with the provided state.
+func (s *SyncBridgeService) UpdateDeviceState(ctx context.Context, req *UpdateDeviceStateRequest) (*Device, error) {
+	var device *Device
+	var found bool
 
-	if _, found := s.devices[req.Id]; !found {
+	if device, found = s.devices[req.Id]; !found {
 		return nil, ErrDeviceNotFound.Err()
 	}
 
-	err := s.br.SetDeviceState(ctx, req)
+	if req.State.String() == device.State.String() {
+		s.logger.Debug("noop write, ignoring",
+			zap.String("device_id", req.Id),
+		)
+		return device, nil
+	}
+
+	// TODO: check against request version field
+
+	s.brLock.Lock()
+	err := s.br.SetDeviceState(ctx, device, req.State)
+	s.brLock.Unlock()
+
 	if err != nil {
 		s.logger.Info("error setting device state",
 			zap.String("id", req.Id),
@@ -107,10 +121,10 @@ func (s *Service) SetDeviceState(ctx context.Context, req *bridge.UpdateDeviceSt
 
 	s.devices[req.Id].State = req.State
 
-	s.updates.SendMessage(&bridge.Update{
-		Action: bridge.Update_ADDED,
-		Update: &bridge.Update_DeviceUpdate{
-			&bridge.DeviceUpdate{
+	s.updates.SendMessage(&Update{
+		Action: Update_ADDED,
+		Update: &Update_DeviceUpdate{
+			&DeviceUpdate{
 				Device: s.devices[req.Id],
 			},
 		},
@@ -119,9 +133,9 @@ func (s *Service) SetDeviceState(ctx context.Context, req *bridge.UpdateDeviceSt
 	return s.devices[req.Id], nil
 }
 
-// StreamBridgeUpdates monitors changes for all changes which occur on the bridge.
+// StreamBridgeUpdates monitors changes for all changes which occur on the
 // This will only pick up successful device writes.
-func (s *Service) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, stream bridge.BridgeService_StreamBridgeUpdatesServer) error {
+func (s *SyncBridgeService) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest, stream BridgeService_StreamBridgeUpdatesServer) error {
 	peer, isOk := peer.FromContext(stream.Context())
 
 	addr := "unknown"
@@ -137,10 +151,10 @@ func (s *Service) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, st
 
 	// Send all of the devices to start.
 	for _, device := range s.devices {
-		update := &bridge.Update{
-			Action: bridge.Update_ADDED,
-			Update: &bridge.Update_DeviceUpdate{
-				&bridge.DeviceUpdate{
+		update := &Update{
+			Action: Update_ADDED,
+			Update: &Update_DeviceUpdate{
+				&DeviceUpdate{
 					Device: device,
 				},
 			},
@@ -169,7 +183,7 @@ func (s *Service) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, st
 			return nil
 		}
 
-		bridgeUpdate, ok := update.(*bridge.Update)
+		bridgeUpdate, ok := update.(*Update)
 
 		if !ok {
 			panic("update cast incorrect")
