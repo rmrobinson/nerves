@@ -16,3 +16,5 @@ The bridge contract is designed to support both major protocol approaches:
 There are a few foundational principles which implementers of this contract should keep in mind.
  1. performing a set action on an element should cause the resulting state value to be propagated to any subscribed clients via the 'Update' stream. Some protocols (such as ZWave, Deconz, etc.) cause this to happen automatically; while more low-level protocols (such as X10) may require that the implementation perform this manually. Handling of this is provided automatically by the SyncBridgeService.
  2. consumers of the contract should be able to assume the device ID is the one true identity of a device; and should it migrate between bridges the device itself will not change. As a result, clients of the contract will not intrinsically link devices to bridges outside the active connection between the client and the bridge.
+
+Bridges advertise themselves over SSDP, using the `falnet_nerves:bridge` type. Typically advertisements are sent every 30 seconds.

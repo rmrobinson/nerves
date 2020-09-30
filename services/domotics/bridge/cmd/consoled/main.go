@@ -28,7 +28,7 @@ func main() {
 
 	br := NewConsole(logger, viper.GetString(idEnvVar))
 
-	connStr := fmt.Sprintf("%s:%d", "", viper.GetInt(portEnvVar))
+	connStr := fmt.Sprintf("%s:%d", "127.0.0.1", viper.GetInt(portEnvVar))
 	lis, err := net.Listen("tcp", connStr)
 	if err != nil {
 		logger.Fatal("error initializing listener",
@@ -55,6 +55,10 @@ func main() {
 	}
 
 	sbs := bridge.NewSyncBridgeService(logger, brInfo, devices, br)
+
+	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), connStr)
+	go ad.Run()
+	defer ad.Shutdown()
 
 	grpcServer := grpc.NewServer()
 	bridge.RegisterBridgeServiceServer(grpcServer, sbs)

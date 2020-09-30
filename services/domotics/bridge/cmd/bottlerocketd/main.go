@@ -73,6 +73,10 @@ func main() {
 
 	sbs := bridge.NewSyncBridgeService(logger, brInfo, devices, br)
 
+	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), connStr)
+	go ad.Run()
+	defer ad.Shutdown()
+
 	grpcServer := grpc.NewServer()
 	bridge.RegisterBridgeServiceServer(grpcServer, sbs)
 	grpcServer.Serve(lis)

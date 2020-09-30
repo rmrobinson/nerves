@@ -170,6 +170,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:477cf3735d08666b93527144d3a2f71c660b2f09af3f4d2add81a0eb8a0939a3"
+  name = "github.com/koron/go-ssdp"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ee6c24884ce04dd9f0fcea96f2d790904d6c98a3"
+  version = "v0.0.2"
+
+[[projects]]
   digest = "1:c864b8e8084dfb30c03e26af1eb338f13fce00f34244627fa7ce240904a80e17"
   name = "github.com/lucasb-eyer/go-colorful"
   packages = ["."]
@@ -416,9 +424,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8ec07b9b896e3bb705c34f59f4f8f6a9deb8a09a122b1e54b5bfb67bfb0e372a"
+  digest = "1:3806d889c8487da7612d11c77d96e74bf08cb1f99951af58819f33b8a2969466"
   name = "golang.org/x/net"
   packages = [
+    "bpf",
     "html",
     "html/atom",
     "html/charset",
@@ -426,7 +435,10 @@
     "http2",
     "http2/hpack",
     "idna",
+    "internal/iana",
+    "internal/socket",
     "internal/timeseries",
+    "ipv4",
     "trace",
   ]
   pruneopts = "UT"
@@ -434,9 +446,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7d260271d98dc74100eff620ec75cb6cdd320f71598d51748eed99d3177125f2"
+  digest = "1:3631b2a26c8e9d007647df403941e37ad6cd2e96928128248e5a305d38b0443c"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "UT"
   revision = "59c9f1ba88faf592b225274f69c5ef1e4ebacf82"
 
@@ -559,6 +574,7 @@
     "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/empty",
     "github.com/google/uuid",
+    "github.com/koron/go-ssdp",
     "github.com/mattn/go-sqlite3",
     "github.com/mmcdole/gofeed",
     "github.com/nlopes/slack",

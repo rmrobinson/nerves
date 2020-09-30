@@ -17,12 +17,16 @@ go_proto_library(
 
 go_library(
     name = "go_default_library",
-    srcs = ["sync_bridge_service.go"],
+    srcs = [
+        "advertiser.go",
+        "sync_bridge_service.go",
+    ],
     embed = [":bridge_go_proto"],
     importpath = "github.com/rmrobinson/nerves/services/domotics/bridge",
     visibility = ["//visibility:public"],
     deps = [
         "//lib/stream:go_default_library",
+        "//vendor/github.com/koron/go-ssdp:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "//vendor/google.golang.org/grpc/codes:go_default_library",
         "//vendor/google.golang.org/grpc/peer:go_default_library",
