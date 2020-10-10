@@ -62,28 +62,25 @@ func NewHub(logger *zap.Logger, hubInfo *Bridge) *Hub {
 	}
 }
 
-func (h *Hub) GetBridge(ctx context.Context, req *GetBridgeRequest) (*Bridge, error) {
-	return h.hubInfo, nil
-}
-
-func (h *Hub) ListDevices(ctx context.Context, req *ListDevicesRequest) (*ListDevicesResponse, error) {
-	resp := &ListDevicesResponse{}
+// ListDevices returns the set of currently managed devices and their currently known states
+func (h *Hub) ListDevices() ([]*Device, error) {
+	resp := []*Device{}
 
 	h.devicesMutex.Lock()
 	defer h.devicesMutex.Unlock()
 	for _, device := range h.devices {
-		resp.Devices = append(resp.Devices, proto.Clone(device.d).(*Device))
+		resp = append(resp, proto.Clone(device.d).(*Device))
 	}
 
 	return resp, nil
 }
 
 // GetDevice retrieves the specified device.
-func (h *Hub) GetDevice(ctx context.Context, req *GetDeviceRequest) (*Device, error) {
+func (h *Hub) GetDevice(id string) (*Device, error) {
 	h.devicesMutex.Lock()
 	defer h.devicesMutex.Unlock()
 
-	if device, found := h.devices[req.Id]; found {
+	if device, found := h.devices[id]; found {
 		// We clone the item before returning to avoid issues with sets being ignored.
 		return proto.Clone(device.d).(*Device), nil
 	}
@@ -92,34 +89,72 @@ func (h *Hub) GetDevice(ctx context.Context, req *GetDeviceRequest) (*Device, er
 }
 
 // UpdateDeviceConfig exists to satisfy the domotics Bridge contract, but is not actually supported.
-func (h *Hub) UpdateDeviceConfig(ctx context.Context, req *UpdateDeviceConfigRequest) (*Device, error) {
-	return nil, ErrNotImplemented.Err()
-}
-
-// UpdateDeviceState updates the specified device with the provided state.
-func (h *Hub) UpdateDeviceState(ctx context.Context, req *UpdateDeviceStateRequest) (*Device, error) {
+func (h *Hub) UpdateDeviceConfig(ctx context.Context, id string, config *DeviceConfig) (*Device, error) {
 	h.devicesMutex.Lock()
 	defer h.devicesMutex.Unlock()
 
-	hd, found := h.devices[req.Id]
+	hd, found := h.devices[id]
 
 	if !found {
 		return nil, ErrDeviceNotFound.Err()
 	}
 
-	if req.State.String() == hd.d.State.String() {
+	if config.String() == hd.d.Config.String() {
 		h.logger.Debug("noop write, ignoring",
-			zap.String("device_id", req.Id),
+			zap.String("device_id", id),
 		)
 		return proto.Clone(hd.d).(*Device), nil
 	}
 
 	// TODO: check against request version field
 
-	resp, err := hd.hb.c.UpdateDeviceState(ctx, req)
+	resp, err := hd.hb.c.UpdateDeviceConfig(ctx, &UpdateDeviceConfigRequest{
+		Id:     id,
+		Config: config,
+	})
+	if err != nil {
+		h.logger.Info("error setting device config",
+			zap.String("id", id),
+			zap.Error(err),
+		)
+
+		// Since we're invoking a gRPC call here we will have a grpc.Status type to pass along.
+		// There is no need to manipulate the error as we're just proxying it through.
+		return nil, err
+	}
+
+	// We do not update the 'devices' array here since the contract guarantees we'll be getting
+	// an update from the owning bridge with this state change.
+	return resp, nil
+}
+
+// UpdateDeviceState updates the specified device with the provided state.
+func (h *Hub) UpdateDeviceState(ctx context.Context, id string, state *DeviceState) (*Device, error) {
+	h.devicesMutex.Lock()
+	defer h.devicesMutex.Unlock()
+
+	hd, found := h.devices[id]
+
+	if !found {
+		return nil, ErrDeviceNotFound.Err()
+	}
+
+	if state.String() == hd.d.State.String() {
+		h.logger.Debug("noop write, ignoring",
+			zap.String("device_id", id),
+		)
+		return proto.Clone(hd.d).(*Device), nil
+	}
+
+	// TODO: check against request version field
+
+	resp, err := hd.hb.c.UpdateDeviceState(ctx, &UpdateDeviceStateRequest{
+		Id:    id,
+		State: state,
+	})
 	if err != nil {
 		h.logger.Info("error setting device state",
-			zap.String("id", req.Id),
+			zap.String("id", id),
 			zap.Error(err),
 		)
 
@@ -171,7 +206,16 @@ func (h *Hub) AddBridge(c BridgeServiceClient) error {
 		},
 	})
 
-	// TODO: should we seed the devices before we monitor or let the monitor do that?
+	for _, device := range brInfo.Devices {
+		h.processUpdate(hb, &Update{
+			Action: Update_ADDED,
+			Update: &Update_DeviceUpdate{
+				&DeviceUpdate{
+					Device: device,
+				},
+			},
+		})
+	}
 
 	go func(h *Hub, hb *hubBridge) {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -230,6 +274,7 @@ func (h *Hub) RemoveBridge(id string) error {
 		return ErrBridgeNotFound.Err()
 	}
 
+	deviceIDs := []string{}
 	// We unregister all of the devices owned by this bridge
 	h.devicesMutex.Lock()
 	for deviceID, hd := range h.devices {
@@ -237,18 +282,23 @@ func (h *Hub) RemoveBridge(id string) error {
 			continue
 		}
 
-		delete(h.devices, deviceID)
+		deviceIDs = append(deviceIDs, deviceID)
+	}
+	h.devicesMutex.Unlock()
 
-		h.updateSource.SendMessage(&Update{
+	// processUpdate() locks the devices map - we retrieved the known set of devices above
+	// and the iterate through them here to ensure no deadlocks.
+	for _, deviceID := range deviceIDs {
+		h.processUpdate(hb, &Update{
 			Action: Update_REMOVED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
 					DeviceId: deviceID,
+					BridgeId: id,
 				},
 			},
 		})
 	}
-	h.devicesMutex.Unlock()
 
 	// Next we remove this bridge from the set
 	delete(h.bridges, id)
@@ -314,7 +364,10 @@ func (h *Hub) processUpdate(hb *hubBridge, u *Update) {
 			return
 		}
 
-		deviceID := u.GetDeviceUpdate().Device.Id
+		deviceID := u.GetDeviceUpdate().DeviceId
+		if u.GetDeviceUpdate().Device != nil {
+			deviceID = u.GetDeviceUpdate().Device.Id
+		}
 
 		h.logger.Info("device updated",
 			zap.String("action", u.Action.String()),

@@ -12,22 +12,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func getBridge(logger *zap.Logger, h *bridge.Hub) {
-	b, err := h.GetBridge(context.Background(), &bridge.GetBridgeRequest{})
-	if err != nil {
-		logger.Warn("unable to get bridge",
-			zap.Error(err),
-		)
-		return
-	}
-
-	logger.Info("got bridge",
-		zap.String("bridge", b.String()),
-	)
-}
-
 func getDevices(logger *zap.Logger, h *bridge.Hub) {
-	getResp, err := h.ListDevices(context.Background(), &bridge.ListDevicesRequest{})
+	devices, err := h.ListDevices()
 	if err != nil {
 		logger.Warn("unable to list devices",
 			zap.Error(err),
@@ -36,7 +22,7 @@ func getDevices(logger *zap.Logger, h *bridge.Hub) {
 	}
 
 	var ret []string
-	for _, device := range getResp.Devices {
+	for _, device := range devices {
 		ret = append(ret, device.String())
 	}
 	logger.Info("got devices",
@@ -45,15 +31,10 @@ func getDevices(logger *zap.Logger, h *bridge.Hub) {
 }
 
 func setDeviceName(logger *zap.Logger, h *bridge.Hub, id string, name string) {
-	req := &bridge.UpdateDeviceConfigRequest{
-		Id: id,
-		Config: &bridge.DeviceConfig{
-			Name:        name,
-			Description: "Manually set",
-		},
-	}
-
-	setResp, err := h.UpdateDeviceConfig(context.Background(), req)
+	setResp, err := h.UpdateDeviceConfig(context.Background(), id, &bridge.DeviceConfig{
+		Name:        name,
+		Description: "Manually set",
+	})
 	if err != nil {
 		logger.Warn("unable to set device name",
 			zap.String("device_id", id),
@@ -71,7 +52,7 @@ func setDeviceName(logger *zap.Logger, h *bridge.Hub, id string, name string) {
 }
 
 func setDeviceIsOn(logger *zap.Logger, h *bridge.Hub, id string, isOn bool) {
-	d, err := h.GetDevice(context.Background(), &bridge.GetDeviceRequest{Id: id})
+	d, err := h.GetDevice(id)
 	if err != nil {
 		logger.Warn("unable to get device",
 			zap.String("device_id", id),
@@ -81,12 +62,8 @@ func setDeviceIsOn(logger *zap.Logger, h *bridge.Hub, id string, isOn bool) {
 	}
 
 	d.State.Binary.IsOn = isOn
-	req := &bridge.UpdateDeviceStateRequest{
-		Id:    id,
-		State: d.State,
-	}
 
-	setResp, err := h.UpdateDeviceState(context.Background(), req)
+	setResp, err := h.UpdateDeviceState(context.Background(), id, d.State)
 	if err != nil {
 		logger.Warn("unable to set device",
 			zap.String("device_id", id),
@@ -170,8 +147,6 @@ func main() {
 	time.Sleep(time.Second)
 
 	switch *mode {
-	case "getBridge":
-		getBridge(logger, h)
 	case "getDevices":
 		getDevices(logger, h)
 	case "setDeviceConfig":

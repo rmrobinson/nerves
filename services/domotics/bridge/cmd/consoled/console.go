@@ -53,6 +53,7 @@ func (c *Console) getDevices(ctx context.Context) (map[string]*bridge.Device, er
 
 func (c *Console) getBridge(ctx context.Context) (*bridge.Bridge, error) {
 	ret := &bridge.Bridge{
+		Id:               c.id,
 		ModelId:          "C1",
 		ModelName:        "Console",
 		ModelDescription: "Console echo bridge",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/rmrobinson/nerves/lib/stream"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -12,6 +13,10 @@ import (
 )
 
 var (
+	// ErrMissingParam is returned if a request is missing a required field
+	ErrMissingParam = status.New(codes.InvalidArgument, "required param missing")
+	// ErrNotSupported is returned if the requested method is not supported.
+	ErrNotSupported = status.New(codes.InvalidArgument, "operation not supported")
 	// ErrDeviceNotFound is returned if the requested device does not exist.
 	ErrDeviceNotFound = status.New(codes.NotFound, "device not found")
 	// ErrNotImplemented is returned if the requested method is not yet implemented.
@@ -49,6 +54,10 @@ type SyncBridgeService struct {
 // The supplied synchronous bridge interface will be used when the service detects an incoming
 // write which requires a state change in the underlying device.
 func NewSyncBridgeService(logger *zap.Logger, brInfo *Bridge, devices map[string]*Device, br SyncBridge) *SyncBridgeService {
+	// Ensure we mark all these devices as reachable
+	for id := range devices {
+		devices[id].State.IsReachable = true
+	}
 	return &SyncBridgeService{
 		logger:  logger,
 		brInfo:  brInfo,
@@ -61,7 +70,16 @@ func NewSyncBridgeService(logger *zap.Logger, brInfo *Bridge, devices map[string
 
 // GetBridge retrieves the bridge info of this service.
 func (s *SyncBridgeService) GetBridge(ctx context.Context, req *GetBridgeRequest) (*Bridge, error) {
-	return s.brInfo, nil
+	ret := proto.Clone(s.brInfo).(*Bridge)
+
+	s.brLock.Lock()
+	defer s.brLock.Unlock()
+
+	for _, device := range s.devices {
+		ret.Devices = append(ret.Devices, device)
+	}
+
+	return ret, nil
 }
 
 // ListDevices retrieves all registered devices.
@@ -86,7 +104,7 @@ func (s *SyncBridgeService) GetDevice(ctx context.Context, req *GetDeviceRequest
 
 // UpdateDeviceConfig exists to satisfy the domotics Bridge contract, but is not actually supported.
 func (s *SyncBridgeService) UpdateDeviceConfig(ctx context.Context, req *UpdateDeviceConfigRequest) (*Device, error) {
-	return nil, ErrNotImplemented.Err()
+	return nil, ErrNotSupported.Err()
 }
 
 // UpdateDeviceState updates the specified device with the provided state.
@@ -94,7 +112,11 @@ func (s *SyncBridgeService) UpdateDeviceState(ctx context.Context, req *UpdateDe
 	var device *Device
 	var found bool
 
-	if device, found = s.devices[req.Id]; !found {
+	if len(req.Id) < 1 || req.State == nil {
+		return nil, ErrMissingParam.Err()
+	} else if req.State.IsReachable == false {
+		return nil, ErrNotSupported.Err()
+	} else if device, found = s.devices[req.Id]; !found {
 		return nil, ErrDeviceNotFound.Err()
 	}
 
@@ -125,7 +147,8 @@ func (s *SyncBridgeService) UpdateDeviceState(ctx context.Context, req *UpdateDe
 		Action: Update_CHANGED,
 		Update: &Update_DeviceUpdate{
 			&DeviceUpdate{
-				Device: s.devices[req.Id],
+				Device:   s.devices[req.Id],
+				BridgeId: s.brInfo.Id,
 			},
 		},
 	})
@@ -155,7 +178,8 @@ func (s *SyncBridgeService) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest,
 			Action: Update_ADDED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
-					Device: device,
+					Device:   device,
+					BridgeId: s.brInfo.Id,
 				},
 			},
 		}
@@ -198,6 +222,4 @@ func (s *SyncBridgeService) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest,
 			return err
 		}
 	}
-
-	return nil
 }
