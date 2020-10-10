@@ -57,7 +57,7 @@ var updateDeviceStateTests = []struct {
 			Id: "1232",
 			State: &DeviceState{
 				IsReachable: true,
-				Binary:      &DeviceState_Binary{IsOn: true},
+				Binary:      &DeviceState_Binary{},
 			},
 		},
 		expectedErr: nil,
@@ -65,7 +65,7 @@ var updateDeviceStateTests = []struct {
 			Id: "1232",
 			State: &DeviceState{
 				IsReachable: true,
-				Binary:      &DeviceState_Binary{IsOn: true},
+				Binary:      &DeviceState_Binary{},
 			},
 		},
 		expectedUpdate: nil,
