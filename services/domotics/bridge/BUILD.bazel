@@ -19,6 +19,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "advertiser.go",
+        "hub.go",
         "sync_bridge_service.go",
     ],
     embed = [":bridge_go_proto"],
@@ -31,5 +32,6 @@ go_library(
         "//vendor/google.golang.org/grpc/codes:go_default_library",
         "//vendor/google.golang.org/grpc/peer:go_default_library",
         "//vendor/google.golang.org/grpc/status:go_default_library",
+        "@com_github_golang_protobuf//proto:go_default_library",
     ],
 )

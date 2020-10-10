@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"flag"
-	"io"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-func getBridge(logger *zap.Logger, bc bridge.BridgeServiceClient) {
-	b, err := bc.GetBridge(context.Background(), &bridge.GetBridgeRequest{})
+func getBridge(logger *zap.Logger, h *bridge.Hub) {
+	b, err := h.GetBridge(context.Background(), &bridge.GetBridgeRequest{})
 	if err != nil {
 		logger.Warn("unable to get bridge",
 			zap.Error(err),
@@ -21,12 +22,12 @@ func getBridge(logger *zap.Logger, bc bridge.BridgeServiceClient) {
 	}
 
 	logger.Info("got bridge",
-		zap.String("bridge_name", b.Config.Name),
+		zap.String("bridge", b.String()),
 	)
 }
 
-func getDevices(logger *zap.Logger, dc bridge.BridgeServiceClient) {
-	getResp, err := dc.ListDevices(context.Background(), &bridge.ListDevicesRequest{})
+func getDevices(logger *zap.Logger, h *bridge.Hub) {
+	getResp, err := h.ListDevices(context.Background(), &bridge.ListDevicesRequest{})
 	if err != nil {
 		logger.Warn("unable to list devices",
 			zap.Error(err),
@@ -43,7 +44,7 @@ func getDevices(logger *zap.Logger, dc bridge.BridgeServiceClient) {
 	)
 }
 
-func setDeviceName(logger *zap.Logger, dc bridge.BridgeServiceClient, id string, name string) {
+func setDeviceName(logger *zap.Logger, h *bridge.Hub, id string, name string) {
 	req := &bridge.UpdateDeviceConfigRequest{
 		Id: id,
 		Config: &bridge.DeviceConfig{
@@ -52,7 +53,7 @@ func setDeviceName(logger *zap.Logger, dc bridge.BridgeServiceClient, id string,
 		},
 	}
 
-	setResp, err := dc.UpdateDeviceConfig(context.Background(), req)
+	setResp, err := h.UpdateDeviceConfig(context.Background(), req)
 	if err != nil {
 		logger.Warn("unable to set device name",
 			zap.String("device_id", id),
@@ -69,8 +70,8 @@ func setDeviceName(logger *zap.Logger, dc bridge.BridgeServiceClient, id string,
 	)
 }
 
-func setDeviceIsOn(logger *zap.Logger, dc bridge.BridgeServiceClient, id string, isOn bool) {
-	d, err := dc.GetDevice(context.Background(), &bridge.GetDeviceRequest{Id: id})
+func setDeviceIsOn(logger *zap.Logger, h *bridge.Hub, id string, isOn bool) {
+	d, err := h.GetDevice(context.Background(), &bridge.GetDeviceRequest{Id: id})
 	if err != nil {
 		logger.Warn("unable to get device",
 			zap.String("device_id", id),
@@ -85,7 +86,7 @@ func setDeviceIsOn(logger *zap.Logger, dc bridge.BridgeServiceClient, id string,
 		State: d.State,
 	}
 
-	setResp, err := dc.UpdateDeviceState(context.Background(), req)
+	setResp, err := h.UpdateDeviceState(context.Background(), req)
 	if err != nil {
 		logger.Warn("unable to set device",
 			zap.String("device_id", id),
@@ -101,33 +102,26 @@ func setDeviceIsOn(logger *zap.Logger, dc bridge.BridgeServiceClient, id string,
 	)
 }
 
-func monitorBridge(logger *zap.Logger, bc bridge.BridgeServiceClient) {
-	stream, err := bc.StreamBridgeUpdates(context.Background(), &bridge.StreamBridgeUpdatesRequest{})
-	if err != nil {
-		return
-	}
-
+func monitorHub(logger *zap.Logger, h *bridge.Hub) {
+	updates := h.Updates()
 	for {
-		msg, err := stream.Recv()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			logger.Warn("error watching bridge",
-				zap.Error(err),
-			)
-			break
+		u, ok := <-updates
+
+		if !ok {
+			logger.Info("update stream closed")
+			return
 		}
 
-		if msg.GetBridgeUpdate() != nil {
+		if u.GetBridgeUpdate() != nil {
 			logger.Info("bridge updated",
-				zap.String("action", msg.Action.String()),
-				zap.String("bridge_info", msg.GetBridgeUpdate().Bridge.String()),
+				zap.String("action", u.Action.String()),
+				zap.String("bridge_info", u.GetBridgeUpdate().Bridge.String()),
 			)
-		} else if msg.GetDeviceUpdate() != nil {
+		} else if u.GetDeviceUpdate() != nil {
 			logger.Info("device updated",
-				zap.String("action", msg.Action.String()),
-				zap.String("bridge_id", msg.GetDeviceUpdate().BridgeId),
-				zap.String("device_info", msg.GetDeviceUpdate().Device.String()),
+				zap.String("action", u.Action.String()),
+				zap.String("bridge_id", u.GetDeviceUpdate().BridgeId),
+				zap.String("device_info", u.GetDeviceUpdate().Device.String()),
 			)
 		}
 	}
@@ -163,26 +157,40 @@ func main() {
 
 	bridgeClient := bridge.NewBridgeServiceClient(conn)
 
+	info := &bridge.Bridge{
+		Id:           uuid.New().String(),
+		ModelId:      "bc1",
+		ModelName:    "bridgecli",
+		Manufacturer: "Faltung Systems",
+	}
+
+	h := bridge.NewHub(logger, info)
+	h.AddBridge(bridgeClient)
+
+	time.Sleep(time.Second)
+
 	switch *mode {
 	case "getBridge":
-		getBridge(logger, bridgeClient)
+		getBridge(logger, h)
 	case "getDevices":
-		getDevices(logger, bridgeClient)
+		getDevices(logger, h)
 	case "setDeviceConfig":
-		setDeviceName(logger, bridgeClient, *id, *name)
+		setDeviceName(logger, h, *id, *name)
 	case "setDeviceState":
-		setDeviceIsOn(logger, bridgeClient, *id, *on)
+		setDeviceIsOn(logger, h, *id, *on)
 	case "monitor":
 		var wg sync.WaitGroup
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			monitorBridge(logger, bridgeClient)
+			monitorHub(logger, h)
 		}()
 
 		wg.Wait()
 	default:
 		logger.Debug("unknown command specified")
 	}
+
+	conn.Close()
 }

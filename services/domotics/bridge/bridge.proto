@@ -209,10 +209,12 @@ message UpdateDeviceStateRequest {
 
 message BridgeUpdate {
     Bridge bridge = 1;
+    string bridge_id = 2;
 }
 message DeviceUpdate {
     Device device = 1;
-    string bridge_id = 2;
+    string device_id = 2;
+    string bridge_id = 3;
 }
 
 message StreamBridgeUpdatesRequest {

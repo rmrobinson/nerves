@@ -122,7 +122,7 @@ func (s *SyncBridgeService) UpdateDeviceState(ctx context.Context, req *UpdateDe
 	s.devices[req.Id].State = req.State
 
 	s.updates.SendMessage(&Update{
-		Action: Update_ADDED,
+		Action: Update_CHANGED,
 		Update: &Update_DeviceUpdate{
 			&DeviceUpdate{
 				Device: s.devices[req.Id],
@@ -179,6 +179,7 @@ func (s *SyncBridgeService) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest,
 	for {
 		update, ok := <-sink.Messages()
 		if !ok {
+			logger.Debug("stream closed")
 			// Channel has been closed; so we'll close the connection as well
 			return nil
 		}
