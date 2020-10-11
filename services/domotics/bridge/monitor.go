@@ -13,7 +13,7 @@ import (
 // Alive() is called with the server UUID and connection string when a bridge is found
 // Gone() is called with the bridge ID when a bridge announces it is going away.
 type MonitorHandler interface {
-	Alive(string, string)
+	Alive(string, string, string)
 	GoingAway(string)
 }
 
@@ -21,13 +21,16 @@ type MonitorHandler interface {
 type Monitor struct {
 	logger  *zap.Logger
 	handler MonitorHandler
+
+	types []string
 }
 
 // NewMonitor creates a new monitor
-func NewMonitor(logger *zap.Logger, handler MonitorHandler) *Monitor {
+func NewMonitor(logger *zap.Logger, handler MonitorHandler, types []string) *Monitor {
 	return &Monitor{
 		logger:  logger,
 		handler: handler,
+		types:   types,
 	}
 }
 
@@ -57,18 +60,29 @@ func (m *Monitor) ssdpAlive(msg *ssdp.AliveMessage) {
 	)
 
 	// We don't handle other messages
-	if msg.Type != typeHeader {
-		logger.Debug("skipping non-bridge advertisement")
-		return
+	if m.types != nil {
+		found := false
+
+		for _, t := range m.types {
+			if t == msg.Type {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			logger.Debug("skipping non-registered type advertisement")
+			return
+		}
 	}
 
-	logger.Debug("bridge is alive")
+	logger.Debug("node is alive")
 	connStr := msg.Location
 	if strings.HasPrefix(connStr, "grpc://") {
 		connStr = strings.TrimPrefix(connStr, "grpc://")
 	}
 
-	m.handler.Alive(msg.USN, connStr)
+	m.handler.Alive(msg.Type, msg.USN, connStr)
 }
 
 func (m *Monitor) ssdpBye(msg *ssdp.ByeMessage) {

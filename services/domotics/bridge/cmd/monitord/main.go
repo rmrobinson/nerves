@@ -13,8 +13,8 @@ import (
 type ConsoleMonitor struct{}
 
 // Alive is called when a bridge is reporting itself as alive
-func (cm *ConsoleMonitor) Alive(id string, connStr string) {
-	fmt.Printf("%s available at %s\n", id, connStr)
+func (cm *ConsoleMonitor) Alive(t string, id string, connStr string) {
+	fmt.Printf("%s (type %s) available at %s\n", id, t, connStr)
 }
 
 // GoingAway is called when a bridge is reporting itself as going aways
@@ -29,8 +29,8 @@ func main() {
 	}
 	cm := &ConsoleMonitor{}
 
-	m := bridge.NewMonitor(logger, cm)
+	m := bridge.NewMonitor(logger, cm, []string{"falnet_nerves:bridge", "nanoleaf_aurora:light"})
 
-	logger.Info("monitoring for bridges")
+	logger.Info("listening for advertisements")
 	m.Run(context.Background())
 }

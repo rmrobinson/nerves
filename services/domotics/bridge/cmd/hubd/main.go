@@ -20,9 +20,13 @@ type HubMonitor struct {
 }
 
 // Alive is called when a bridge is reporting itself as alive
-func (hm *HubMonitor) Alive(id string, connStr string) {
+func (hm *HubMonitor) Alive(t string, id string, connStr string) {
 	hm.connsMutex.Lock()
 	defer hm.connsMutex.Unlock()
+
+	if t != "falnet_nerves:bridge" {
+		return
+	}
 
 	if conn, exists := hm.conns[id]; exists {
 		pingClient := bridge.NewPingServiceClient(conn)
@@ -107,8 +111,8 @@ func main() {
 		conns:  map[string]*grpc.ClientConn{},
 		hub:    hub,
 	}
-	m := bridge.NewMonitor(logger, hm)
+	m := bridge.NewMonitor(logger, hm, []string{"falnet_nerves:bridge", "nanoleaf_aurora:light"})
 
-	logger.Info("monitoring for bridges")
+	logger.Info("listening for bridges")
 	m.Run(context.Background())
 }
