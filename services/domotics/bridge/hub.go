@@ -355,7 +355,7 @@ func (h *Hub) processUpdate(hb *hubBridge, u *Update) {
 		hb.b = u.GetBridgeUpdate().Bridge
 		h.bridgesMutex.Unlock()
 	} else if u.GetDeviceUpdate() != nil {
-		if u.GetDeviceUpdate().Device == nil || len(u.GetDeviceUpdate().Device.Id) < 1 {
+		if u.GetDeviceUpdate().Device == nil && len(u.GetDeviceUpdate().DeviceId) < 1 {
 			h.logger.Info("received malformed device update, ignoring",
 				zap.String("msg", u.String()),
 				zap.String("action", u.Action.String()),

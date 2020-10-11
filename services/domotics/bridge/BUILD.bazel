@@ -20,6 +20,7 @@ go_library(
     srcs = [
         "advertiser.go",
         "hub.go",
+        "monitor.go",
         "sync_bridge_service.go",
     ],
     embed = [":bridge_go_proto"],
