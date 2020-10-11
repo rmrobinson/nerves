@@ -7,6 +7,7 @@ import (
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 // HubMonitor is a hub-based implementation of a monitor.
@@ -24,11 +25,20 @@ func (hm *HubMonitor) Alive(id string, connStr string) {
 	hm.connsMutex.Lock()
 	defer hm.connsMutex.Unlock()
 
-	if _, exists := hm.conns[id]; exists {
-		hm.logger.Debug("ignoring advertisement as id already registered",
+	if conn, exists := hm.conns[id]; exists {
+		if conn.GetState() != connectivity.TransientFailure && conn.GetState() != connectivity.Shutdown {
+			hm.logger.Debug("ignoring advertisement as id already registered",
+				zap.String("id", id),
+				zap.String("conn_status", conn.GetState().String()),
+			)
+			return
+		}
+
+		hm.logger.Info("found connection in failed state, closing & reconnecting to bridge",
 			zap.String("id", id),
 		)
-		return
+		conn.Close()
+		delete(hm.conns, id)
 	}
 
 	var opts []grpc.DialOption

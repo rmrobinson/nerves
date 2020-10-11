@@ -9,6 +9,7 @@ go_library(
         "//services/domotics/bridge:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//connectivity:go_default_library",
     ],
 )
 

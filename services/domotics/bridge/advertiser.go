@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	advertiseInterval = time.Second * 30
+	advertiseInterval = time.Second * 10
 	typeHeader        = "falnet_nerves:bridge"
 	maxAgeHeader      = 1800
 	serverHeader      = "Falnet NDP/0.1"
