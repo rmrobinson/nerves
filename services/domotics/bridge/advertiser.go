@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -71,4 +72,9 @@ func (a *Advertiser) Run() {
 // Shutdown shuts this advertiser down.
 func (a *Advertiser) Shutdown() {
 	a.done <- true
+}
+
+// Ping satisfies the ping service interface to allow this to respond to health checks.
+func (a *Advertiser) Ping(context.Context, *PingRequest) (*Pong, error) {
+	return &Pong{}, nil
 }

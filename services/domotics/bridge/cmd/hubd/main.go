@@ -7,7 +7,6 @@ import (
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 )
 
 // HubMonitor is a hub-based implementation of a monitor.
@@ -26,7 +25,20 @@ func (hm *HubMonitor) Alive(id string, connStr string) {
 	defer hm.connsMutex.Unlock()
 
 	if conn, exists := hm.conns[id]; exists {
-		if conn.GetState() != connectivity.TransientFailure && conn.GetState() != connectivity.Shutdown {
+		pingClient := bridge.NewPingServiceClient(conn)
+
+		_, err := pingClient.Ping(context.Background(), &bridge.PingRequest{})
+		if err == nil {
+			_, err := hm.hub.Bridge(id)
+			if err == bridge.ErrBridgeNotFound.Err() {
+				hm.logger.Info("adding bridge on existing connection",
+					zap.String("id", id),
+				)
+
+				hm.hub.AddBridge(bridge.NewBridgeServiceClient(conn))
+				return
+			}
+
 			hm.logger.Debug("ignoring advertisement as id already registered",
 				zap.String("id", id),
 				zap.String("conn_status", conn.GetState().String()),
@@ -34,9 +46,11 @@ func (hm *HubMonitor) Alive(id string, connStr string) {
 			return
 		}
 
-		hm.logger.Info("found connection in failed state, closing & reconnecting to bridge",
+		hm.logger.Info("unable to make ping request on active conn, closing",
 			zap.String("id", id),
+			zap.Error(err),
 		)
+
 		conn.Close()
 		delete(hm.conns, id)
 	}

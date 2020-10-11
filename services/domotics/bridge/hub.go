@@ -168,6 +168,18 @@ func (h *Hub) UpdateDeviceState(ctx context.Context, id string, state *DeviceSta
 	return resp, nil
 }
 
+// Bridge allows the caller to retrieve the bridge information, if present.
+func (h *Hub) Bridge(id string) (*Bridge, error) {
+	h.bridgesMutex.Lock()
+	defer h.bridgesMutex.Unlock()
+
+	if hb, found := h.bridges[id]; found {
+		return hb.b, nil
+	}
+
+	return nil, ErrBridgeNotFound.Err()
+}
+
 // AddBridge takes the supplied bridge services client, checks to see if it is already present,
 // and if not adds the bridge client to the set of bridges active.
 func (h *Hub) AddBridge(c BridgeServiceClient) error {

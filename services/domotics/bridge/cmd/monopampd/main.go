@@ -93,5 +93,6 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	bridge.RegisterBridgeServiceServer(grpcServer, sbs)
+	bridge.RegisterPingServiceServer(grpcServer, ad)
 	grpcServer.Serve(lis)
 }

@@ -243,3 +243,13 @@ service BridgeService {
 
     rpc StreamBridgeUpdates(StreamBridgeUpdatesRequest) returns (stream Update) {}
 }
+
+message PingRequest {
+}
+
+message Pong {
+}
+
+service PingService {
+    rpc Ping(PingRequest) returns (Pong) {}
+}
