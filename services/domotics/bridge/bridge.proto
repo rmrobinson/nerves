@@ -1,0 +1,255 @@
+syntax = "proto3";
+
+package faltung.nerves.domotics.bridge;
+
+option go_package = "github.com/rmrobinson/nerves/services/domotics/bridge";
+
+/* ----- Primitive Types ----- */
+message Address {
+    message Ip {
+        string host = 1;
+        string netmask = 2;
+        string gateway = 3;
+        int32 port = 4;
+
+        bool via_dhcp = 10;
+    }
+    Ip ip = 1;
+
+    message Usb {
+        string path = 1;
+    }
+    Usb usb = 2;
+}
+
+message BridgeState {
+    bool is_paired = 1;
+
+    message Version {
+        string api = 1;
+        string sw = 2;
+    }
+    Version version = 100;
+
+    message Zigbee {
+        int32 channel = 1;
+    }
+    Zigbee zigbee = 110;
+
+    message Zwave {
+        string home_id = 1;
+        string mode = 2;
+    }
+    Zwave zwave = 111;
+}
+
+message BridgeConfig {
+    string name = 1;
+    string description = 2;
+
+    Address address = 10;
+    string timezone = 11;
+}
+
+message Bridge {
+    string id = 1;
+
+    string model_id = 10;
+    string model_name = 11;
+    string model_description = 12;
+    string manufacturer = 13;
+
+    BridgeConfig config = 100;
+    BridgeState state = 101;
+
+    repeated Device Devices = 102;
+}
+
+message DeviceConfig {
+    string name = 1;
+    string description = 2;
+}
+
+message DeviceState {
+    bool is_reachable = 1;
+
+    message Binary {
+        bool is_on = 1;
+    }
+    Binary binary = 11;
+
+    message Range {
+        int32 value = 1;
+    }
+    Range range = 12;
+
+    message ColorRGB {
+        int32 red = 1;
+        int32 green = 2;
+        int32 blue = 3;
+    }
+    ColorRGB color_rgb = 13;
+
+    message ColorHSB {
+        int32 hue = 1;
+        int32 saturation = 2;
+        int32 brightness = 3;
+    }
+    ColorHSB color_hsb = 14;
+
+    message Speed {
+        int32 speed = 1;
+    }
+    Speed speed = 15;
+
+    message Input {
+        string input = 1;
+    }
+    Input input = 16;
+
+    message Control {
+        bool is_open = 1;
+    }
+    Control control = 17;
+
+    message Temperature {
+        int32 temperature_celsius = 1;
+    }
+    Temperature temperature = 18;
+
+    message Button {
+        int32 id = 1;
+        bool is_on = 2;
+    }
+    repeated Button button = 19;
+
+    message Presence {
+        bool is_present = 1;
+    }
+    Presence presence = 20;
+
+    message Audio {
+        int32 volume = 1;
+        int32 treble = 2;
+        int32 bass = 3;
+        bool is_muted = 4;
+    }
+    Audio audio = 21;
+
+    message StereoAudio {
+        int32 balance = 1;
+    }
+    StereoAudio stereo_audio = 22;
+
+    string version = 100;
+}
+
+message Device {
+    string id = 1;
+
+    bool is_active = 2;
+
+    string model_id = 10;
+    string model_name = 11;
+    string model_description = 12;
+    string manufacturer = 13;
+
+    string address = 50;
+
+    // Examples could include a thermostat.
+    message Range {
+        int32 minimum = 1;
+        int32 maximum = 2;
+    }
+    Range range = 100;
+
+    // Examples could include a TV (list of inputs), speakers (list of inputs), etc.
+    message Input {
+        repeated string inputs = 1;
+    }
+    Input input = 101;
+
+    // Examples could include a fan.
+    message Speed {
+        int32 maximum = 1;
+    }
+    Speed speed = 102;
+
+    DeviceConfig config = 200;
+    DeviceState state = 201;
+}
+
+
+/* ----- API request/response types ----- */
+
+message GetBridgeRequest {
+}
+
+message ListDevicesRequest {
+}
+message ListDevicesResponse {
+    repeated Device devices = 1;
+}
+
+message GetDeviceRequest {
+    string id = 1;
+}
+
+message UpdateDeviceConfigRequest {
+    string id = 1;
+    string version = 2;
+    DeviceConfig config = 10;
+}
+
+message UpdateDeviceStateRequest {
+    string id = 1;
+    string version = 2;
+    DeviceState state = 10;
+}
+
+message BridgeUpdate {
+    Bridge bridge = 1;
+    string bridge_id = 2;
+}
+message DeviceUpdate {
+    Device device = 1;
+    string device_id = 2;
+    string bridge_id = 3;
+}
+
+message StreamBridgeUpdatesRequest {
+}
+message Update {
+    enum Action {
+        CHANGED = 0;
+        ADDED = 1;
+        REMOVED = 2;
+    }
+
+    Action action = 1;
+    oneof Update {
+        BridgeUpdate bridge_update = 2;
+        DeviceUpdate device_update = 3;
+    }
+}
+
+service BridgeService {
+    rpc GetBridge(GetBridgeRequest) returns (Bridge) {}
+
+    rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {}
+    rpc GetDevice(GetDeviceRequest) returns (Device) {}
+    rpc UpdateDeviceConfig(UpdateDeviceConfigRequest) returns (Device) {}
+    rpc UpdateDeviceState(UpdateDeviceStateRequest) returns (Device) {}
+
+    rpc StreamBridgeUpdates(StreamBridgeUpdatesRequest) returns (stream Update) {}
+}
+
+message PingRequest {
+}
+
+message Pong {
+}
+
+service PingService {
+    rpc Ping(PingRequest) returns (Pong) {}
+}

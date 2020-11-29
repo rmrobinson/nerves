@@ -7,7 +7,7 @@ proto_library(
     srcs = ["policy.proto"],
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics:domotics_proto",
+        "//services/domotics/bridge:bridge_proto",
         "//services/mind:mind_proto",
         "@com_google_protobuf//:any_proto",
         "@com_google_protobuf//:timestamp_proto",
@@ -20,7 +20,7 @@ go_proto_library(
     proto = ":policy_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics:go_default_library",
+        "//services/domotics/bridge:go_default_library",
         "//services/mind:go_default_library",
     ],
 )
@@ -36,7 +36,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/policy",
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics:go_default_library",
+        "//services/domotics/bridge:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/robfig/cron:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
@@ -51,7 +51,7 @@ go_test(
     srcs = ["condition_test.go"],
     embed = [":go_default_library"],
     deps = [
-        "//services/domotics:go_default_library",
+        "//services/domotics/bridge:go_default_library",
         "//services/weather:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/go.uber.org/zap/zaptest:go_default_library",

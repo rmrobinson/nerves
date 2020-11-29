@@ -7,7 +7,7 @@ option go_package = "github.com/rmrobinson/nerves/services/policy";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-import "services/domotics/device.proto";
+import "services/domotics/bridge/bridge.proto";
 import "services/mind/message.proto";
 
 // Comparison represents different ways to compare two things together.
@@ -136,7 +136,7 @@ message Condition {
 message DeviceAction {
     string id = 1;
 
-    faltung.nerves.domotics.DeviceState state = 2;
+    faltung.nerves.domotics.bridge.DeviceState state = 2;
 }
 
 // TimerAction represents an event that will trigger after the specified period of time.

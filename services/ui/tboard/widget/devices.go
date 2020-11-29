@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/rivo/tview"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 )
 
@@ -20,17 +20,17 @@ type Devices struct {
 	deviceList   *tview.List
 	deviceDetail *DeviceDetail
 
-	devicesClient domotics.DeviceServiceClient
-	devices       []*domotics.Device
+	devicesClient bridge.BridgeServiceClient
+	devices       []*bridge.Device
 }
 
 // NewDevices creates a new instance of this widget with the supplied set of devices for management.
-func NewDevices(app *tview.Application, logger *zap.Logger, client domotics.DeviceServiceClient) *Devices {
+func NewDevices(app *tview.Application, logger *zap.Logger, client bridge.BridgeServiceClient) *Devices {
 	d := &Devices{
 		Flex:          tview.NewFlex(),
 		app:           app,
 		logger:        logger,
-		devices:       []*domotics.Device{},
+		devices:       []*bridge.Device{},
 		devicesClient: client,
 	}
 
@@ -49,12 +49,12 @@ func NewDevices(app *tview.Application, logger *zap.Logger, client domotics.Devi
 		AddItem(d.deviceList, 0, 1, true).
 		AddItem(d.deviceDetail, 28, 1, true)
 
-	listDevicesResp, err := d.devicesClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+	listDevicesResp, err := d.devicesClient.ListDevices(context.Background(), &bridge.ListDevicesRequest{})
 	if err != nil {
 		logger.Warn("unable to retrieve devices",
 			zap.Error(err),
 		)
-		listDevicesResp = &domotics.ListDevicesResponse{}
+		listDevicesResp = &bridge.ListDevicesResponse{}
 	}
 
 	d.devices = listDevicesResp.Devices

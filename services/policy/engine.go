@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 )
 
@@ -184,7 +184,7 @@ func (e *Engine) executeAction(ctx context.Context, a *Action) {
 			proto.Merge(device.State, deviceAction.State)
 
 			// We don't save the result as the monitor channel will pick up the update when it is broadcast.
-			_, err := e.state.deviceClient.SetDeviceState(ctx, &domotics.SetDeviceStateRequest{
+			_, err := e.state.bridgeClient.UpdateDeviceState(ctx, &bridge.UpdateDeviceStateRequest{
 				Id:    deviceAction.Id,
 				State: device.State,
 			})

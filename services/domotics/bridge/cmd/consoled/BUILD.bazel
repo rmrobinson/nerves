@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "console.go",
+        "main.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/cmd/consoled",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//services/domotics/bridge:go_default_library",
+        "//vendor/github.com/spf13/viper:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "consoled",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/policy"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -41,8 +41,8 @@ func main() {
 
 	device := &policy.DeviceAction{
 		Id: "test-device-id",
-		State: &domotics.DeviceState{
-			Binary: &domotics.DeviceState_BinaryState{
+		State: &bridge.DeviceState{
+			Binary: &bridge.DeviceState_Binary{
 				IsOn: true,
 			},
 		},
@@ -62,7 +62,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 
 	p := &policy.Policy{
 		Name: "test policy 1 (cron or weather)",
@@ -102,8 +101,8 @@ func main() {
 				Details: deviceAction,
 			},
 			{
-				Name: "test timer action",
-				Type: policy.Action_TIMER,
+				Name:    "test timer action",
+				Type:    policy.Action_TIMER,
 				Details: timerAction,
 			},
 		},

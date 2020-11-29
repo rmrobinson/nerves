@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/ui/tboard/cmd/tboardcli",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/domotics:go_default_library",
+        "//services/domotics/bridge:go_default_library",
         "//services/news:go_default_library",
         "//services/transit:go_default_library",
         "//services/ui/tboard/widget:go_default_library",

@@ -13,7 +13,7 @@ go_proto_library(
     name = "faltung_nerves_news_go_proto",
     compilers = ["@io_bazel_rules_go//proto:go_grpc"],
     importpath = "github.com/rmrobinson/nerves/services/news",
-    proto = ":faltung_nerves_news_proto",
+    proto = ":news_proto",
     visibility = ["//visibility:public"],
 )
 
@@ -44,4 +44,11 @@ go_test(
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/go.uber.org/zap/zaptest:go_default_library",
     ],
+)
+
+proto_library(
+    name = "news_proto",
+    srcs = ["news.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["@com_google_protobuf//:timestamp_proto"],
 )

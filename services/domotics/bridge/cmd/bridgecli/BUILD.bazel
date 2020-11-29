@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/cmd/bridgecli",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//services/domotics/bridge:go_default_library",
+        "//vendor/github.com/google/uuid:go_default_library",
+        "//vendor/go.uber.org/zap:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "bridgecli",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/users"
 	"go.uber.org/zap"
 )
@@ -36,23 +36,21 @@ type Domotics struct {
 
 	svc *Service
 
-	bridgeClient domotics.BridgeServiceClient
-	deviceClient domotics.DeviceServiceClient
+	bridgeClient bridge.BridgeServiceClient
 }
 
 // NewDomotics creates a new domotics handler
-func NewDomotics(logger *zap.Logger, svc *Service, bridgeClient domotics.BridgeServiceClient, deviceClient domotics.DeviceServiceClient) *Domotics {
+func NewDomotics(logger *zap.Logger, svc *Service, bridgeClient bridge.BridgeServiceClient) *Domotics {
 	return &Domotics{
 		logger:       logger,
 		svc:          svc,
 		bridgeClient: bridgeClient,
-		deviceClient: deviceClient,
 	}
 }
 
 // Monitor is used to track changes to devices
 func (d *Domotics) Monitor(ctx context.Context) {
-	stream, err := d.deviceClient.StreamDeviceUpdates(ctx, &domotics.StreamDeviceUpdatesRequest{})
+	stream, err := d.bridgeClient.StreamBridgeUpdates(ctx, &bridge.StreamBridgeUpdatesRequest{})
 	if err != nil {
 		d.logger.Info("error creating device update stream",
 			zap.Error(err),
@@ -185,18 +183,17 @@ func (d *Domotics) setDeviceIDIsOn(user *users.User, deviceID string, isOn bool)
 	return d.setDeviceIsOn(user, device, isOn)
 }
 
-func (d *Domotics) setDeviceIsOn(user *users.User, device *domotics.Device, isOn bool) *Statement {
+func (d *Domotics) setDeviceIsOn(user *users.User, device *bridge.Device, isOn bool) *Statement {
 	if device.State.Binary == nil {
 		return statementFromText("Device doesn't have an is-on option")
 	}
 
-	req := &domotics.SetDeviceStateRequest{
+	req := &bridge.UpdateDeviceStateRequest{
 		Id:    device.Id,
-		State: proto.Clone(device.State).(*domotics.DeviceState),
-		User:  user,
+		State: proto.Clone(device.State).(*bridge.DeviceState),
 	}
 	req.State.Binary.IsOn = isOn
-	_, err := d.deviceClient.SetDeviceState(context.Background(), req)
+	_, err := d.bridgeClient.UpdateDeviceState(context.Background(), req)
 	if err != nil {
 		d.logger.Warn("unable to set device state",
 			zap.Error(err),
@@ -212,18 +209,17 @@ func (d *Domotics) setDeviceIsOn(user *users.User, device *domotics.Device, isOn
 	return statementFromText(fmt.Sprintf("Turned %s %s", nameFromDevice(device), state))
 }
 
-func (d *Domotics) setDeviceVolume(user *users.User, device *domotics.Device, volume int32) *Statement {
+func (d *Domotics) setDeviceVolume(user *users.User, device *bridge.Device, volume int32) *Statement {
 	if device.State.Audio == nil {
 		return statementFromText("Device doesn't have a volume option")
 	}
 
-	req := &domotics.SetDeviceStateRequest{
+	req := &bridge.UpdateDeviceStateRequest{
 		Id:    device.Id,
-		State: proto.Clone(device.State).(*domotics.DeviceState),
-		User:  user,
+		State: proto.Clone(device.State).(*bridge.DeviceState),
 	}
 	req.State.Audio.Volume = volume
-	_, err := d.deviceClient.SetDeviceState(context.Background(), req)
+	_, err := d.bridgeClient.UpdateDeviceState(context.Background(), req)
 	if err != nil {
 		d.logger.Warn("unable to set device state",
 			zap.Error(err),
@@ -274,8 +270,8 @@ func (d *Domotics) changeDeviceNameVolume(user *users.User, deviceName string, v
 	return d.setDeviceVolume(user, device, device.State.Audio.Volume+volumeChange)
 }
 
-func (d *Domotics) getDeviceByName(name string) (*domotics.Device, error) {
-	resp, err := d.deviceClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+func (d *Domotics) getDeviceByName(name string) (*bridge.Device, error) {
+	resp, err := d.bridgeClient.ListDevices(context.Background(), &bridge.ListDevicesRequest{})
 	if err != nil {
 		d.logger.Warn("unable to get devices",
 			zap.Error(err),
@@ -297,8 +293,8 @@ func (d *Domotics) getDeviceByName(name string) (*domotics.Device, error) {
 	return nil, nil
 }
 
-func (d *Domotics) getDevice(id string) (*domotics.Device, error) {
-	resp, err := d.deviceClient.GetDevice(context.Background(), &domotics.GetDeviceRequest{
+func (d *Domotics) getDevice(id string) (*bridge.Device, error) {
+	resp, err := d.bridgeClient.GetDevice(context.Background(), &bridge.GetDeviceRequest{
 		Id: id,
 	})
 	if err != nil {
@@ -313,28 +309,28 @@ func (d *Domotics) getDevice(id string) (*domotics.Device, error) {
 		return nil, nil
 	}
 
-	return resp.Device, nil
+	return resp, nil
 }
 
 func (d *Domotics) getBridges() *Statement {
-	resp, err := d.bridgeClient.ListBridges(context.Background(), &domotics.ListBridgesRequest{})
+	resp, err := d.bridgeClient.GetBridge(context.Background(), &bridge.GetBridgeRequest{})
 	if err != nil {
-		d.logger.Warn("unable to get bridges",
+		d.logger.Warn("unable to get bridge",
 			zap.Error(err),
 		)
 
-		return statementFromText("Can't get the domotics bridges right now")
+		return statementFromText("Can't get the domotics bridge right now")
 	} else if resp == nil {
-		d.logger.Warn("unable to get bridges (empty response)")
+		d.logger.Warn("unable to get bridge (empty response)")
 
-		return statementFromText("Not sure what the bridge states are right now")
+		return statementFromText("Not sure what the bridge state is right now")
 	}
 
-	return statementFromBridges(resp.Bridges)
+	return statementFromBridges(resp)
 }
 
 func (d *Domotics) getDevices() *Statement {
-	resp, err := d.deviceClient.ListDevices(context.Background(), &domotics.ListDevicesRequest{})
+	resp, err := d.bridgeClient.ListDevices(context.Background(), &bridge.ListDevicesRequest{})
 	if err != nil {
 		d.logger.Warn("unable to get devices",
 			zap.Error(err),
@@ -350,19 +346,14 @@ func (d *Domotics) getDevices() *Statement {
 	return statementFromDevices(resp.Devices)
 }
 
-func statementFromBridges(bridges []*domotics.Bridge) *Statement {
-	text := "Bridges:\n"
-	for idx, bridge := range bridges {
-		if idx > 0 {
-			text += "\n"
-		}
-		text += fmt.Sprintf("*%s*\n%s - @%s\n", bridge.Config.Name, bridge.Id, bridge.Config.Address)
-	}
+func statementFromBridges(b *bridge.Bridge) *Statement {
+	text := "Bridge:\n"
+	text += fmt.Sprintf("*%s*\n%s - @%s\n", b.Config.Name, b.Id, b.Config.Address)
 
 	return statementFromText(text)
 }
 
-func statementFromDevices(devices []*domotics.Device) *Statement {
+func statementFromDevices(devices []*bridge.Device) *Statement {
 	text := "Devices:\n"
 	sort.Slice(devices, func(i, j int) bool {
 		return devices[i].Address < devices[j].Address
@@ -404,36 +395,36 @@ func statementFromDevices(devices []*domotics.Device) *Statement {
 	return statementFromText(text)
 }
 
-func statementFromDeviceUpdate(update *domotics.DeviceUpdate) *Statement {
-	text := nameFromDevice(update.Device)
+func statementFromDeviceUpdate(update *bridge.Update) *Statement {
+	if update.GetDeviceUpdate() == nil {
+		return nil
+	}
+	d := update.GetDeviceUpdate().Device
+	text := nameFromDevice(d)
 
 	switch update.Action {
-	case domotics.DeviceUpdate_ADDED:
+	case bridge.Update_ADDED:
 		text += " was added"
-	case domotics.DeviceUpdate_CHANGED:
+	case bridge.Update_CHANGED:
 		text += " was changed"
 
 		// TODO: find what changed
-		if update.Device.State != nil && update.Device.State.Binary != nil {
+		if d.State != nil && d.State.Binary != nil {
 			text += " and is now "
-			if update.Device.State.Binary.IsOn {
+			if d.State.Binary.IsOn {
 				text += "on"
 			} else {
 				text += "off"
 			}
 		}
-	case domotics.DeviceUpdate_REMOVED:
+	case bridge.Update_REMOVED:
 		text += " was removed"
-	}
-
-	if update.OriginatingUser != nil {
-		text += " by " + update.OriginatingUser.DisplayName
 	}
 
 	return statementFromText(text)
 }
 
-func nameFromDevice(device *domotics.Device) string {
+func nameFromDevice(device *bridge.Device) string {
 	if device.Config != nil && len(device.Config.Name) > 0 {
 		return device.Config.Name
 	}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/rivo/tview"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/news"
 	"github.com/rmrobinson/nerves/services/transit"
 	"github.com/rmrobinson/nerves/services/ui/tboard/widget"
@@ -133,7 +133,7 @@ func main() {
 	}
 	defer domoticsConn.Close()
 
-	devicesClient := domotics.NewDeviceServiceClient(domoticsConn)
+	devicesClient := bridge.NewBridgeServiceClient(domoticsConn)
 
 	devicesView := widget.NewDevices(app, logger, devicesClient)
 
