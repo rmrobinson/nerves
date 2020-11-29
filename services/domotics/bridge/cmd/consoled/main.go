@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
@@ -12,8 +11,7 @@ import (
 )
 
 const (
-	idEnvVar   = "ID"
-	portEnvVar = "PORT"
+	idEnvVar = "ID"
 )
 
 func main() {
@@ -24,12 +22,10 @@ func main() {
 
 	viper.SetEnvPrefix("NVS")
 	viper.BindEnv(idEnvVar)
-	viper.BindEnv(portEnvVar)
 
 	br := NewConsole(logger, viper.GetString(idEnvVar))
 
-	connStr := fmt.Sprintf("%s:%d", "127.0.0.1", viper.GetInt(portEnvVar))
-	lis, err := net.Listen("tcp", connStr)
+	lis, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		logger.Fatal("error initializing listener",
 			zap.Error(err),
@@ -37,7 +33,7 @@ func main() {
 	}
 	defer lis.Close()
 	logger.Info("listening",
-		zap.String("local_addr", connStr),
+		zap.String("local_addr", lis.Addr().String()),
 	)
 
 	brInfo, err := br.getBridge(context.Background())
@@ -56,7 +52,7 @@ func main() {
 
 	sbs := bridge.NewSyncBridgeService(logger, brInfo, devices, br)
 
-	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), connStr)
+	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), lis.Addr().String())
 	go ad.Run()
 	defer ad.Shutdown()
 

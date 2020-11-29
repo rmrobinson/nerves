@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	mpa "github.com/rmrobinson/monoprice-amp-go"
@@ -15,9 +14,7 @@ import (
 
 const (
 	monopAmpUSBPathEnvVar = "MONOPAMP_USB_PATH"
-	monopAmpPortBaudRate  = 9600
 	idEnvVar              = "ID"
-	portEnvVar            = "PORT"
 )
 
 func main() {
@@ -28,7 +25,6 @@ func main() {
 
 	viper.SetEnvPrefix("NVS")
 	viper.BindEnv(idEnvVar)
-	viper.BindEnv(portEnvVar)
 	viper.BindEnv(monopAmpUSBPathEnvVar)
 
 	monopAmpUSBPath := viper.GetString(monopAmpUSBPathEnvVar)
@@ -59,8 +55,7 @@ func main() {
 
 	br := NewMonopAmp(amp, viper.GetString(idEnvVar), monopAmpUSBPath)
 
-	connStr := fmt.Sprintf("%s:%d", "", viper.GetInt(portEnvVar))
-	lis, err := net.Listen("tcp", connStr)
+	lis, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		logger.Fatal("error initializing listener",
 			zap.Error(err),
@@ -68,7 +63,7 @@ func main() {
 	}
 	defer lis.Close()
 	logger.Info("listening",
-		zap.String("local_addr", connStr),
+		zap.String("local_addr", lis.Addr().String()),
 	)
 
 	brInfo, err := br.getBridge(context.Background())
@@ -87,7 +82,7 @@ func main() {
 
 	sbs := bridge.NewSyncBridgeService(logger, brInfo, devices, br)
 
-	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), connStr)
+	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), lis.Addr().String())
 	go ad.Run()
 	defer ad.Shutdown()
 

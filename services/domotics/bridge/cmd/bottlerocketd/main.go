@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	br "github.com/rmrobinson/bottlerocket-go"
@@ -15,7 +14,6 @@ import (
 const (
 	brUSBPathEnvVar = "BOTTLEROCKET_USB_PATH"
 	idEnvVar        = "ID"
-	portEnvVar      = "PORT"
 )
 
 func main() {
@@ -26,7 +24,6 @@ func main() {
 
 	viper.SetEnvPrefix("NVS")
 	viper.BindEnv(idEnvVar)
-	viper.BindEnv(portEnvVar)
 	viper.BindEnv(brUSBPathEnvVar)
 
 	brUSBPath := viper.GetString(brUSBPathEnvVar)
@@ -45,8 +42,7 @@ func main() {
 
 	br := NewBottlerocket(logger, viper.GetString(idEnvVar), brh)
 
-	connStr := fmt.Sprintf("%s:%d", "", viper.GetInt(portEnvVar))
-	lis, err := net.Listen("tcp", connStr)
+	lis, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		logger.Fatal("error initializing listener",
 			zap.Error(err),
@@ -54,7 +50,7 @@ func main() {
 	}
 	defer lis.Close()
 	logger.Info("listening",
-		zap.String("local_addr", connStr),
+		zap.String("local_addr", lis.Addr().String()),
 	)
 
 	brInfo, err := br.getBridge(context.Background())
@@ -73,7 +69,7 @@ func main() {
 
 	sbs := bridge.NewSyncBridgeService(logger, brInfo, devices, br)
 
-	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), connStr)
+	ad := bridge.NewAdvertiser(logger, viper.GetString(idEnvVar), lis.Addr().String())
 	go ad.Run()
 	defer ad.Shutdown()
 

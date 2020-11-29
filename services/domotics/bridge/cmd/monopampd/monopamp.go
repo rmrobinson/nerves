@@ -17,11 +17,19 @@ var (
 	// ErrZoneInvalid is returned if the supplied address maps to an invalid zone
 	ErrZoneInvalid = errors.New("supplied zone ID is not valid")
 	// ErrChannelInvalid is returned if the supplied input maps to an invalid channel.
-	ErrChannelInvalid  = errors.New("supplied channel ID is not valid")
-	maxZoneID          = 6
-	maxChannelID       = 6
-	zoneAddrPrefix     = "/zone/"
-	channelPrefix      = "Channel"
+	ErrChannelInvalid = errors.New("supplied channel ID is not valid")
+)
+
+const (
+	maxZoneID            = 6
+	maxChannelID         = 6
+	zoneAddrPrefix       = "/zone/"
+	channelPrefix        = "Channel"
+	commandSpaceInterval = time.Millisecond * 100
+	monopAmpPortBaudRate = 9600
+)
+
+var (
 	baseMonopAmpBridge = &bridge.Bridge{
 		ModelId:          "10761",
 		ModelName:        "Monoprice Amp",
@@ -44,7 +52,6 @@ var (
 			},
 		},
 	}
-	commandSpaceInterval = time.Millisecond * 100
 )
 
 func addrToZone(addr string) int {

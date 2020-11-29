@@ -88,7 +88,7 @@ func (h *Hub) GetDevice(id string) (*Device, error) {
 	return nil, ErrDeviceNotFound.Err()
 }
 
-// UpdateDeviceConfig exists to satisfy the domotics Bridge contract, but is not actually supported.
+// UpdateDeviceConfig updates the specified device with the provided config.
 func (h *Hub) UpdateDeviceConfig(ctx context.Context, id string, config *DeviceConfig) (*Device, error) {
 	h.devicesMutex.Lock()
 	defer h.devicesMutex.Unlock()
@@ -276,7 +276,8 @@ func (h *Hub) AddBridge(c BridgeServiceClient) error {
 
 // RemoveBridge takes the specified bridge ID out of the system.
 // It will not close the socket, if it is still open, but it will cancel any streaming requests.
-// This will trigger 'Remove' actions for any devices which this bridge owned.
+// This will trigger a state change for any devices owned by this bridge, marking them as offline.
+// Removing a bridge does not remove the device, as it is expected that a bridge going away is temporary.
 func (h *Hub) RemoveBridge(id string) error {
 	h.bridgesMutex.Lock()
 	defer h.bridgesMutex.Unlock()
@@ -287,7 +288,7 @@ func (h *Hub) RemoveBridge(id string) error {
 	}
 
 	deviceIDs := []string{}
-	// We unregister all of the devices owned by this bridge
+	// We mark all of the devices owned by this bridge as unavailable
 	h.devicesMutex.Lock()
 	for deviceID, hd := range h.devices {
 		if hd.hb != hb {
@@ -295,6 +296,7 @@ func (h *Hub) RemoveBridge(id string) error {
 		}
 
 		deviceIDs = append(deviceIDs, deviceID)
+		h.devices[deviceID].d.State.IsReachable = false
 	}
 	h.devicesMutex.Unlock()
 
@@ -302,11 +304,10 @@ func (h *Hub) RemoveBridge(id string) error {
 	// and the iterate through them here to ensure no deadlocks.
 	for _, deviceID := range deviceIDs {
 		h.processUpdate(hb, &Update{
-			Action: Update_REMOVED,
+			Action: Update_CHANGED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
-					DeviceId: deviceID,
-					BridgeId: id,
+					Device: h.devices[deviceID].d,
 				},
 			},
 		})
