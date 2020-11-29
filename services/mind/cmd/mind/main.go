@@ -8,7 +8,7 @@ import (
 
 	"github.com/gocarina/gocsv"
 	"github.com/nlopes/slack"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/mind"
 	"github.com/rmrobinson/nerves/services/news"
 	"github.com/rmrobinson/nerves/services/transit"
@@ -138,8 +138,7 @@ func main() {
 
 	domoticsHandler := mind.NewDomotics(logger,
 		svc,
-		domotics.NewBridgeServiceClient(domoticsConn),
-		domotics.NewDeviceServiceClient(domoticsConn))
+		bridge.NewBridgeServiceClient(domoticsConn))
 
 	go domoticsHandler.Monitor(context.Background())
 

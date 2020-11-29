@@ -9,7 +9,7 @@ import (
 
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 )
 
@@ -31,8 +31,8 @@ type DeviceDetail struct {
 	saveButton      *tview.Button
 	doneButton      *tview.Button
 
-	devicesClient domotics.DeviceServiceClient
-	device        *domotics.Device
+	devicesClient bridge.BridgeServiceClient
+	device        *bridge.Device
 }
 
 // NewDeviceDetail creates a new instance of the DeviceDetail view.
@@ -138,7 +138,7 @@ func NewDeviceDetail(app *tview.Application, logger *zap.Logger, parent tview.Pr
 }
 
 // Refresh takes the supplied DeviceInfo and refreshes the view with its contents.
-func (dd *DeviceDetail) Refresh(client domotics.DeviceServiceClient, device *domotics.Device) {
+func (dd *DeviceDetail) Refresh(client bridge.BridgeServiceClient, device *bridge.Device) {
 	dd.app.QueueUpdateDraw(func() {
 		dd.devicesClient = client
 		dd.device = device
@@ -183,7 +183,7 @@ func (dd *DeviceDetail) saveFields() {
 		dd.device.State.ColorRgb.Blue = int32FromInputField(dd.blueInput)
 	}
 
-	resp, err := dd.devicesClient.SetDeviceState(context.Background(), &domotics.SetDeviceStateRequest{
+	resp, err := dd.devicesClient.UpdateDeviceState(context.Background(), &bridge.UpdateDeviceStateRequest{
 		Id:    dd.device.Id,
 		State: dd.device.State,
 	})
@@ -193,7 +193,7 @@ func (dd *DeviceDetail) saveFields() {
 			zap.Error(err),
 		)
 	} else {
-		dd.device = resp.Device
+		dd.device.State = resp.State
 	}
 }
 

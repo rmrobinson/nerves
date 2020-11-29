@@ -36,6 +36,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/mind",
     visibility = ["//visibility:public"],
     deps = [
+        "//services/domotics/bridge:go_default_library",
         "//services/news:go_default_library",
         "//services/transit:go_default_library",
         "//services/users:go_default_library",
@@ -47,6 +48,5 @@ go_library(
         "//vendor/google.golang.org/grpc/status:go_default_library",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
-        "@com_github_rmrobinson_nerves//services/domotics:go_default_library",
     ],
 )

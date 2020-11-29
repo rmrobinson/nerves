@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/robfig/cron"
 	crontab "github.com/robfig/cron"
@@ -54,8 +54,8 @@ type State struct {
 
 	weatherState map[string]*weather.WeatherReport
 
-	bridgeState map[string]*domotics.Bridge
-	deviceState map[string]*domotics.Device
+	bridgeState map[string]*bridge.Bridge
+	deviceState map[string]*bridge.Device
 	deviceLock  sync.Mutex
 
 	cronsByCond map[*Condition]*cronEntry
@@ -63,18 +63,16 @@ type State struct {
 	timersByID map[string]*timerEntry
 	timerLock  sync.Mutex
 
-	bridgeClient domotics.BridgeServiceClient
-	deviceClient domotics.DeviceServiceClient
+	bridgeClient bridge.BridgeServiceClient
 }
 
 // NewState creates a new state entity to manage.
 func NewState(logger *zap.Logger, conn *grpc.ClientConn) *State {
 	return &State{
 		logger:       logger,
-		bridgeClient: domotics.NewBridgeServiceClient(conn),
-		deviceClient: domotics.NewDeviceServiceClient(conn),
-		bridgeState:  map[string]*domotics.Bridge{},
-		deviceState:  map[string]*domotics.Device{},
+		bridgeClient: bridge.NewBridgeServiceClient(conn),
+		bridgeState:  map[string]*bridge.Bridge{},
+		deviceState:  map[string]*bridge.Device{},
 		weatherState: map[string]*weather.WeatherReport{},
 		cronsByCond:  map[*Condition]*cronEntry{},
 		timersByID:   map[string]*timerEntry{},
@@ -83,7 +81,7 @@ func NewState(logger *zap.Logger, conn *grpc.ClientConn) *State {
 
 // Monitor is used to track changes to devices
 func (s *State) Monitor(ctx context.Context) {
-	stream, err := s.deviceClient.StreamDeviceUpdates(ctx, &domotics.StreamDeviceUpdatesRequest{})
+	stream, err := s.bridgeClient.StreamBridgeUpdates(ctx, &bridge.StreamBridgeUpdatesRequest{})
 	if err != nil {
 		s.logger.Info("error creating device update stream",
 			zap.Error(err),
@@ -100,11 +98,15 @@ func (s *State) Monitor(ctx context.Context) {
 			return
 		}
 
-		s.handleDeviceUpdate(update)
+		s.handleDeviceUpdate(update.GetDeviceUpdate())
 	}
 }
 
-func (s *State) handleDeviceUpdate(update *domotics.DeviceUpdate) {
+func (s *State) handleDeviceUpdate(update *bridge.DeviceUpdate) {
+	if update == nil {
+		return
+	}
+
 	s.deviceLock.Lock()
 	defer s.deviceLock.Unlock()
 

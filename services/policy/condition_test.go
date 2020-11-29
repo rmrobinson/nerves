@@ -3,7 +3,7 @@ package policy
 import (
 	"testing"
 
-	"github.com/rmrobinson/nerves/services/domotics"
+	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/weather"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
@@ -161,12 +161,12 @@ func TestCondition(t *testing.T) {
 	s.weatherState["test loc"] = &weather.WeatherReport{
 		Conditions: &weather.WeatherCondition{Temperature: 0},
 	}
-	s.deviceState["test device"] = &domotics.Device{
-		State: &domotics.DeviceState{
-			Binary: &domotics.DeviceState_BinaryState{
+	s.deviceState["test device"] = &bridge.Device{
+		State: &bridge.DeviceState{
+			Binary: &bridge.DeviceState_Binary{
 				IsOn: true,
 			},
-			ColorRgb: &domotics.DeviceState_RGBState{
+			ColorRgb: &bridge.DeviceState_ColorRGB{
 				Red:   150,
 				Green: 110,
 				Blue:  120,
