@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "widget",
     srcs = [
         "article_detail.go",
         "articles.go",
@@ -16,13 +16,13 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/ui/tboard/widget",
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//services/news:go_default_library",
-        "//services/transit:go_default_library",
-        "//services/weather:go_default_library",
-        "//vendor/github.com/gdamore/tcell:go_default_library",
-        "//vendor/github.com/rivo/tview:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/domotics/bridge",
+        "//services/news",
+        "//services/transit",
+        "//services/weather",
+        "@com_github_gdamore_tcell//:tcell",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@com_github_rivo_tview//:tview",
+        "@org_uber_go_zap//:zap",
     ],
 )

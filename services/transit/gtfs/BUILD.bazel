@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "gtfs",
     srcs = [
         "agency.go",
         "calendar.go",
@@ -16,7 +16,7 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/transit/gtfs",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/gocarina/gocsv:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "@com_github_gocarina_gocsv//:gocsv",
+        "@org_uber_go_zap//:zap",
     ],
 )

@@ -1,18 +1,18 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "monitord_lib",
     srcs = ["main.go"],
     importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/cmd/monitord",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/domotics/bridge",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_binary(
     name = "monitord",
-    embed = [":go_default_library"],
+    embed = [":monitord_lib"],
     visibility = ["//visibility:public"],
 )

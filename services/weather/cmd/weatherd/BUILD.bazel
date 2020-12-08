@@ -1,22 +1,22 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "weatherd_lib",
     srcs = ["main.go"],
     importpath = "github.com/rmrobinson/nerves/services/weather/cmd/weatherd",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/weather:go_default_library",
-        "//services/weather/envcan:go_default_library",
-        "//services/weather/noaa:go_default_library",
-        "//vendor/github.com/spf13/viper:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/weather",
+        "//services/weather/envcan",
+        "//services/weather/noaa",
+        "@com_github_spf13_viper//:viper",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_binary(
     name = "weatherd",
-    embed = [":go_default_library"],
+    embed = [":weatherd_lib"],
     visibility = ["//visibility:public"],
 )

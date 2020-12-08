@@ -8,8 +8,7 @@ import (
 
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/weather"
-	"github.com/robfig/cron"
-	crontab "github.com/robfig/cron"
+	crontab "github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -131,7 +130,7 @@ func (s *State) addCronEntry(c *Condition) error {
 	}
 
 	entry := &cronEntry{
-		cron:      crontab.New(cron.WithLocation(loc)),
+		cron:      crontab.New(crontab.WithLocation(loc)),
 		condition: c,
 		triggered: false,
 	}

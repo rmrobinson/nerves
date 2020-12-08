@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "envcan",
     srcs = [
         "service.go",
         "station.go",
@@ -9,19 +9,19 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/weather/envcan",
     visibility = ["//visibility:public"],
     deps = [
-        "//services/weather:go_default_library",
-        "//vendor/github.com/mmcdole/gofeed:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/weather",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@com_github_mmcdole_gofeed//:gofeed",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "envcan_test",
     srcs = ["station_test.go"],
-    embed = [":go_default_library"],
+    embed = [":envcan"],
     deps = [
-        "//services/weather:go_default_library",
-        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//services/weather",
+        "@com_github_stretchr_testify//assert",
     ],
 )

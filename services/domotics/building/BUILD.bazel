@@ -1,3 +1,4 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
@@ -17,11 +18,11 @@ go_proto_library(
     importpath = "github.com/rmrobinson/nerves/services/domotics/building",
     proto = ":building_proto",
     visibility = ["//visibility:public"],
-    deps = ["//services/domotics/bridge:go_default_library"],
+    deps = ["//services/domotics/bridge"],
 )
 
 go_library(
-    name = "go_default_library",
+    name = "building",
     srcs = [
         "api.go",
         "persister.go",
@@ -32,26 +33,26 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/domotics/building",
     visibility = ["//visibility:public"],
     deps = [
-        "//lib/stream:go_default_library",
-        "//services/domotics/bridge:go_default_library",
-        "//vendor/github.com/davecgh/go-spew/spew:go_default_library",
-        "//vendor/github.com/google/uuid:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
-        "//vendor/google.golang.org/grpc/codes:go_default_library",
-        "//vendor/google.golang.org/grpc/peer:go_default_library",
-        "//vendor/google.golang.org/grpc/status:go_default_library",
+        "//lib/stream",
+        "//services/domotics/bridge",
+        "@com_github_davecgh_go_spew//spew",
         "@com_github_golang_protobuf//proto:go_default_library",
+        "@com_github_google_uuid//:uuid",
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//peer",
+        "@org_golang_google_grpc//status",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "building_test",
     timeout = "short",
     srcs = ["state_test.go"],
-    embed = [":go_default_library"],
+    embed = [":building"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//services/domotics/bridge",
+        "@com_github_stretchr_testify//assert",
     ],
 )
