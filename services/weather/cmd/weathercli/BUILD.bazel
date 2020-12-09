@@ -1,21 +1,21 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "weathercli_lib",
     srcs = ["main.go"],
     importpath = "github.com/rmrobinson/nerves/services/weather/cmd/weathercli",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/weather:go_default_library",
-        "//vendor/github.com/davecgh/go-spew/spew:go_default_library",
-        "//vendor/github.com/spf13/viper:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/weather",
+        "@com_github_davecgh_go_spew//spew",
+        "@com_github_spf13_viper//:viper",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_binary(
     name = "weathercli",
-    embed = [":go_default_library"],
+    embed = [":weathercli_lib"],
     visibility = ["//visibility:public"],
 )

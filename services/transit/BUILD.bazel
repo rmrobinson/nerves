@@ -18,7 +18,7 @@ go_proto_library(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "transit",
     srcs = [
         "agency.go",
         "arrival.go",
@@ -32,13 +32,13 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/transit",
     visibility = ["//visibility:public"],
     deps = [
-        "//lib/geoset:go_default_library",
-        "//services/transit/gtfs:go_default_library",
-        "//services/transit/gtfs_realtime:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
-        "//vendor/google.golang.org/grpc/codes:go_default_library",
-        "//vendor/google.golang.org/grpc/status:go_default_library",
+        "//lib/geoset",
+        "//services/transit/gtfs",
+        "//services/transit/gtfs_realtime",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_uber_go_zap//:zap",
     ],
 )

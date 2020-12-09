@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "bottlerocketd_lib",
     srcs = [
         "bottlerocket.go",
         "main.go",
@@ -9,17 +9,17 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/cmd/bottlerocketd",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//vendor/github.com/rmrobinson/bottlerocket-go:go_default_library",
-        "//vendor/github.com/spf13/viper:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/domotics/bridge",
         "@com_github_golang_protobuf//proto:go_default_library",
+        "@com_github_rmrobinson_bottlerocket_go//:bottlerocket-go",
+        "@com_github_spf13_viper//:viper",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_binary(
     name = "bottlerocketd",
-    embed = [":go_default_library"],
+    embed = [":bottlerocketd_lib"],
     visibility = ["//visibility:public"],
 )

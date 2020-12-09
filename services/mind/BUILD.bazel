@@ -18,11 +18,11 @@ go_proto_library(
     importpath = "github.com/rmrobinson/nerves/services/mind",
     proto = ":mind_proto",
     visibility = ["//visibility:public"],
-    deps = ["//services/users:go_default_library"],
+    deps = ["//services/users"],
 )
 
 go_library(
-    name = "go_default_library",
+    name = "mind",
     srcs = [
         "domotics.go",
         "echo.go",
@@ -36,17 +36,17 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/mind",
     visibility = ["//visibility:public"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//services/news:go_default_library",
-        "//services/transit:go_default_library",
-        "//services/users:go_default_library",
-        "//services/weather:go_default_library",
-        "//vendor/github.com/google/uuid:go_default_library",
-        "//vendor/github.com/nlopes/slack:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
-        "//vendor/google.golang.org/grpc/codes:go_default_library",
-        "//vendor/google.golang.org/grpc/status:go_default_library",
+        "//services/domotics/bridge",
+        "//services/news",
+        "//services/transit",
+        "//services/users",
+        "//services/weather",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_nlopes_slack//:slack",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_uber_go_zap//:zap",
     ],
 )

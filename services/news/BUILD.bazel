@@ -18,7 +18,7 @@ go_proto_library(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "news",
     srcs = [
         "api.go",
         "bbc_feed.go",
@@ -28,21 +28,21 @@ go_library(
     importpath = "github.com/rmrobinson/nerves/services/news",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/mmcdole/gofeed:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
-        "//vendor/golang.org/x/net/html:go_default_library",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@com_github_mmcdole_gofeed//:gofeed",
+        "@org_golang_x_net//html",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "news_test",
     srcs = ["cbc_feed_test.go"],
-    embed = [":go_default_library"],
+    embed = [":news"],
     deps = [
-        "//vendor/github.com/stretchr/testify/assert:go_default_library",
-        "//vendor/go.uber.org/zap/zaptest:go_default_library",
+        "@com_github_stretchr_testify//assert",
+        "@org_uber_go_zap//zaptest",
     ],
 )
 

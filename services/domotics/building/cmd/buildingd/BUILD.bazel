@@ -1,22 +1,22 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "buildingd_lib",
     srcs = ["main.go"],
     importpath = "github.com/rmrobinson/nerves/services/domotics/building/cmd/buildingd",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//services/domotics/building:go_default_library",
-        "//vendor/github.com/mattn/go-sqlite3:go_default_library",
-        "//vendor/github.com/spf13/viper:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/domotics/bridge",
+        "//services/domotics/building",
+        "@com_github_mattn_go_sqlite3//:go-sqlite3",
+        "@com_github_spf13_viper//:viper",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_binary(
     name = "buildingd",
-    embed = [":go_default_library"],
+    embed = [":buildingd_lib"],
     visibility = ["//visibility:public"],
 )

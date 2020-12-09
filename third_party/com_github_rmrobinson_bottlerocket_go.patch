@@ -1,0 +1,11 @@
+--- BUILD.bazel
++++ BUILD.bazel
+@@ -4,7 +4,7 @@
+     name = "bottlerocket-go",
+     srcs = ["bottlerocket.go"],
+     cgo = True,
+-    clinkopts = ["-lbr"],
++    cdeps = ["@bottlerocket//:libbr"],
+     importpath = "github.com/rmrobinson/bottlerocket-go",
+     visibility = ["//visibility:public"],
+ )

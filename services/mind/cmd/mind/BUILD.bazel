@@ -1,27 +1,27 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "mind_lib",
     srcs = ["main.go"],
     importpath = "github.com/rmrobinson/nerves/services/mind/cmd/mind",
     visibility = ["//visibility:private"],
     deps = [
-        "//services/domotics/bridge:go_default_library",
-        "//services/mind:go_default_library",
-        "//services/news:go_default_library",
-        "//services/transit:go_default_library",
-        "//services/users:go_default_library",
-        "//services/weather:go_default_library",
-        "//vendor/github.com/gocarina/gocsv:go_default_library",
-        "//vendor/github.com/nlopes/slack:go_default_library",
-        "//vendor/github.com/spf13/viper:go_default_library",
-        "//vendor/go.uber.org/zap:go_default_library",
+        "//services/domotics/bridge",
+        "//services/mind",
+        "//services/news",
+        "//services/transit",
+        "//services/users",
+        "//services/weather",
+        "@com_github_gocarina_gocsv//:gocsv",
+        "@com_github_nlopes_slack//:slack",
+        "@com_github_spf13_viper//:viper",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_binary(
     name = "mind",
-    embed = [":go_default_library"],
+    embed = [":mind_lib"],
     visibility = ["//visibility:public"],
 )
