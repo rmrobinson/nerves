@@ -10,8 +10,8 @@ require (
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gdamore/tcell v1.3.0
 	github.com/gocarina/gocsv v0.0.0-20200330101823-46266ca37bd3
-	github.com/golang/protobuf v1.3.5
-	github.com/google/uuid v1.1.1
+	github.com/golang/protobuf v1.4.2
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.0.0 // indirect
@@ -32,6 +32,7 @@ require (
 	github.com/rivo/tview v0.0.0-20200404204604-ca37f83cb2e7
 	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/rmrobinson/bottlerocket-go v1.0.0
+	github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201129014515-2fe580d11449
 	github.com/rmrobinson/hue-go v0.0.0-20180806152530-008c4367e329 // indirect
 	github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552
 	github.com/robfig/cron/v3 v3.0.1
@@ -45,12 +46,12 @@ require (
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
-	go.uber.org/zap v1.14.1
+	go.uber.org/zap v1.16.0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sys v0.0.0-20200409092240-59c9f1ba88fa // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20200409111301-baae70f3302d // indirect
-	google.golang.org/grpc v1.28.1
+	google.golang.org/api v0.35.0
+	google.golang.org/grpc v1.31.1
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

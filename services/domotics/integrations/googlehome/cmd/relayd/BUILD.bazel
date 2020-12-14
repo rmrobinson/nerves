@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "relayd_lib",
+    srcs = [
+        "auth0.go",
+        "main.go",
+        "mock_provider.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome/cmd/relayd",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//services/domotics/integrations/googlehome",
+        "//services/domotics/integrations/googlehome/relay",
+        "@com_github_rmrobinson_google_smart_home_action_go//:google-smart-home-action-go",
+        "@org_golang_google_api//homegraph/v1:homegraph",
+        "@org_golang_google_api//option",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_x_crypto//acme/autocert",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_binary(
+    name = "relayd",
+    embed = [":relayd_lib"],
+    visibility = ["//visibility:public"],
+)

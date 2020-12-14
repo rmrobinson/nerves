@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package faltung.nerves.domotics.integrations.googlehome;
+
+option go_package = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome";
+
+message CommandRequest {
+    string request_id = 1;
+    string command = 2;
+    bytes payload = 3;
+}
+message CommandResponse {
+    string request_id = 1;
+    bytes payload = 2;
+}
+message RegisterAgentRequest {
+    string agent_id = 1;
+}
+message RequestSyncRequest {
+}
+message ReportStateRequest {
+    bytes payload = 1;
+}
+
+message ServerRequest {
+    oneof Field {
+        CommandRequest command_request = 1;
+    }
+}
+
+message ClientRequest {
+    oneof Field {
+        RegisterAgentRequest register_agent = 1;
+        RequestSyncRequest request_sync = 2;
+        ReportStateRequest report_state = 3;
+        CommandResponse command_response = 4;
+    }
+}
+
+// GoogleHomeService allows a cloud-hosted proxy for Google Home Smart Actions to multiplex handling
+// of possibly many agents which are running on non-directly-Internet-reachable hosts.
+// The basic use case is a home automation system, running on a home network, that wishes to interact
+// with the Google Assistant but does not wish to directly register a port for callback handling locally.
+// The server-side of the GoogleHomeService will register with the Google Home Smart Actions callback API,
+// and route the incoming requests to the bidirectional streaming channel registered for that agent ID.
+// The client-side of the GoogleHomeService will start up, connect to the server instance, register its client ID,
+// and the a) stream device updates as it receives them to the server, as well as b) receive incoming requests
+// from the Smart Home Action API (SYNC, QUERY, EXECUTE) and process them.
+service GoogleHomeService {
+    // StateSync offers a general-purpose, bidirectional channel for synchronization.
+    // It enables the following flows:
+    // Server -> Client command requests (async, with client-returned results)
+    // Client -> Server updates  state and returns results (both async)
+    // It must start with the client sending a RegisterAgent request.
+    rpc StateSync(stream ClientRequest) returns (stream ServerRequest) {}
+}

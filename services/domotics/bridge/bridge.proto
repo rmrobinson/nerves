@@ -113,7 +113,7 @@ message DeviceState {
     Control control = 17;
 
     message Temperature {
-        int32 temperature_celsius = 1;
+        int32 celsius = 1;
     }
     Temperature temperature = 18;
 
@@ -144,10 +144,21 @@ message DeviceState {
     string version = 100;
 }
 
+enum DeviceType {
+    UNSPECIFIED = 0;
+    AV_RECEIVER = 1;
+    FAN = 2;
+    LIGHT = 3;
+    OUTLET = 4;
+    SENSOR = 5;
+    SWITCH  =6;
+    TV = 7;
+}
+
 message Device {
     string id = 1;
-
     bool is_active = 2;
+    DeviceType type = 3;
 
     string model_id = 10;
     string model_name = 11;
