@@ -1,13 +1,13 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "relayd_lib",
+    name = "googlerelayd_lib",
     srcs = [
         "auth0.go",
         "main.go",
         "mock_provider.go",
     ],
-    importpath = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome/cmd/relayd",
+    importpath = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome/cmd/googlerelayd",
     visibility = ["//visibility:private"],
     deps = [
         "//services/domotics/integrations/googlehome",
@@ -22,7 +22,7 @@ go_library(
 )
 
 go_binary(
-    name = "relayd",
-    embed = [":relayd_lib"],
+    name = "googlerelayd",
+    embed = [":googlerelayd_lib"],
     visibility = ["//visibility:public"],
 )
