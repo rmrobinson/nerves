@@ -241,6 +241,8 @@ github.com/rmrobinson/bottlerocket-go v1.0.0 h1:6Ol88m8O7FXNCCRvk3xOS1IzmBxGcs7o
 github.com/rmrobinson/bottlerocket-go v1.0.0/go.mod h1:sxWtny3IwpawLjU4gmbEEXIHfWItfSjkgtRKfMkBHew=
 github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201129014515-2fe580d11449 h1:zWoc2QgxBLw+qF0FGk+r3TR650NSsuD/v0vp9MZdgpA=
 github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201129014515-2fe580d11449/go.mod h1:X5x0Q5AHYTcShIBpJIMTvECcrqpzGFpb7pwUk0P2WeI=
+github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201227204949-035674a37913 h1:Nhj+7tSG3Dydq/ORWQPVZ2EOcXqnevDFFAFXrokuI+0=
+github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201227204949-035674a37913/go.mod h1:X5x0Q5AHYTcShIBpJIMTvECcrqpzGFpb7pwUk0P2WeI=
 github.com/rmrobinson/hue-go v0.0.0-20180806152530-008c4367e329/go.mod h1:ul1/SgJIW3cdDouqBVmAiSG+JUIfWHysZgngVji8SY0=
 github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552 h1:Btg2uBZ+QLTncTNJiJvhnGCkAu00iDuA9SH8cxGV8po=
 github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552/go.mod h1:K7McGuKyl+aiEKsVRmMcmTC0ro6miPTU5zvZAqt7UNs=
@@ -531,6 +533,7 @@ google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7
 google.golang.org/appengine v1.5.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.6.1/go.mod h1:i06prIuMbXzDqacNJfV5OdTW448YApPu5ww/cMBSeb0=
 google.golang.org/appengine v1.6.5/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
+google.golang.org/appengine v1.6.6 h1:lMO5rYAqUxkmaj76jAkRUvt5JZgFymx/+Q5Mzfivuhc=
 google.golang.org/appengine v1.6.6/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=
 google.golang.org/appengine v1.6.7 h1:FZR1q0exgwxzPzp/aF+VccGrSfxfPpkBqjIIEq3ru6c=
 google.golang.org/appengine v1.6.7/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCIDZVag1xfc=

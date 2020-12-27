@@ -32,7 +32,7 @@ require (
 	github.com/rivo/tview v0.0.0-20200404204604-ca37f83cb2e7
 	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/rmrobinson/bottlerocket-go v1.0.0
-	github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201129014515-2fe580d11449
+	github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201227204949-035674a37913
 	github.com/rmrobinson/hue-go v0.0.0-20180806152530-008c4367e329 // indirect
 	github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552
 	github.com/robfig/cron/v3 v3.0.1

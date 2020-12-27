@@ -164,5 +164,5 @@ func main() {
 }
 
 func bridgeToGoogleDevice(d *bridge.Device) *action.Device {
-
+	return nil
 }

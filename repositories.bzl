@@ -619,8 +619,8 @@ def go_repositories():
     go_repository(
         name = "com_github_rmrobinson_google_smart_home_action_go",
         importpath = "github.com/rmrobinson/google-smart-home-action-go",
-        sum = "h1:zWoc2QgxBLw+qF0FGk+r3TR650NSsuD/v0vp9MZdgpA=",
-        version = "v0.0.0-20201129014515-2fe580d11449",
+        sum = "h1:Nhj+7tSG3Dydq/ORWQPVZ2EOcXqnevDFFAFXrokuI+0=",
+        version = "v0.0.0-20201227204949-035674a37913",
     )
 
     go_repository(
