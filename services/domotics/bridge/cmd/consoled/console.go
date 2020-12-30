@@ -29,7 +29,8 @@ func (c *Console) getDevices(ctx context.Context) (map[string]*bridge.Device, er
 
 	d := &bridge.Device{
 		Id:       fmt.Sprintf("%s-1", c.id),
-		IsActive: false,
+		IsActive: true,
+		Type:     bridge.DeviceType_SWITCH,
 		Address:  "/console/stdout",
 		Config: &bridge.DeviceConfig{
 			Name:        "Console device",
@@ -38,6 +39,10 @@ func (c *Console) getDevices(ctx context.Context) (map[string]*bridge.Device, er
 		State: &bridge.DeviceState{
 			Binary: &bridge.DeviceState_Binary{
 				IsOn: false,
+			},
+			Version: &bridge.Version{
+				Sw: "0.1",
+				Hw: "0.1",
 			},
 		},
 		ModelId:          "N/A",
@@ -60,7 +65,7 @@ func (c *Console) getBridge(ctx context.Context) (*bridge.Bridge, error) {
 		Manufacturer:     "faltung.ca",
 		State: &bridge.BridgeState{
 			IsPaired: true,
-			Version: &bridge.BridgeState_Version{
+			Version: &bridge.Version{
 				Api: "1.0.0",
 				Sw:  "1.0.0",
 			},

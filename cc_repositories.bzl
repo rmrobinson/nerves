@@ -26,9 +26,9 @@ configure_make(
     visibility = ["//visibility:public"],
 )
         """,
-        sha256 = "ce26d6bba87244573b5b4db56f7acd969afb070fbd5ac364bd57201c0acb1267",
-        strip_prefix = "bottlerocket-cleanup2",
+        sha256 = "fd5e0db1316f29586ed403ff8625f2f1313fd3a9e91d1b4476d18b6a5dba6287",
+        strip_prefix = "bottlerocket-0.05b4",
         urls = [
-            "https://github.com/rmrobinson/bottlerocket/archive/cleanup2.zip",
+            "https://github.com/rmrobinson/bottlerocket/archive/v0.05b4.zip",
         ],
     )

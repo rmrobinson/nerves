@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "googlebridged_lib",
+    srcs = [
+        "main.go",
+        "proxy.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome/cmd/googlebridged",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//services/domotics/bridge",
+        "//services/domotics/integrations/googlehome",
+        "@com_github_google_uuid//:uuid",
+        "@com_github_rmrobinson_google_smart_home_action_go//:google-smart-home-action-go",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_binary(
+    name = "googlebridged",
+    embed = [":googlebridged_lib"],
+    visibility = ["//visibility:public"],
+)
