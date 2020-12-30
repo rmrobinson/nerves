@@ -4,15 +4,60 @@ package faltung.nerves.domotics.integrations.googlehome;
 
 option go_package = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome";
 
-message CommandRequest {
-    string request_id = 1;
-    string command = 2;
-    bytes payload = 3;
+message SyncRequest {
 }
-message CommandResponse {
-    string request_id = 1;
-    bytes payload = 2;
+message SyncResponse {
+    bytes payload = 1;
+    string error_details = 2;
 }
+message DisconnectRequest {
+}
+
+// This integration doesn't take advantage of the opaque data field offered by the Google Home Action SDK.
+// The nerves framework currently doesn't expose a comparable set of fields and enforces globally unique device IDs
+// so the custom data was decided to be omitted for simplicity.
+// The commands simply use the device ID to identify their targets for querying & execution.
+
+message QueryRequest {
+    repeated string device_ids = 1;
+}
+message QueryResponse {
+    bytes payload = 1;
+    string error_details = 2;
+}
+
+message ExecuteRequest {
+    message Command {
+        message ExecutionContext {
+            bytes payload = 1;
+        }
+
+        repeated string device_ids = 1;
+        repeated ExecutionContext execution_context = 2;
+    }
+
+    repeated Command commands = 1;
+}
+message ExecuteResponse {
+    enum CommandStatus {
+        UNSPECIFIED = 0;
+        SUCCESS = 1;
+        PENDING = 2;
+        OFFLINE = 3;
+        EXCEPTIONS = 4;
+        ERROR = 5;
+    }
+    message CommandResult {
+        repeated string device_ids = 1;
+        CommandStatus status = 2;
+        bytes states = 3;
+        string error_code = 4;
+    }
+
+    repeated CommandResult results = 1;
+    string error_details = 2;
+}
+
 message RegisterAgentRequest {
     string agent_id = 1;
 }
@@ -23,17 +68,24 @@ message ReportStateRequest {
 }
 
 message ServerRequest {
+    string request_id = 1;
     oneof Field {
-        CommandRequest command_request = 1;
+        SyncRequest sync_request = 2;
+        QueryRequest query_request = 3;
+        ExecuteRequest execute_request = 4;
+        DisconnectRequest disconnect_request = 5;
     }
 }
 
 message ClientRequest {
+    string request_id = 1;
     oneof Field {
-        RegisterAgentRequest register_agent = 1;
-        RequestSyncRequest request_sync = 2;
-        ReportStateRequest report_state = 3;
-        CommandResponse command_response = 4;
+        RegisterAgentRequest register_agent = 2;
+        RequestSyncRequest request_sync = 3;
+        ReportStateRequest report_state = 4;
+        SyncResponse sync_response = 5;
+        QueryResponse query_response = 6;
+        ExecuteResponse execute_response = 7;
     }
 }
 

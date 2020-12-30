@@ -223,7 +223,8 @@ func (h *Hub) AddBridge(c BridgeServiceClient) error {
 			Action: Update_ADDED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
-					Device: device,
+					Device:   device,
+					DeviceId: device.Id,
 				},
 			},
 		})
@@ -307,7 +308,8 @@ func (h *Hub) RemoveBridge(id string) error {
 			Action: Update_CHANGED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
-					Device: h.devices[deviceID].d,
+					Device:   h.devices[deviceID].d,
+					DeviceId: deviceID,
 				},
 			},
 		})

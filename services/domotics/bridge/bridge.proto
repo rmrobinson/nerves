@@ -22,13 +22,15 @@ message Address {
     Usb usb = 2;
 }
 
+message Version {
+    string api = 1;
+    string sw = 2;
+    string hw = 3;
+}
+
 message BridgeState {
     bool is_paired = 1;
 
-    message Version {
-        string api = 1;
-        string sw = 2;
-    }
     Version version = 100;
 
     message Zigbee {
@@ -141,7 +143,7 @@ message DeviceState {
     }
     StereoAudio stereo_audio = 22;
 
-    string version = 100;
+    Version version = 100;
 }
 
 enum DeviceType {

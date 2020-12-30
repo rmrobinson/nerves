@@ -28,9 +28,9 @@ var (
 		Manufacturer:     "x10.com",
 		State: &bridge.BridgeState{
 			IsPaired: true,
-			Version: &bridge.BridgeState_Version{
+			Version: &bridge.Version{
 				Api: "1.0.0",
-				Sw:  "0.05b3",
+				Sw:  "0.05b4",
 			},
 		},
 	}

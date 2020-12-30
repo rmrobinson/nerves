@@ -57,6 +57,7 @@ func (a *API) StateSync(stream googlehome.GoogleHomeService_StateSyncServer) err
 		if req := reqMsg.GetRegisterAgent(); req != nil {
 			provider = NewRemoteProvider(a.logger, req.AgentId, stream)
 			a.providerSvc.RegisterProvider(req.AgentId, provider)
+			continue
 		}
 
 		if provider == nil {
@@ -69,13 +70,21 @@ func (a *API) StateSync(stream googlehome.GoogleHomeService_StateSyncServer) err
 		// - requests that need to be passed to the provider for handling
 
 		if msg := reqMsg.GetRequestSync(); msg != nil {
-			err := a.actionSvc.RequestSync(stream.Context(), provider.agentID)
-			if err != nil {
-				a.logger.Error("unable to request sync",
-					zap.String("agent_id", provider.agentID),
-					zap.Error(err),
-				)
-			}
+			// Sync executes synchronously, which means that we will never be able to process the stream message
+			// with the results for the SYNC call made to the HTTP API.
+			// Therefore we run this one call on a goroutine so we don't block the stream when the response comes in.
+			// This isn't really an issue since we don't report the results back to the caller anyways.
+			go func() {
+				err := a.actionSvc.RequestSync(stream.Context(), provider.agentID)
+				if err != nil {
+					a.logger.Error("unable to request sync",
+						zap.String("agent_id", provider.agentID),
+						zap.Error(err),
+					)
+					return
+				}
+				a.logger.Debug("requested sync from google")
+			}()
 		} else if msg := reqMsg.GetReportState(); msg != nil {
 			deviceStates := map[string]action.DeviceState{}
 			err := json.Unmarshal(msg.GetPayload(), &deviceStates)
@@ -92,20 +101,27 @@ func (a *API) StateSync(stream googlehome.GoogleHomeService_StateSyncServer) err
 					zap.String("agent_id", provider.agentID),
 					zap.Error(err),
 				)
+				continue
 			}
-		} else if msg := reqMsg.GetCommandResponse(); msg != nil {
-			err := provider.receiveResponse(msg)
+			a.logger.Debug("reported state update to google")
+		} else if reqMsg.GetField() != nil {
+			// If we have handled all the client-specific cases we can assume any remaining messages with a field set
+			// are response messages being sent from the client. Pass them to the provider for handling.
+			err := provider.receiveResponse(reqMsg)
 			if err != nil {
-				a.logger.Error("unable to process command response",
+				a.logger.Error("unable to process generic response",
 					zap.String("agent_id", provider.agentID),
 					zap.Error(err),
 				)
+				continue
 			}
+			a.logger.Debug("processed message with field")
 		} else {
 			a.logger.Info("received unhandled type from stream",
 				zap.String("agent_id", provider.agentID),
 				zap.String("type", fmt.Sprintf("%T", reqMsg.GetField())),
 			)
+			continue
 		}
 	}
 }

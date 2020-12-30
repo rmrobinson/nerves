@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "googlebridged_lib",
-    srcs = ["main.go"],
+    srcs = [
+        "main.go",
+        "proxy.go",
+    ],
     importpath = "github.com/rmrobinson/nerves/services/domotics/integrations/googlehome/cmd/googlebridged",
     visibility = ["//visibility:private"],
     deps = [

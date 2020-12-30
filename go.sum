@@ -243,6 +243,8 @@ github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201129014515-2fe580d1
 github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201129014515-2fe580d11449/go.mod h1:X5x0Q5AHYTcShIBpJIMTvECcrqpzGFpb7pwUk0P2WeI=
 github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201227204949-035674a37913 h1:Nhj+7tSG3Dydq/ORWQPVZ2EOcXqnevDFFAFXrokuI+0=
 github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201227204949-035674a37913/go.mod h1:X5x0Q5AHYTcShIBpJIMTvECcrqpzGFpb7pwUk0P2WeI=
+github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201229024602-45f3901b56a9 h1:5pDOTyInRkM8wo+8pc4nK9cqqL3nuvN4CzEvbZPxs2k=
+github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201229024602-45f3901b56a9/go.mod h1:X5x0Q5AHYTcShIBpJIMTvECcrqpzGFpb7pwUk0P2WeI=
 github.com/rmrobinson/hue-go v0.0.0-20180806152530-008c4367e329/go.mod h1:ul1/SgJIW3cdDouqBVmAiSG+JUIfWHysZgngVji8SY0=
 github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552 h1:Btg2uBZ+QLTncTNJiJvhnGCkAu00iDuA9SH8cxGV8po=
 github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552/go.mod h1:K7McGuKyl+aiEKsVRmMcmTC0ro6miPTU5zvZAqt7UNs=

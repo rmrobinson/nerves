@@ -1,13 +1,7 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"flag"
-	"fmt"
-	"io"
-
-	action "github.com/rmrobinson/google-smart-home-action-go"
 
 	"github.com/google/uuid"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
@@ -44,14 +38,12 @@ func main() {
 
 	bridgeClient := bridge.NewBridgeServiceClient(bridgeConn)
 
-	info := &bridge.Bridge{
+	h := bridge.NewHub(logger, &bridge.Bridge{
 		Id:           uuid.New().String(),
 		ModelId:      "gb1",
 		ModelName:    "googlebridged",
 		Manufacturer: "Faltung Systems",
-	}
-
-	h := bridge.NewHub(logger, info)
+	})
 	h.AddBridge(bridgeClient)
 
 	relayConn, err := grpc.Dial(*relayAddr, opts...)
@@ -63,106 +55,15 @@ func main() {
 		return
 	}
 	relayClient := googlehome.NewGoogleHomeServiceClient(relayConn)
-	relayStream, err := relayClient.StateSync(context.Background())
 
-	// TODO: listen for updates from Hub and propogate to relay
-	go func() {
-		for {
-			update := <-h.Updates()
-			// Google doesn't care about bridge changes.
-			if deviceUpdate := update.GetDeviceUpdate(); deviceUpdate != nil {
-				// ADDED or REMOVED means we need to trigger a state sync
-				// This will cause Google to repoll us and see what devices exist.
-				if update.Action == bridge.Update_ADDED || update.Action == bridge.Update_REMOVED {
-					syncReq := &googlehome.ClientRequest{
-						Field: &googlehome.ClientRequest_RequestSync{
-							RequestSync: &googlehome.RequestSyncRequest{},
-						},
-					}
-
-					err := relayStream.Send(syncReq)
-					if err != nil {
-						logger.Error("unable to request sync",
-							zap.Error(err),
-						)
-						continue
-					}
-				} else if update.Action == bridge.Update_CHANGED {
-					updatedDevice := bridgeToGoogleDevice(deviceUpdate.GetDevice())
-					googleHomeUpdate, err := json.Marshal(updatedDevice)
-					if err != nil {
-						logger.Error("unable to serialize google home device to update",
-							zap.Error(err),
-						)
-						continue
-					}
-					reportStateReq := &googlehome.ClientRequest{
-						Field: &googlehome.ClientRequest_ReportState{
-							ReportState: &googlehome.ReportStateRequest{
-								Payload: googleHomeUpdate,
-							},
-						},
-					}
-
-					err = relayStream.Send(reportStateReq)
-					if err != nil {
-						logger.Error("unable to report state",
-							zap.Error(err),
-						)
-						continue
-					}
-				}
-			}
-		}
-	}()
-
-	waitc := make(chan struct{})
-	go func() {
-		// We need to start by writing the agent ID request
-		registerReq := &googlehome.ClientRequest{
-			Field: &googlehome.ClientRequest_RegisterAgent{
-				RegisterAgent: &googlehome.RegisterAgentRequest{
-					AgentId: *agentID,
-				},
-			},
-		}
-		err := relayStream.Send(registerReq)
-		if err != nil {
-			logger.Error("unable to register agent id",
-				zap.String("agent_id", *agentID),
-				zap.Error(err),
-			)
-			return
-		}
-
-		for {
-			reqMsg, err := relayStream.Recv()
-			if err == io.EOF {
-				close(waitc)
-				return
-			}
-			if err != nil {
-				logger.Fatal("failed to receive a message",
-					zap.Error(err),
-				)
-			}
-
-			if msg := reqMsg.GetCommandRequest(); msg != nil {
-				// TODO: Decode message
-			} else {
-				logger.Info("received unhandled type from stream",
-					zap.String("type", fmt.Sprintf("%T", reqMsg.GetField())),
-				)
-			}
-		}
-	}()
-
-	<-waitc
+	p := NewProxy(logger, h, relayClient, *agentID)
+	err = p.Run()
+	if err != nil {
+		logger.Fatal("unable to run proxy",
+			zap.Error(err),
+		)
+	}
 
 	relayConn.Close()
 	bridgeConn.Close()
-}
-
-func bridgeToGoogleDevice(d *bridge.Device) *action.Device {
-	return nil
 }
