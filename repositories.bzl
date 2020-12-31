@@ -619,8 +619,8 @@ def go_repositories():
     go_repository(
         name = "com_github_rmrobinson_google_smart_home_action_go",
         importpath = "github.com/rmrobinson/google-smart-home-action-go",
-        sum = "h1:Nhj+7tSG3Dydq/ORWQPVZ2EOcXqnevDFFAFXrokuI+0=",
-        version = "v0.0.0-20201227204949-035674a37913",
+        sum = "h1:5pDOTyInRkM8wo+8pc4nK9cqqL3nuvN4CzEvbZPxs2k=",
+        version = "v0.0.0-20201229024602-45f3901b56a9",
     )
 
     go_repository(
@@ -635,6 +635,13 @@ def go_repositories():
         sum = "h1:Btg2uBZ+QLTncTNJiJvhnGCkAu00iDuA9SH8cxGV8po=",
         version = "v0.0.0-20190217030552-ea909ba38552",
     )
+    go_repository(
+        name = "com_github_rmrobinson_nanoleaf_go",
+        importpath = "github.com/rmrobinson/nanoleaf-go",
+        sum = "h1:an9mUqdYvzau6VyjYV6T1eXW1XtDV5jmC5VcyBXIxH0=",
+        version = "v0.0.0-20200909013515-04a8046581f1",
+    )
+
     go_repository(
         name = "com_github_robfig_cron_v3",
         importpath = "github.com/robfig/cron/v3",

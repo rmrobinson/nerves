@@ -35,6 +35,7 @@ require (
 	github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201229024602-45f3901b56a9
 	github.com/rmrobinson/hue-go v0.0.0-20180806152530-008c4367e329 // indirect
 	github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552
+	github.com/rmrobinson/nanoleaf-go v0.0.0-20200909013515-04a8046581f1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

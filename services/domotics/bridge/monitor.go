@@ -22,7 +22,8 @@ type Monitor struct {
 	logger  *zap.Logger
 	handler MonitorHandler
 
-	types []string
+	logNonregisteredTypes bool
+	types                 []string
 }
 
 // NewMonitor creates a new monitor
@@ -32,6 +33,11 @@ func NewMonitor(logger *zap.Logger, handler MonitorHandler, types []string) *Mon
 		handler: handler,
 		types:   types,
 	}
+}
+
+// LogNonRegisteredTypes enables logging of all received SSDP packets, even if they do not match the registered type filter.
+func (m *Monitor) LogNonRegisteredTypes() {
+	m.logNonregisteredTypes = true
 }
 
 // Run begins the monitor, which will listen until the context is cancelled.
@@ -71,7 +77,9 @@ func (m *Monitor) ssdpAlive(msg *ssdp.AliveMessage) {
 		}
 
 		if !found {
-			logger.Debug("skipping non-registered type advertisement")
+			if m.logNonregisteredTypes {
+				logger.Debug("skipping non-registered type advertisement")
+			}
 			return
 		}
 	}
