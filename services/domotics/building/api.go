@@ -48,7 +48,7 @@ func (a *API) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, stream
 		addr = peer.Addr.String()
 	}
 
-	logger := a.logger.With(zap.String("perr_addr", addr))
+	logger := a.logger.With(zap.String("peer_addr", addr))
 
 	logger.Debug("watchBridges request")
 
@@ -112,8 +112,6 @@ func (a *API) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, stream
 			return err
 		}
 	}
-
-	return nil
 }
 
 // ListDevices retrieves all registered devices.

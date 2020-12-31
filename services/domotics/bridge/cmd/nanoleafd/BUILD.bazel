@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "nanoleafd_lib",
+    srcs = [
+        "main.go",
+        "nanoleaf.go",
+        "service.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/cmd/nanoleafd",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//lib/stream",
+        "//services/domotics/bridge",
+        "@com_github_rmrobinson_nanoleaf_go//:nanoleaf-go",
+        "@com_github_spf13_viper//:viper",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//peer",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_binary(
+    name = "nanoleafd",
+    embed = [":nanoleafd_lib"],
+    visibility = ["//visibility:public"],
+)
