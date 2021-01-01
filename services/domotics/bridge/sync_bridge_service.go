@@ -171,6 +171,7 @@ func (s *SyncBridgeService) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest,
 	logger.Debug("bridge update stream initiated")
 
 	sink := s.updates.NewSink()
+	defer sink.Close()
 
 	// Send all of the devices to start.
 	for _, device := range s.devices {
@@ -214,9 +215,7 @@ func (s *SyncBridgeService) StreamBridgeUpdates(req *StreamBridgeUpdatesRequest,
 			panic("update cast incorrect")
 		}
 
-		logger.Debug("sending update",
-			zap.String("info", bridgeUpdate.String()),
-		)
+		logger.Debug("sending update")
 
 		if err := stream.Send(bridgeUpdate); err != nil {
 			return err

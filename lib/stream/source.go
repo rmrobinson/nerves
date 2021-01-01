@@ -46,11 +46,18 @@ func (s *Source) SendMessage(msg proto.Message) {
 	s.sinksLock.Lock()
 
 	for _, sink := range s.sinks {
-		s.logger.Debug("sending message",
-			zap.String("channel_id", sink.id),
-			zap.String("message", msg.String()),
-		)
-		sink.channel <- msg
+		// Try to write the message to the sink or log that the write failed
+		select {
+		case sink.channel <- msg:
+			s.logger.Debug("sending message",
+				zap.String("channel_id", sink.id),
+			)
+		default:
+			s.logger.Debug("channel blocked",
+				zap.String("channel_id", sink.id),
+				zap.String("message", msg.String()),
+			)
+		}
 	}
 
 	s.sinksLock.Unlock()
