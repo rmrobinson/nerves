@@ -79,8 +79,9 @@ func (p *Proxy) Run() error {
 
 func (p *Proxy) processHubUpdates(relayStream googlehome.GoogleHomeService_StateSyncClient) {
 	// Listen to updates from the bridge and forward the relevant commands (RequestSync, ReportState) to the relay
+	updateChan := p.h.Updates()
 	for {
-		update := <-p.h.Updates()
+		update := <-updateChan
 		// Google doesn't care about bridge changes.
 		if deviceUpdate := update.GetDeviceUpdate(); deviceUpdate != nil {
 			p.logger.Debug("received update from bridge")

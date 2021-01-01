@@ -39,35 +39,44 @@ type hubDevice struct {
 // Hub abstracts the management of multiple bridges and their dependent devices.
 // It is designed to simplify the implementation of clients which operate in a multi-bridge environment.
 // The actual bridge a given device is controlled by is abstracted through the Hub API.
+//
+// The hub may have many consumers interested in its updates - these are managed by the updateSource property.
+// Updates are published to this source by a single goroutine which 'owns' changing the bridge and device maps.
 type Hub struct {
-	logger       *zap.Logger
-	hubInfo      *Bridge
-	updateSource *stream.Source
+	logger          *zap.Logger
+	hubInfo         *Bridge
+	updateSource    *stream.Source
+	internalUpdates chan *Update
 
 	devices      map[string]*hubDevice
-	devicesMutex sync.Mutex
+	devicesMutex sync.RWMutex
 
 	bridges      map[string]*hubBridge
-	bridgesMutex sync.Mutex
+	bridgesMutex sync.RWMutex
 }
 
 // NewHub creates a new hub with the supplied logger.
 func NewHub(logger *zap.Logger, hubInfo *Bridge) *Hub {
-	return &Hub{
-		logger:       logger,
-		hubInfo:      hubInfo,
-		updateSource: stream.NewSource(logger),
-		devices:      map[string]*hubDevice{},
-		bridges:      map[string]*hubBridge{},
+	ret := &Hub{
+		logger:          logger,
+		hubInfo:         hubInfo,
+		updateSource:    stream.NewSource(logger),
+		internalUpdates: make(chan *Update, 100),
+		devices:         map[string]*hubDevice{},
+		bridges:         map[string]*hubBridge{},
 	}
+
+	go ret.processUpdates()
+
+	return ret
 }
 
 // ListDevices returns the set of currently managed devices and their currently known states
 func (h *Hub) ListDevices() ([]*Device, error) {
 	resp := []*Device{}
 
-	h.devicesMutex.Lock()
-	defer h.devicesMutex.Unlock()
+	h.devicesMutex.RLock()
+	defer h.devicesMutex.RUnlock()
 	for _, device := range h.devices {
 		resp = append(resp, proto.Clone(device.d).(*Device))
 	}
@@ -77,8 +86,8 @@ func (h *Hub) ListDevices() ([]*Device, error) {
 
 // GetDevice retrieves the specified device.
 func (h *Hub) GetDevice(id string) (*Device, error) {
-	h.devicesMutex.Lock()
-	defer h.devicesMutex.Unlock()
+	h.devicesMutex.RLock()
+	defer h.devicesMutex.RUnlock()
 
 	if device, found := h.devices[id]; found {
 		// We clone the item before returning to avoid issues with sets being ignored.
@@ -90,11 +99,11 @@ func (h *Hub) GetDevice(id string) (*Device, error) {
 
 // UpdateDeviceConfig updates the specified device with the provided config.
 func (h *Hub) UpdateDeviceConfig(ctx context.Context, id string, config *DeviceConfig) (*Device, error) {
-	h.devicesMutex.Lock()
-	defer h.devicesMutex.Unlock()
+	// This is only a read lock since we aren't mutating the device here - we just require it not change during our call.
+	h.devicesMutex.RLock()
+	defer h.devicesMutex.RUnlock()
 
 	hd, found := h.devices[id]
-
 	if !found {
 		return nil, ErrDeviceNotFound.Err()
 	}
@@ -130,11 +139,11 @@ func (h *Hub) UpdateDeviceConfig(ctx context.Context, id string, config *DeviceC
 
 // UpdateDeviceState updates the specified device with the provided state.
 func (h *Hub) UpdateDeviceState(ctx context.Context, id string, state *DeviceState) (*Device, error) {
-	h.devicesMutex.Lock()
-	defer h.devicesMutex.Unlock()
+	// This is only a read lock since we aren't mutating the device here - we just require it not change during our call.
+	h.devicesMutex.RLock()
+	defer h.devicesMutex.RUnlock()
 
 	hd, found := h.devices[id]
-
 	if !found {
 		return nil, ErrDeviceNotFound.Err()
 	}
@@ -170,8 +179,8 @@ func (h *Hub) UpdateDeviceState(ctx context.Context, id string, state *DeviceSta
 
 // Bridge allows the caller to retrieve the bridge information, if present.
 func (h *Hub) Bridge(id string) (*Bridge, error) {
-	h.bridgesMutex.Lock()
-	defer h.bridgesMutex.Unlock()
+	h.bridgesMutex.RLock()
+	defer h.bridgesMutex.RUnlock()
 
 	if hb, found := h.bridges[id]; found {
 		return hb.b, nil
@@ -183,6 +192,9 @@ func (h *Hub) Bridge(id string) (*Bridge, error) {
 // AddBridge takes the supplied bridge services client, checks to see if it is already present,
 // and if not adds the bridge client to the set of bridges active.
 func (h *Hub) AddBridge(c BridgeServiceClient) error {
+	// This method is the one exception to the case of writes occurring in the processing goroutine.
+	// Because we are not talking about 'updates' to a bridge but actual editing the bridge set, we
+	// lock the bridge map for writing here.
 	h.bridgesMutex.Lock()
 	defer h.bridgesMutex.Unlock()
 
@@ -203,12 +215,9 @@ func (h *Hub) AddBridge(c BridgeServiceClient) error {
 		b: brInfo,
 		c: c,
 	}
+	h.bridges[hb.b.Id] = hb
 
-	bridgeID := brInfo.Id
-	logger := h.logger.With(zap.String("bridge_id", bridgeID))
-	h.bridges[bridgeID] = hb
-
-	h.updateSource.SendMessage(&Update{
+	h.internalUpdates <- &Update{
 		Action: Update_ADDED,
 		Update: &Update_BridgeUpdate{
 			&BridgeUpdate{
@@ -216,63 +225,81 @@ func (h *Hub) AddBridge(c BridgeServiceClient) error {
 				BridgeId: hb.b.Id,
 			},
 		},
-	})
+	}
 
 	for _, device := range brInfo.Devices {
-		h.processUpdate(hb, &Update{
+		h.internalUpdates <- &Update{
 			Action: Update_ADDED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
 					Device:   device,
 					DeviceId: device.Id,
+					BridgeId: hb.b.Id,
 				},
 			},
-		})
+		}
 	}
 
-	go func(h *Hub, hb *hubBridge) {
-		ctx, cancel := context.WithCancel(context.Background())
-		hb.streamCancel = cancel
-		defer cancel()
+	go h.processBridgeStream(hb)
 
-		stream, err := hb.c.StreamBridgeUpdates(ctx, &StreamBridgeUpdatesRequest{})
-		if err != nil {
-			logger.Error("error attempting to stream bridge updates",
-				zap.Error(err),
-			)
+	return nil
+}
+
+func (h *Hub) processBridgeStream(hb *hubBridge) {
+	ctx, cancel := context.WithCancel(context.Background())
+	hb.streamCancel = cancel
+	defer func() {
+		if hb.streamCancel != nil {
+			hb.streamCancel()
+			hb.streamCancel = nil
+		}
+	}()
+
+	logger := h.logger.With(zap.String("bridge_id", hb.b.Id))
+
+	stream, err := hb.c.StreamBridgeUpdates(ctx, &StreamBridgeUpdatesRequest{})
+	if err != nil {
+		logger.Error("error attempting to stream bridge updates",
+			zap.Error(err),
+		)
+		return
+	}
+
+	for {
+		msg, err := stream.Recv()
+
+		if ctx.Err() == context.Canceled {
+			// If we are seeing a cancelled error here we have already removed the bridge.
+			// Simply exit the steam.
+			logger.Info("bridge stream cancelled")
 			return
 		}
 
-		for {
-			msg, err := stream.Recv()
+		if err == io.EOF {
+			logger.Info("bridge connection went away")
 
-			if ctx.Err() == context.Canceled {
-				// If we are seeing a cancelled error here we have already removed the bridge.
-				// Simply exit the steam.
-				logger.Info("bridge stream cancelled")
-				return
-			}
+			// We assume that a bridge whose stream is gone is unavailable
+			h.RemoveBridge(hb.b.Id)
+			return
+		} else if err != nil {
+			logger.Error("error watching bridge, removing",
+				zap.Error(err),
+			)
 
-			if err == io.EOF {
-				logger.Info("bridge connection went away")
-
-				// We assume that a bridge whose stream is gone is unavailable
-				h.RemoveBridge(bridgeID)
-				return
-			} else if err != nil {
-				logger.Error("error watching bridge, removing",
-					zap.Error(err),
-				)
-
-				// We assume that a bridge whose stream has an error is unavailable
-				h.RemoveBridge(bridgeID)
-				return
-			}
-
-			h.processUpdate(hb, msg)
+			// We assume that a bridge whose stream has an error is unavailable
+			h.RemoveBridge(hb.b.Id)
+			return
 		}
-	}(h, hb)
-	return nil
+
+		// Guard against remote services which don't properly annotate the update.
+		if msg.GetBridgeUpdate() != nil {
+			msg.GetBridgeUpdate().BridgeId = hb.b.Id
+		} else if msg.GetDeviceUpdate() != nil {
+			msg.GetDeviceUpdate().BridgeId = hb.b.Id
+		}
+
+		h.internalUpdates <- msg
+	}
 }
 
 // RemoveBridge takes the specified bridge ID out of the system.
@@ -280,55 +307,51 @@ func (h *Hub) AddBridge(c BridgeServiceClient) error {
 // This will trigger a state change for any devices owned by this bridge, marking them as offline.
 // Removing a bridge does not remove the device, as it is expected that a bridge going away is temporary.
 func (h *Hub) RemoveBridge(id string) error {
-	h.bridgesMutex.Lock()
-	defer h.bridgesMutex.Unlock()
+	h.bridgesMutex.RLock()
+	defer h.bridgesMutex.RUnlock()
 
 	hb, found := h.bridges[id]
 	if !found {
+		h.logger.Info("removing a bridge that is already gone",
+			zap.String("bridge_id", id),
+		)
 		return ErrBridgeNotFound.Err()
 	}
 
-	deviceIDs := []string{}
 	// We mark all of the devices owned by this bridge as unavailable
-	h.devicesMutex.Lock()
+	h.devicesMutex.RLock()
+	defer h.devicesMutex.RUnlock()
 	for deviceID, hd := range h.devices {
 		if hd.hb != hb {
 			continue
 		}
 
-		deviceIDs = append(deviceIDs, deviceID)
 		h.devices[deviceID].d.State.IsReachable = false
-	}
-	h.devicesMutex.Unlock()
 
-	// processUpdate() locks the devices map - we retrieved the known set of devices above
-	// and the iterate through them here to ensure no deadlocks.
-	for _, deviceID := range deviceIDs {
-		h.processUpdate(hb, &Update{
+		h.internalUpdates <- &Update{
 			Action: Update_CHANGED,
 			Update: &Update_DeviceUpdate{
 				&DeviceUpdate{
 					Device:   h.devices[deviceID].d,
 					DeviceId: deviceID,
+					BridgeId: hb.b.Id,
 				},
 			},
-		})
+		}
 	}
 
-	// Next we remove this bridge from the set
-	delete(h.bridges, id)
-
-	h.updateSource.SendMessage(&Update{
+	h.internalUpdates <- &Update{
 		Action: Update_REMOVED,
 		Update: &Update_BridgeUpdate{
 			&BridgeUpdate{
 				BridgeId: hb.b.Id,
 			},
 		},
-	})
+	}
 
 	if hb.streamCancel != nil {
 		hb.streamCancel()
+		hb.streamCancel = nil
 	}
 
 	return nil
@@ -340,6 +363,7 @@ func (h *Hub) Updates() <-chan *Update {
 
 	go func() {
 		sink := h.updateSource.NewSink()
+		defer sink.Close()
 		for {
 			u, ok := <-sink.Messages()
 			if !ok {
@@ -359,66 +383,102 @@ func (h *Hub) Updates() <-chan *Update {
 	return ret
 }
 
-func (h *Hub) processUpdate(hb *hubBridge, u *Update) {
-	if u.GetBridgeUpdate() != nil {
-		h.logger.Info("bridge updated",
-			zap.String("action", u.Action.String()),
-			zap.String("bridge_info", u.GetBridgeUpdate().Bridge.String()),
-		)
+func (h *Hub) processUpdates() {
+	// Since any action in this method is the only one manipulating the maps (except for bridge add)
+	// we can be guaranteed that map entries will exist or will not; we don't need to guard them at check time.
+	// We do, however, need to guard writes as other callers may be reading the map values.
+	for {
+		update := <-h.internalUpdates
 
-		h.bridgesMutex.Lock()
-		hb.b = u.GetBridgeUpdate().Bridge
-		h.bridgesMutex.Unlock()
-	} else if u.GetDeviceUpdate() != nil {
-		if u.GetDeviceUpdate().Device == nil && len(u.GetDeviceUpdate().DeviceId) < 1 {
-			h.logger.Info("received malformed device update, ignoring",
-				zap.String("msg", u.String()),
-				zap.String("action", u.Action.String()),
-				zap.String("bridge_id", u.GetDeviceUpdate().BridgeId),
+		// Process bridge updates
+		if update.GetBridgeUpdate() != nil {
+			h.logger.Info("bridge update",
+				zap.String("action", update.Action.String()),
+				zap.String("bridge_id", update.GetBridgeUpdate().BridgeId),
 			)
-			return
+
+			// Added updates are already handled by the caller.
+			if update.Action == Update_CHANGED {
+				h.bridgesMutex.Lock()
+				if hb, found := h.bridges[update.GetBridgeUpdate().BridgeId]; found {
+					hb.b = proto.Clone(update.GetBridgeUpdate().Bridge).(*Bridge)
+				} else {
+					h.logger.Info("received bridge changed call for non-existent bridge",
+						zap.String("bridge_id", update.GetBridgeUpdate().BridgeId),
+					)
+				}
+				h.bridgesMutex.Unlock()
+			} else if update.Action == Update_REMOVED {
+				h.bridgesMutex.Lock()
+				delete(h.bridges, update.GetBridgeUpdate().BridgeId)
+				h.bridgesMutex.Unlock()
+			}
+
+			// Pass this through to the external update channel for refreshing.
+			h.updateSource.SendMessage(update)
+			continue
 		}
 
-		deviceID := u.GetDeviceUpdate().DeviceId
-		if u.GetDeviceUpdate().Device != nil {
-			deviceID = u.GetDeviceUpdate().Device.Id
-		}
-
-		h.logger.Info("device updated",
-			zap.String("action", u.Action.String()),
-			zap.String("bridge_id", u.GetDeviceUpdate().BridgeId),
-			zap.String("device_id", deviceID),
-			zap.String("device_info", u.GetDeviceUpdate().Device.String()),
-		)
-
-		h.devicesMutex.Lock()
-		switch u.Action {
-		case Update_ADDED:
-			if hubd, found := h.devices[deviceID]; found {
-				h.logger.Info("received an 'added' event for a device ID already present, replacing",
-					zap.String("device_id", deviceID),
-					zap.String("existing_bridge_id", hubd.hb.b.Id),
-					zap.String("new_bridge_id", u.GetDeviceUpdate().BridgeId),
+		// Process device updates
+		if deviceUpdate := update.GetDeviceUpdate(); deviceUpdate != nil {
+			if deviceUpdate.Device == nil && len(deviceUpdate.DeviceId) < 1 {
+				h.logger.Info("received malformed device update, ignoring",
+					zap.String("msg", update.String()),
+					zap.String("action", update.Action.String()),
+					zap.String("bridge_id", deviceUpdate.BridgeId),
 				)
+				return
+			}
 
-				delete(h.devices, deviceID)
+			if deviceUpdate.Device != nil {
+				deviceUpdate.DeviceId = deviceUpdate.Device.Id
 			}
-			h.devices[deviceID] = &hubDevice{
-				d:  proto.Clone(u.GetDeviceUpdate().Device).(*Device),
-				hb: hb,
-			}
-		case Update_REMOVED:
-			delete(h.devices, deviceID)
-		case Update_CHANGED:
-			h.devices[deviceID].d = proto.Clone(u.GetDeviceUpdate().Device).(*Device)
-		default:
-			h.logger.Info("received update with unsupported action",
-				zap.Int("action", int(u.Action)),
+			deviceID := deviceUpdate.DeviceId
+
+			h.logger.Info("device update",
+				zap.String("action", update.Action.String()),
+				zap.String("bridge_id", deviceUpdate.BridgeId),
+				zap.String("device_id", deviceID),
 			)
-		}
-		h.devicesMutex.Unlock()
 
-		// Pass this through to the external update channel for refreshing.
-		h.updateSource.SendMessage(u)
+			hb, found := h.bridges[deviceUpdate.BridgeId]
+			if !found {
+				h.logger.Info("received device update for non-existent bridge",
+					zap.String("device_id", deviceID),
+					zap.String("bridge_id", deviceUpdate.BridgeId),
+				)
+				continue
+			}
+
+			h.devicesMutex.Lock()
+			switch update.Action {
+			case Update_ADDED:
+				if hubd, found := h.devices[deviceID]; found {
+					h.logger.Info("received an 'added' event for a device ID already present, replacing",
+						zap.String("device_id", deviceID),
+						zap.String("bridge_id", hubd.hb.b.Id),
+					)
+
+					delete(h.devices, deviceID)
+				}
+				h.devices[deviceID] = &hubDevice{
+					d:  proto.Clone(deviceUpdate.Device).(*Device),
+					hb: hb,
+				}
+			case Update_REMOVED:
+				delete(h.devices, deviceID)
+			case Update_CHANGED:
+				h.devices[deviceID].d = proto.Clone(deviceUpdate.Device).(*Device)
+			default:
+				h.logger.Info("received update with unsupported action",
+					zap.Int("action", int(update.Action)),
+				)
+			}
+			h.devicesMutex.Unlock()
+
+			// Pass this through to the external update channel for refreshing.
+			h.updateSource.SendMessage(update)
+			continue
+		}
 	}
 }
