@@ -86,6 +86,7 @@ message DeviceState {
     Range range = 12;
 
     message ColorRGB {
+        // These values are stored between 0 and 255 each.
         int32 red = 1;
         int32 green = 2;
         int32 blue = 3;
@@ -93,8 +94,11 @@ message DeviceState {
     ColorRGB color_rgb = 13;
 
     message ColorHSB {
+        // In degrees - between 0 and 360
         int32 hue = 1;
+        // In percent - between 0 and 100
         int32 saturation = 2;
+        // In percent - between 0 and 100
         int32 brightness = 3;
     }
     ColorHSB color_hsb = 14;
@@ -143,6 +147,9 @@ message DeviceState {
     }
     StereoAudio stereo_audio = 22;
 
+    // The color temperature in Kelvin
+    int32 color_temperature = 23;
+
     Version version = 100;
 }
 
@@ -187,6 +194,13 @@ message Device {
         int32 maximum = 1;
     }
     Speed speed = 102;
+
+    // The range of color temperatures supported.
+    message ColorTemperature {
+        int32 minimum = 1;
+        int32 maximum = 2;
+    }
+    ColorTemperature color_temperature = 103;
 
     DeviceConfig config = 200;
     DeviceState state = 201;

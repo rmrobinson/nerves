@@ -33,9 +33,19 @@ func NewNanoleaf(logger *zap.Logger, id string, c *nanoleaf.Client) *Nanoleaf {
 
 func panelToDevice(p *nanoleaf.LightPanel) *bridge.Device {
 	return &bridge.Device{
-		Id:       fmt.Sprintf("%s", p.SerialNumber),
-		IsActive: true,
-		Type:     bridge.DeviceType_LIGHT,
+		Id:           fmt.Sprintf("%s", p.SerialNumber),
+		Type:         bridge.DeviceType_LIGHT,
+		IsActive:     true,
+		ModelId:      p.ModelNumber,
+		Manufacturer: p.Manufacturer,
+		Range: &bridge.Device_Range{
+			Minimum: int32(p.State.Brightness.Min),
+			Maximum: int32(p.State.Brightness.Max),
+		},
+		ColorTemperature: &bridge.Device_ColorTemperature{
+			Minimum: int32(p.State.CT.Min),
+			Maximum: int32(p.State.CT.Max),
+		},
 		Config: &bridge.DeviceConfig{
 			Name: p.Name,
 		},
@@ -43,6 +53,9 @@ func panelToDevice(p *nanoleaf.LightPanel) *bridge.Device {
 			IsReachable: true,
 			Binary: &bridge.DeviceState_Binary{
 				IsOn: p.State.On.Value,
+			},
+			Range: &bridge.DeviceState_Range{
+				Value: int32(p.State.Brightness.Value),
 			},
 			ColorHsb: &bridge.DeviceState_ColorHSB{
 				Hue:        int32(p.State.Hue.Value),
@@ -220,8 +233,7 @@ func (n *Nanoleaf) UpdateDeviceState(ctx context.Context, req *bridge.UpdateDevi
 	return device, nil
 }
 
-// StreamBridgeUpdates monitors changes for all changes which occur on the
-// This will only pick up successful device writes.
+// StreamBridgeUpdates monitors changes for all changes which occur on the bridge.
 func (n *Nanoleaf) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, stream bridge.BridgeService_StreamBridgeUpdatesServer) error {
 	peer, isOk := peer.FromContext(stream.Context())
 
@@ -235,6 +247,7 @@ func (n *Nanoleaf) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, s
 	logger.Debug("bridge update stream initiated")
 
 	sink := n.updates.NewSink()
+	defer sink.Close()
 
 	// Send the device info to start.
 
@@ -252,6 +265,7 @@ func (n *Nanoleaf) StreamBridgeUpdates(req *bridge.StreamBridgeUpdatesRequest, s
 		Update: &bridge.Update_DeviceUpdate{
 			DeviceUpdate: &bridge.DeviceUpdate{
 				Device:   device,
+				DeviceId: device.Id,
 				BridgeId: n.id,
 			},
 		},
