@@ -617,6 +617,13 @@ def go_repositories():
         version = "v1.0.0",
     )
     go_repository(
+        name = "com_github_rmrobinson_deconz_go",
+        importpath = "github.com/rmrobinson/deconz-go",
+        sum = "h1:kzmCvUtc+M5++GkPdPZ+yOREqcHNWsl7Z7b63dA82Ts=",
+        version = "v0.0.0-20210102184101-18e4e41f8402",
+    )
+
+    go_repository(
         name = "com_github_rmrobinson_google_smart_home_action_go",
         importpath = "github.com/rmrobinson/google-smart-home-action-go",
         sum = "h1:5pDOTyInRkM8wo+8pc4nK9cqqL3nuvN4CzEvbZPxs2k=",
