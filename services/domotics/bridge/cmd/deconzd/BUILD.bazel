@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "deconzd_lib",
+    srcs = [
+        "color.go",
+        "main.go",
+        "service.go",
+    ],
+    importpath = "github.com/rmrobinson/nerves/services/domotics/bridge/cmd/deconzd",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//lib/stream",
+        "//services/domotics/bridge",
+        "@com_github_gorilla_websocket//:websocket",
+        "@com_github_lucasb_eyer_go_colorful//:go-colorful",
+        "@com_github_rmrobinson_deconz_go//:deconz-go",
+        "@com_github_spf13_viper//:viper",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//peer",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_binary(
+    name = "deconzd",
+    embed = [":deconzd_lib"],
+    visibility = ["//visibility:public"],
+)
