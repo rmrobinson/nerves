@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/rmrobinson/deconz-go"
@@ -440,7 +441,7 @@ func (s *Service) UpdateDeviceState(ctx context.Context, req *bridge.UpdateDevic
 		}
 
 		if req.State.Range != nil {
-			stateReq.Brightness = int(req.State.Range.Value)
+			stateReq.Brightness = int(float64(req.State.Range.Value))
 		}
 		if req.State.ColorHsb != nil {
 			// If we already have things in XY, convert to XY ahead of writing
@@ -473,6 +474,14 @@ func (s *Service) UpdateDeviceState(ctx context.Context, req *bridge.UpdateDevic
 		} else if req.State.ColorTemperature != 0 {
 			stateReq.CT = int(req.State.ColorTemperature)
 		}
+
+		s.logger.Debug("about to change light state",
+			zap.String("device_id", req.Id),
+			zap.String("path_id", id),
+			zap.String("name", light.Name),
+			zap.String("orig_req", spew.Sdump(req.State)),
+			zap.String("conv_req", spew.Sdump(stateReq)),
+		)
 
 		err = s.c.SetLightState(ctx, id, stateReq)
 

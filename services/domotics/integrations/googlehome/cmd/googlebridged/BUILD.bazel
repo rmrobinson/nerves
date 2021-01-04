@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//services/domotics/bridge",
         "//services/domotics/integrations/googlehome",
+        "@com_github_davecgh_go_spew//spew",
         "@com_github_google_uuid//:uuid",
         "@com_github_rmrobinson_google_smart_home_action_go//:google-smart-home-action-go",
         "@org_golang_google_grpc//:go_default_library",

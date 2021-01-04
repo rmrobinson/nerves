@@ -84,7 +84,6 @@ func (m *Monitor) ssdpAlive(msg *ssdp.AliveMessage) {
 		}
 	}
 
-	logger.Debug("node is alive")
 	connStr := msg.Location
 	if strings.HasPrefix(connStr, "grpc://") {
 		connStr = strings.TrimPrefix(connStr, "grpc://")

@@ -211,9 +211,9 @@ func (m *MockProvider) Execute(_ context.Context, req *action.ExecuteRequest) (*
 						resp.UpdatedState.RecordBrightness(device.Brightness)
 						m.lights[deviceArg.ID] = device
 					} else if command.ColorAbsolute != nil {
-						device.Color.Hue = command.ColorAbsolute.HSV.Hue
-						device.Color.Saturation = command.ColorAbsolute.HSV.Saturation
-						device.Color.Value = command.ColorAbsolute.HSV.Value
+						device.Color.Hue = command.ColorAbsolute.Color.HSV.Hue
+						device.Color.Saturation = command.ColorAbsolute.Color.HSV.Saturation
+						device.Color.Value = command.ColorAbsolute.Color.HSV.Value
 						resp.UpdatedState.RecordColorHSV(device.Color.Hue, device.Color.Saturation, device.Color.Value)
 						m.lights[deviceArg.ID] = device
 					} else {

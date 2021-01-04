@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -134,14 +133,7 @@ func main() {
 
 	bridgeClient := bridge.NewBridgeServiceClient(conn)
 
-	info := &bridge.Bridge{
-		Id:           uuid.New().String(),
-		ModelId:      "bc1",
-		ModelName:    "bridgecli",
-		Manufacturer: "Faltung Systems",
-	}
-
-	h := bridge.NewHub(logger, info)
+	h := bridge.NewHub(logger)
 	h.AddBridge(bridgeClient)
 
 	time.Sleep(time.Second)

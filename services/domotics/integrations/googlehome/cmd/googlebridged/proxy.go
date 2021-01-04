@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	action "github.com/rmrobinson/google-smart-home-action-go"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
@@ -23,16 +24,19 @@ type Proxy struct {
 	agentID     string
 
 	wait chan struct{}
+
+	unsupportedDeviceIDs map[string]bool
 }
 
 // NewProxy creates a new proxy
 func NewProxy(logger *zap.Logger, h *bridge.Hub, relayClient googlehome.GoogleHomeServiceClient, agentID string) *Proxy {
 	return &Proxy{
-		logger:      logger,
-		h:           h,
-		relayClient: relayClient,
-		agentID:     agentID,
-		wait:        make(chan struct{}),
+		logger:               logger,
+		h:                    h,
+		relayClient:          relayClient,
+		agentID:              agentID,
+		wait:                 make(chan struct{}),
+		unsupportedDeviceIDs: map[string]bool{},
 	}
 }
 
@@ -114,6 +118,11 @@ func (p *Proxy) processHubUpdates(relayStream googlehome.GoogleHomeService_State
 						zap.String("device_id", deviceUpdate.DeviceId),
 					)
 					continue
+				} else if _, found := p.unsupportedDeviceIDs[deviceUpdate.DeviceId]; found {
+					p.logger.Debug("received update for unsupported device id, ignoring",
+						zap.String("device_id", deviceUpdate.DeviceId),
+					)
+					continue
 				}
 
 				updatedState, err := bridgeToGoogleState(deviceUpdate.GetDevice())
@@ -176,6 +185,8 @@ func (p *Proxy) processSyncRequest() *googlehome.SyncResponse {
 				p.logger.Info("device not supported",
 					zap.String("device_id", d.Id),
 				)
+
+				p.unsupportedDeviceIDs[d.Id] = true
 				continue
 			}
 
@@ -290,7 +301,8 @@ func (p *Proxy) processExecuteRequest(msg *googlehome.ExecuteRequest) *googlehom
 			} else if actionCmd.BrightnessAbsolute != nil {
 				for _, d := range devices {
 					if d.State.Range != nil {
-						d.State.Range.Value = int32(actionCmd.BrightnessAbsolute.Brightness)
+						// This comes in as a %; we need to adjust for the fact the range may be larger than 100
+						d.State.Range.Value = int32(float64(actionCmd.BrightnessAbsolute.Brightness) * float64(d.Range.Maximum) / float64(100.0))
 					}
 				}
 			} else if actionCmd.BrightnessRelative != nil {
@@ -306,13 +318,13 @@ func (p *Proxy) processExecuteRequest(msg *googlehome.ExecuteRequest) *googlehom
 			} else if actionCmd.ColorAbsolute != nil {
 				for _, d := range devices {
 					if d.State.ColorHsb != nil {
-						d.State.ColorHsb.Brightness = int32(actionCmd.ColorAbsolute.HSV.Value)
-						d.State.ColorHsb.Hue = int32(actionCmd.ColorAbsolute.HSV.Hue)
-						d.State.ColorHsb.Saturation = int32(actionCmd.ColorAbsolute.HSV.Saturation)
+						d.State.ColorHsb.Hue = int32(actionCmd.ColorAbsolute.Color.HSV.Hue)
+						d.State.ColorHsb.Saturation = int32(actionCmd.ColorAbsolute.Color.HSV.Saturation * float64(100.0))
+						d.State.ColorHsb.Brightness = int32(actionCmd.ColorAbsolute.Color.HSV.Value * float64(100.0))
 					} else if d.State.ColorRgb != nil {
-						d.State.ColorRgb.Red = (int32(actionCmd.ColorAbsolute.RGB) >> 16) & 0x0ff
-						d.State.ColorRgb.Green = (int32(actionCmd.ColorAbsolute.RGB) >> 8) & 0x0ff
-						d.State.ColorRgb.Blue = int32(actionCmd.ColorAbsolute.RGB) & 0x0ff
+						d.State.ColorRgb.Red = (int32(actionCmd.ColorAbsolute.Color.RGB) >> 16) & 0x0ff
+						d.State.ColorRgb.Green = (int32(actionCmd.ColorAbsolute.Color.RGB) >> 8) & 0x0ff
+						d.State.ColorRgb.Blue = int32(actionCmd.ColorAbsolute.Color.RGB) & 0x0ff
 					}
 				}
 			}
@@ -325,6 +337,8 @@ func (p *Proxy) processExecuteRequest(msg *googlehome.ExecuteRequest) *googlehom
 			if err != nil {
 				p.logger.Info("error updating state",
 					zap.String("device_id", deviceID),
+					zap.String("cmd", spew.Sdump(cmd.ExecutionContext)),
+					zap.String("state", spew.Sdump(d.State)),
 					zap.Error(err),
 				)
 				failedDeviceIDs = append(failedDeviceIDs, deviceID)
@@ -502,7 +516,8 @@ func bridgeToGoogleState(d *bridge.Device) (action.DeviceState, error) {
 		}
 		if d.State.ColorHsb != nil {
 			// nerves uses 'HSB' while Google uses 'HSV'. These are synonymous and neither are HSL (which is different).
-			ads.RecordColorHSV(float64(d.State.ColorHsb.Hue), float64(d.State.ColorHsb.Saturation), float64(d.State.ColorHsb.Brightness))
+			// The range for Saturation and Brightness is [0.0, 1.0] while the range for Hue is [0,360)
+			ads.RecordColorHSV(float64(d.State.ColorHsb.Hue), float64(d.State.ColorHsb.Saturation)/float64(100.0), float64(d.State.ColorHsb.Brightness)/float64(100.0))
 		} else if d.State.ColorRgb != nil {
 			rgb := ((d.State.ColorRgb.Red & 0x0ff) << 16) | ((d.State.ColorRgb.Green & 0x0ff) << 8) | (d.State.ColorRgb.Blue & 0x0ff)
 			ads.RecordColorRGB(int(rgb))

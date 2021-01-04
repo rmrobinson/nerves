@@ -80,5 +80,4 @@ func main() {
 	bridge.RegisterBridgeServiceServer(grpcServer, ds)
 	bridge.RegisterPingServiceServer(grpcServer, ad)
 	grpcServer.Serve(lis)
-
 }

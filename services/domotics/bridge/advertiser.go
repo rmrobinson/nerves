@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/koron/go-ssdp"
@@ -81,6 +82,11 @@ func (a *Advertiser) Run() {
 				}
 			}
 		}
+	}
+
+	// We need to use square braces to distinguish the IP colons from the port when forming a location
+	if strings.Contains(locationAddr, ":") {
+		locationAddr = "[" + locationAddr + "]"
 	}
 
 	usn := fmt.Sprintf("uuid:%s", a.id)

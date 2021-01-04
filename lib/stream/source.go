@@ -49,9 +49,7 @@ func (s *Source) SendMessage(msg proto.Message) {
 		// Try to write the message to the sink or log that the write failed
 		select {
 		case sink.channel <- msg:
-			s.logger.Debug("sending message",
-				zap.String("channel_id", sink.id),
-			)
+			// Add logging here if needed
 		default:
 			s.logger.Debug("channel blocked",
 				zap.String("channel_id", sink.id),

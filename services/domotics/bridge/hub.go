@@ -44,7 +44,6 @@ type hubDevice struct {
 // Updates are published to this source by a single goroutine which 'owns' changing the bridge and device maps.
 type Hub struct {
 	logger          *zap.Logger
-	hubInfo         *Bridge
 	updateSource    *stream.Source
 	internalUpdates chan *Update
 
@@ -56,10 +55,9 @@ type Hub struct {
 }
 
 // NewHub creates a new hub with the supplied logger.
-func NewHub(logger *zap.Logger, hubInfo *Bridge) *Hub {
+func NewHub(logger *zap.Logger) *Hub {
 	ret := &Hub{
 		logger:          logger,
-		hubInfo:         hubInfo,
 		updateSource:    stream.NewSource(logger),
 		internalUpdates: make(chan *Update, 100),
 		devices:         map[string]*hubDevice{},

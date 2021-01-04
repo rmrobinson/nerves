@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//lib/stream",
         "//services/domotics/bridge",
+        "@com_github_davecgh_go_spew//spew",
         "@com_github_gorilla_websocket//:websocket",
         "@com_github_lucasb_eyer_go_colorful//:go-colorful",
         "@com_github_rmrobinson_deconz_go//:deconz-go",

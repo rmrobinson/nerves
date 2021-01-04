@@ -3,6 +3,7 @@ module github.com/rmrobinson/nerves
 go 1.14
 
 require (
+	cloud.google.com/go v0.74.0 // indirect
 	github.com/PuerkitoBio/goquery v1.5.1 // indirect
 	github.com/andybalholm/cascadia v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -10,8 +11,8 @@ require (
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gdamore/tcell v1.3.0
 	github.com/gocarina/gocsv v0.0.0-20200330101823-46266ca37bd3
-	github.com/golang/protobuf v1.4.2
-	github.com/google/uuid v1.1.2
+	github.com/golang/protobuf v1.4.3
+	github.com/google/uuid v1.1.3
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.0.0 // indirect
@@ -33,7 +34,7 @@ require (
 	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/rmrobinson/bottlerocket-go v1.0.0
 	github.com/rmrobinson/deconz-go v0.0.0-20210102184101-18e4e41f8402 // indirect
-	github.com/rmrobinson/google-smart-home-action-go v0.0.0-20201229024602-45f3901b56a9
+	github.com/rmrobinson/google-smart-home-action-go v0.0.0-20210104014003-093fc5a47d97
 	github.com/rmrobinson/hue-go v0.0.0-20180806152530-008c4367e329 // indirect
 	github.com/rmrobinson/monoprice-amp-go v0.0.0-20190217030552-ea909ba38552
 	github.com/rmrobinson/nanoleaf-go v0.0.0-20200909013515-04a8046581f1
@@ -46,13 +47,14 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
-	go.uber.org/atomic v1.6.0 // indirect
-	go.uber.org/multierr v1.5.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	google.golang.org/api v0.35.0
-	google.golang.org/grpc v1.31.1
+	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
+	golang.org/x/sys v0.0.0-20201231184435-2d18734c6014 // indirect
+	google.golang.org/api v0.36.0
+	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d // indirect
+	google.golang.org/grpc v1.34.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect

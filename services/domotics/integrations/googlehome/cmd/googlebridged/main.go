@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 
-	"github.com/google/uuid"
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
 	"github.com/rmrobinson/nerves/services/domotics/integrations/googlehome"
 	"go.uber.org/zap"
@@ -38,12 +37,7 @@ func main() {
 
 	bridgeClient := bridge.NewBridgeServiceClient(bridgeConn)
 
-	h := bridge.NewHub(logger, &bridge.Bridge{
-		Id:           uuid.New().String(),
-		ModelId:      "gb1",
-		ModelName:    "googlebridged",
-		Manufacturer: "Faltung Systems",
-	})
+	h := bridge.NewHub(logger)
 	h.AddBridge(bridgeClient)
 
 	relayConn, err := grpc.Dial(*relayAddr, opts...)

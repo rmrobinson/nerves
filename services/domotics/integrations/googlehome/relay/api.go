@@ -95,10 +95,15 @@ func (a *API) StateSync(stream googlehome.GoogleHomeService_StateSyncServer) err
 				)
 				continue
 			}
+			var deviceIDs []string
+			for deviceID := range deviceStates {
+				deviceIDs = append(deviceIDs, deviceID)
+			}
 			err = a.actionSvc.ReportState(stream.Context(), provider.agentID, deviceStates)
 			if err != nil {
 				a.logger.Error("unable to report state",
 					zap.String("agent_id", provider.agentID),
+					zap.Strings("device_ids", deviceIDs),
 					zap.Error(err),
 				)
 				continue

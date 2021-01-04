@@ -2,99 +2,18 @@ package main
 
 import (
 	"context"
-	"sync"
+	"net"
 
 	"github.com/rmrobinson/nerves/services/domotics/bridge"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-// HubMonitor is a hub-based implementation of a monitor.
-// Changes in monitor state will trigger attempts to connect to the new bridges.
-type HubMonitor struct {
-	logger     *zap.Logger
-	conns      map[string]*grpc.ClientConn
-	connsMutex sync.Mutex
-
-	hub *bridge.Hub
-}
-
-// Alive is called when a bridge is reporting itself as alive
-func (hm *HubMonitor) Alive(t string, id string, connStr string) {
-	hm.connsMutex.Lock()
-	defer hm.connsMutex.Unlock()
-
-	if t != "falnet_nerves:bridge" {
-		return
-	}
-
-	if conn, exists := hm.conns[id]; exists {
-		pingClient := bridge.NewPingServiceClient(conn)
-
-		_, err := pingClient.Ping(context.Background(), &bridge.PingRequest{})
-		if err == nil {
-			_, err := hm.hub.Bridge(id)
-			if err == bridge.ErrBridgeNotFound.Err() {
-				hm.logger.Info("adding bridge on existing connection",
-					zap.String("id", id),
-				)
-
-				hm.hub.AddBridge(bridge.NewBridgeServiceClient(conn))
-				return
-			}
-
-			hm.logger.Debug("ignoring advertisement as id already registered",
-				zap.String("id", id),
-				zap.String("conn_status", conn.GetState().String()),
-			)
-			return
-		}
-
-		hm.logger.Info("unable to make ping request on active conn, closing",
-			zap.String("id", id),
-			zap.Error(err),
-		)
-
-		conn.Close()
-		delete(hm.conns, id)
-	}
-
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-
-	conn, err := grpc.Dial(connStr, opts...)
-	if err != nil {
-		hm.logger.Error("unable to connect",
-			zap.String("conn_str", connStr),
-			zap.Error(err),
-		)
-		return
-	}
-
-	hm.hub.AddBridge(bridge.NewBridgeServiceClient(conn))
-	hm.conns[id] = conn
-}
-
-// GoingAway is called when a bridge is reporting itself as going aways
-func (hm *HubMonitor) GoingAway(id string) {
-	var conn *grpc.ClientConn
-	var exists bool
-
-	hm.connsMutex.Lock()
-	defer hm.connsMutex.Unlock()
-
-	if conn, exists = hm.conns[id]; !exists {
-		hm.logger.Debug("ignoring bye as id not registered",
-			zap.String("id", id),
-		)
-		return
-	}
-
-	hm.hub.RemoveBridge(id)
-
-	conn.Close()
-	delete(hm.conns, id)
-}
+const (
+	idEnvVar   = "ID"
+	portEnvVar = "PORT"
+)
 
 func main() {
 	logger, err := zap.NewDevelopment()
@@ -102,17 +21,47 @@ func main() {
 		panic(err)
 	}
 
-	hub := bridge.NewHub(logger, &bridge.Bridge{
-		Id: "todo",
-	})
+	viper.SetEnvPrefix("NVS")
+	viper.BindEnv(idEnvVar)
+	viper.BindEnv(portEnvVar)
+
+	brInfo := &bridge.Bridge{
+		Id:           viper.GetString(idEnvVar),
+		ModelId:      "hprox1",
+		ModelName:    "Proxy",
+		Manufacturer: "Faltung Systems",
+	}
+
+	hub := bridge.NewHub(logger)
 
 	hm := &HubMonitor{
 		logger: logger,
 		conns:  map[string]*grpc.ClientConn{},
 		hub:    hub,
+		brInfo: brInfo,
 	}
-	m := bridge.NewMonitor(logger, hm, []string{"falnet_nerves:bridge", "nanoleaf_aurora:light"})
+	m := bridge.NewMonitor(logger, hm, []string{"falnet_nerves:bridge"})
 
 	logger.Info("listening for bridges")
-	m.Run(context.Background())
+	go m.Run(context.Background())
+
+	lis, err := net.Listen("tcp", "0.0.0.0:"+viper.GetString(portEnvVar))
+	if err != nil {
+		logger.Fatal("error initializing listener",
+			zap.Error(err),
+		)
+	}
+	defer lis.Close()
+	logger.Info("listening",
+		zap.String("local_addr", lis.Addr().String()),
+	)
+
+	ad := bridge.NewAdvertiser(logger, hm.brInfo.Id, lis.Addr().String())
+	go ad.Run()
+	defer ad.Shutdown()
+
+	grpcServer := grpc.NewServer()
+	bridge.RegisterBridgeServiceServer(grpcServer, hm)
+	bridge.RegisterPingServiceServer(grpcServer, ad)
+	grpcServer.Serve(lis)
 }
