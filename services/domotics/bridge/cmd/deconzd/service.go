@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
@@ -108,6 +109,8 @@ func (s *Service) Run() error {
 	}
 	defer wsc.Close()
 
+	lastSentDeviceUpdate := map[string]string{}
+
 	for {
 		msg := &deconz.WebsocketUpdate{}
 		err := wsc.ReadJSON(msg)
@@ -167,6 +170,15 @@ func (s *Service) Run() error {
 					)
 					continue
 				}
+
+				if update, found := lastSentDeviceUpdate[msg.Meta.UniqueID]; found && update == device.String() {
+					s.logger.Debug("skipping update which has no changes",
+						zap.String("device_id", msg.Meta.UniqueID),
+					)
+					continue
+				}
+
+				lastSentDeviceUpdate[msg.Meta.UniqueID] = device.String()
 
 				s.updates.SendMessage(&bridge.Update{
 					Action: bridge.Update_CHANGED,
@@ -656,6 +668,10 @@ func lightToDevice(l *deconz.Light) *bridge.Device {
 		}
 	} else if l.State.ColorMode == "ct" {
 		ret.State.ColorTemperature = int32(l.State.CT)
+
+		if strings.Contains(strings.ToLower(l.Type), "color light") {
+			ret.State.ColorHsb = &bridge.DeviceState_ColorHSB{}
+		}
 	}
 
 	return ret
