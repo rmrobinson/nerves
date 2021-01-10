@@ -37,6 +37,7 @@ var (
 		Manufacturer:     "Monoprice",
 	}
 	baseMonopAmpDevice = &bridge.Device{
+		Type:             bridge.DeviceType_AV_RECEIVER,
 		ModelId:          "10761",
 		ModelName:        "Zone",
 		ModelDescription: "Monoprice Amp Zone",
@@ -175,6 +176,10 @@ func (b *MonopAmp) deviceFromAmp(device *bridge.Device) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if device.State == nil {
+		device.State = &bridge.DeviceState{}
 	}
 
 	device.State.Binary = &bridge.DeviceState_Binary{

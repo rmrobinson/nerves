@@ -35,6 +35,7 @@ var (
 		},
 	}
 	baseX10Device = &bridge.Device{
+		Type:             bridge.DeviceType_OUTLET,
 		ModelId:          "1",
 		ModelName:        "X10 Wall Unit",
 		ModelDescription: "Plug-in X10 control unit",
